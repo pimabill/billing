@@ -27,6 +27,8 @@ services:
 
   internal-tenant-db:
     image: postgres:15-alpine
+    # Every organisation's database lives here, and each API/worker process keeps a small pool per organisation.
+    command: postgres -c max_connections=${TENANT_DB_MAX_CONNECTIONS:-300}
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${TENANT_DB_PASSWORD:?Set TENANT_DB_PASSWORD in .env}
