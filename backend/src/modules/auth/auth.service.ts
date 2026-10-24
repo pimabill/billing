@@ -2,7 +2,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Injectable,
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as argon2 from 'argon2';
-import { createHash } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { MemberRole, Tenant, User } from '../../generated/prisma-central/client';
 import { CentralPrismaService } from '../../database/central-prisma.service';
 import { TenantDatabaseService } from '../../database/tenant-database.service';
@@ -13,6 +13,19 @@ import { derivedSecret, issuedBeforePasswordChange, passwordVersion } from '../.
 import { EmailService } from '../../services/email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { isSandbox, sandboxLinkSecret } from '../../config/sandbox';
+
+/** What live vouches for when someone switches to the sandbox. */
+interface SandboxLink {
+  typ: 'sandbox-link';
+  uid: string;
+  email: string;
+  name: string;
+  tid: string;
+  tname: string;
+  tslug: string;
+  role: MemberRole;
+}
 
 export interface TokenPair {
   accessToken: string;
@@ -180,6 +193,90 @@ export class AuthService {
     if (!user?.isActive || !membership?.tenant.isActive) throw new UnauthorizedException('Invalid refresh token');
     if (issuedBeforePasswordChange(payload, user.passwordChangedAt)) throw new UnauthorizedException('Your session has ended. Please sign in again.');
     return this.generateTokens(payload.sub, user);
+  }
+
+  // --- Sandbox ---
+
+  /** Live: a two-minute link that opens this person's account, in this organisation, on the sandbox. */
+  async sandboxLink(tenantId: string, userId: string): Promise<{ token: string }> {
+    const secret = sandboxLinkSecret();
+    if (isSandbox() || !secret) throw new ForbiddenException('Switching to the sandbox is not set up on this deployment');
+    const user = await this.activeUser(userId);
+    const membership = await this.db.membership.findUnique({ where: { userId_tenantId: { userId, tenantId } }, include: { tenant: true } });
+    if (!membership?.tenant.isActive) throw new ForbiddenException('You are not a member of that organisation');
+    const link: SandboxLink = {
+      typ: 'sandbox-link',
+      uid: user.id,
+      email: user.email,
+      name: user.name,
+      tid: membership.tenant.id,
+      tname: membership.tenant.name,
+      tslug: membership.tenant.slug,
+      role: membership.role,
+    };
+    return { token: this.jwtService.sign(link, { secret, expiresIn: '2m', algorithm: 'HS256', audience: 'sandbox' }) };
+  }
+
+  /**
+   * Sandbox: open the account a live link vouches for. The person and the
+   * organisation keep their live ids, so switching back and forth lands in the
+   * same place; their sandbox data is separate. The sandbox password is random:
+   * people sign in on live and switch.
+   */
+  async acceptSandboxLink(token: string) {
+    const secret = sandboxLinkSecret();
+    if (!isSandbox() || !secret) throw new ForbiddenException('This deployment is not a sandbox');
+    let link: SandboxLink;
+    try {
+      link = this.jwtService.verify<SandboxLink>(token, { secret, algorithms: ['HS256'], audience: 'sandbox' });
+    } catch {
+      throw new UnauthorizedException('This sandbox link is invalid or has expired; switch again');
+    }
+    if (link.typ !== 'sandbox-link') throw new UnauthorizedException('This sandbox link is invalid');
+
+    const email = link.email.trim().toLowerCase();
+    let user = await this.db.user.findUnique({ where: { email } });
+    if (!user) {
+      const password = await argon2.hash(randomBytes(32).toString('hex'));
+      user = await this.db.user.create({ data: { id: link.uid, email, name: link.name, password } });
+    }
+    if (!user.isActive) throw new UnauthorizedException('Account is deactivated');
+
+    let tenant = await this.db.tenant.findUnique({ where: { id: link.tid } });
+    if (!tenant) {
+      const slugTaken = await this.db.tenant.findUnique({ where: { slug: link.tslug } });
+      const apiKey = this.encryptionService.generateApiKey();
+      tenant = await this.db.tenant.create({
+        data: {
+          id: link.tid,
+          name: link.tname,
+          slug: slugTaken ? `${link.tslug}-${Date.now().toString(36)}` : link.tslug,
+          email,
+          apiKeyHash: hashApiKey(apiKey),
+          apiKeyLast4: lastFour(apiKey),
+          webhookSecret: this.encryptionService.generateWebhookSecret(),
+          settings: { ownerName: link.name },
+          tenantBilling: { create: { status: 'active' } },
+        },
+      });
+      try {
+        await this.tenantDb.createTenantDatabase(tenant.id);
+      } catch (error) {
+        this.logger.error('Failed to create the sandbox tenant database, cleaning up', error);
+        await this.db.tenant.delete({ where: { id: tenant.id } });
+        throw error;
+      }
+    }
+    if (!tenant.isActive) throw new UnauthorizedException('This organisation is deactivated in the sandbox');
+
+    const membership = await this.db.membership.upsert({
+      where: { userId_tenantId: { userId: user.id, tenantId: tenant.id } },
+      create: { userId: user.id, tenantId: tenant.id, role: link.role },
+      // The role follows live, so a change there applies on the next switch.
+      update: { role: link.role },
+    });
+    await this.db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    return { ...this.session(user, tenant, membership.role), ...this.generateTokens(tenant.id, user) };
   }
 
   // --- Invitations ---

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000";
+/** Portal links from the sandbox open here too; their tokens are only valid there. */
+const SANDBOX_BACKEND_URL = process.env.SANDBOX_BACKEND_URL || "";
 
 /**
  * Proxy for the hosted customer portal. It forwards a portal token (issued by
@@ -25,10 +27,11 @@ function portalToken(req: NextRequest): string | NextResponse {
 
 async function forward(path: string, token: string, init?: RequestInit) {
   try {
-    const res = await fetch(`${BACKEND_URL}${path}`, {
-      ...init,
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    });
+    const call = (base: string) =>
+      fetch(`${base}${path}`, { ...init, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" } });
+    let res = await call(BACKEND_URL);
+    // A token live did not issue may be a sandbox portal link.
+    if (res.status === 401 && SANDBOX_BACKEND_URL) res = await call(SANDBOX_BACKEND_URL);
     const contentType = res.headers.get("content-type") || "application/json";
     return new NextResponse(await res.arrayBuffer(), {
       status: res.status,

@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
-import { forwardSession } from "@/lib/server/session";
+import { forwardSession, setEnvironment } from "@/lib/server/session";
 
+// Everyone signs in on live; the sandbox is reached by switching.
 export async function POST(req: NextRequest) {
-  return forwardSession("/auth/login", await req.json());
+  const res = await forwardSession("/auth/login", await req.json());
+  if (res.ok) await setEnvironment("live");
+  return res;
 }

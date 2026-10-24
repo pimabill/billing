@@ -20,6 +20,13 @@ export class SwitchOrganisationDto {
   tenantId: string;
 }
 
+export class AcceptSandboxLinkDto {
+  @ApiProperty({ description: 'The link token from POST /auth/sandbox/link on live' })
+  @IsString()
+  @IsNotEmpty()
+  token: string;
+}
+
 export class CreateOrganisationDto {
   @ApiProperty({ example: 'Rapcio Ltd' })
   @IsString()

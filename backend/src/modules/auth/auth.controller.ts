@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Public } from '../../common/decorators/public.decorator';
 import { AuthService, TokenPair } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
-import { AcceptInvitationDto, CreateOrganisationDto, LoginDto, SwitchOrganisationDto } from './dto/login.dto';
+import { AcceptInvitationDto, AcceptSandboxLinkDto, CreateOrganisationDto, LoginDto, SwitchOrganisationDto } from './dto/login.dto';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RequirePermission } from '../../common/auth/permissions';
 import { RequestWithTenant } from '../../common/interfaces/request-with-tenant.interface';
@@ -15,6 +15,7 @@ import {
   MessageResponse,
   SessionResponse,
   InvitationInfoResponse,
+  SandboxLinkResponse,
 } from './dto/auth-response.dto';
 
 @ApiTags('Auth')
@@ -67,6 +68,27 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Signed in to the other organisation', type: LoginResponse })
   switch(@Req() req: RequestWithTenant, @Body() dto: SwitchOrganisationDto) {
     return this.authService.switchOrganisation(this.member(req).userId, dto.tenantId);
+  }
+
+  @Public()
+  @UseGuards(TenantGuard)
+  @Post('sandbox/link')
+  @RequirePermission('read')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Live only: a short-lived link that opens your account, in this organisation, on the sandbox' })
+  @ApiResponse({ status: 200, description: 'The link token, valid for two minutes', type: SandboxLinkResponse })
+  sandboxLink(@Req() req: RequestWithTenant) {
+    return this.authService.sandboxLink(req.tenant.id, this.member(req).userId);
+  }
+
+  @Public()
+  @Post('sandbox/accept')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Sandbox only: open the account a live link vouches for; returns sandbox tokens' })
+  @ApiResponse({ status: 200, description: 'Signed in to the sandbox', type: LoginResponse })
+  @ApiResponse({ status: 401, description: 'The link is invalid or has expired' })
+  acceptSandboxLink(@Body() dto: AcceptSandboxLinkDto) {
+    return this.authService.acceptSandboxLink(dto.token);
   }
 
   @Public()
