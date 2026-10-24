@@ -29,6 +29,8 @@ export class TenantDatabaseService implements OnModuleDestroy {
   private readonly opening: Map<string, Promise<PrismaClient>> = new Map();
   private readonly maxClients = Number(process.env.TENANT_CLIENT_CACHE_SIZE || 200);
   private readonly poolSize = Number(process.env.TENANT_POOL_SIZE || 5);
+  // Sweeps visit every tenant in turn; idle connections must close quickly or they pile up across tenants.
+  private readonly poolIdleMs = Number(process.env.TENANT_POOL_IDLE_MS || 10_000);
 
   constructor(
     private readonly centralPrisma: CentralPrismaService,
@@ -68,7 +70,7 @@ export class TenantDatabaseService implements OnModuleDestroy {
 
     const connectionUrl = this.encryptionService.decrypt(connection.connectionUrl);
 
-    const adapter = new PrismaPg({ connectionString: connectionUrl, max: this.poolSize, idleTimeoutMillis: 60_000 });
+    const adapter = new PrismaPg({ connectionString: connectionUrl, max: this.poolSize, idleTimeoutMillis: this.poolIdleMs });
     const client = new PrismaClient({ adapter });
 
     try {
