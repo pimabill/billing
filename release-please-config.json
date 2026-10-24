@@ -8,6 +8,7 @@
   "packages": {
     ".": {
       "package-name": "pimabill",
+      "initial-version": "0.1.0",
       "changelog-path": "CHANGELOG.md",
       "extra-files": [
         { "type": "json", "path": "backend/package.json", "jsonpath": "$.version" },
