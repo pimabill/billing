@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { decryptValue, encryptValue } from './crypto';
+import { apiKeyPrefix } from '../config/sandbox';
 
 @Injectable()
 export class EncryptionService {
@@ -25,7 +26,7 @@ export class EncryptionService {
 
   generateApiKey(): string {
     const randomPart: string = randomBytes(32).toString('hex');
-    return `sk_live_${randomPart}`;
+    return `${apiKeyPrefix()}${randomPart}`;
   }
 
   generateWebhookSecret(): string {

@@ -4,7 +4,11 @@ import * as nodemailer from 'nodemailer';
 import { CentralPrismaService } from '../database/central-prisma.service';
 import { getBrand } from '../config/brand';
 import { EncryptionService } from './encryption.service';
+import { isSandbox } from '../config/sandbox';
 import { resolvePublicHost } from '../common/net/safe-url';
+
+/** Sandbox emails say so in the subject, so nobody mistakes a test invoice for a real one. */
+const sandboxSubject = (subject: string) => (isSandbox() ? `[Sandbox] ${subject}` : subject);
 
 /** Ports a tenant's SMTP server may use. */
 export const SMTP_PORTS = [25, 465, 587, 2525];
@@ -131,6 +135,7 @@ export class EmailService {
     attachments?: { filename: string; content: string; contentType: string }[],
   ): Promise<void> {
     const { transporter, from } = await this.getTransporterForTenant(tenantId);
+    subject = sandboxSubject(subject);
 
     if (!transporter) {
       this.logger.warn(`Email not configured. Would send to ${to}: ${subject}`);
@@ -165,6 +170,7 @@ export class EmailService {
   /** Send ready-made HTML; false when neither the tenant nor the platform has SMTP set up. */
   async sendHtml(to: string, subject: string, html: string, tenantId?: string): Promise<boolean> {
     const { transporter, from } = await this.getTransporterForTenant(tenantId);
+    subject = sandboxSubject(subject);
     if (!transporter) {
       this.logger.warn(`Email not configured. Would send to ${to}: ${subject}`);
       return false;

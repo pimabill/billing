@@ -68,6 +68,7 @@ export const validationSchema = Joi.object({
   PLATFORM_ADMIN_TENANT_IDS: Joi.string().optional().allow(''),
   // Lets the operator's own control plane manage organisation access (see admin/service).
   PLATFORM_SERVICE_TOKEN: Joi.string().min(32).optional().allow(''),
+  SANDBOX_MODE: Joi.string().valid('true', 'false', '').optional(),
   // Managed payments subscription (private service); leave unset to offer only tenants' own providers.
   MANAGED_PAYMENTS_URL: Joi.string().uri().optional().allow(''),
   MANAGED_PAYMENTS_API_KEY: Joi.string().optional().allow(''),

@@ -6,6 +6,7 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { validationPipe } from './common/pipes/validation.pipe';
 import { getBrand } from './config/brand';
+import { isSandbox } from './config/sandbox';
 import { buildOpenApiDocument, GLOBAL_PREFIX_EXCLUDE } from './openapi';
 
 async function bootstrap() {
@@ -79,6 +80,7 @@ async function bootstrap() {
   expressApp.get('/health', (_req: unknown, res: { json: (body: unknown) => void }) => {
     res.json({
       status: 'ok',
+      environment: isSandbox() ? 'sandbox' : 'live',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     });
