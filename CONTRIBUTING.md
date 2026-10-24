@@ -149,14 +149,20 @@ docs: add webhook retry configuration guide
 
 PRs are squash-merged, so the **PR title** becomes the commit and sets the next version. CI checks it follows [Conventional Commits](https://www.conventionalcommits.org/):
 
-| Title | Release |
-|---|---|
-| `fix: ...` | patch (1.4.0 → 1.4.1) |
-| `feat: ...` | minor (1.4.0 → 1.5.0) |
-| `feat!: ...` or `fix!: ...` | major (1.4.0 → 2.0.0) |
-| `docs:`, `refactor:`, `test:`, `chore:`, `ci:`, `build:`, `perf:` | no release on their own |
+PimaBill is in **beta**, so versions stay below 1.0 and every GitHub release is marked as a pre-release. While in beta, a breaking change bumps the minor version instead of the major one:
 
-A PR that removes or changes anything existing API clients rely on fails CI unless its title is marked breaking with `!`.
+| Title | Release while in beta (0.x) | After 1.0 |
+|---|---|---|
+| `fix: ...` | patch (0.4.0 → 0.4.1) | patch (1.4.0 → 1.4.1) |
+| `feat: ...` | minor (0.4.0 → 0.5.0) | minor (1.4.0 → 1.5.0) |
+| `feat!: ...` or `fix!: ...` | minor (0.4.0 → 0.5.0) | major (1.4.0 → 2.0.0) |
+| `docs:`, `refactor:`, `test:`, `chore:`, `ci:`, `build:`, `perf:` | no release on their own | no release on their own |
+
+A PR that removes or changes anything existing API clients rely on fails CI unless its title is marked breaking with `!`. Mark it only when it really breaks clients: the mark is permanent in the history and shows up in the changelog.
+
+[release-please](https://github.com/googleapis/release-please) keeps a release PR open on `main` with the next version and changelog. Merging that PR tags the release, and the 1.0 release is made deliberately by maintainers, not by a commit title.
+
+Every PR updates the documentation it affects in the same PR: the guides in `docs/content`, `.env.example` for new settings, and this file for process changes.
 
 ### Code Style
 
