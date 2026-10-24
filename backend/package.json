@@ -1,6 +1,6 @@
 {
   "name": "pimabill-backend",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "PimaBill - Multi-tenant billing service API",
   "author": "PimaBill",
   "private": true,
