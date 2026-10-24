@@ -106,7 +106,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
         </CardTitle>
         <CardDescription>
           No Flutterwave or other provider account? Take card, mobile money and PayPal payments through {brand.name}. We collect
-          on your behalf, keep the platform fee, and pay the rest out to your mobile money, bank or PayPal account.
+          on your behalf, keep the platform fee and the provider&apos;s processing fee, and pay the rest out to your mobile money, bank or PayPal account.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -128,7 +128,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
             {account.fee && (
               <div>
                 <dt className="text-muted-foreground">Platform fee</dt>
-                <dd>{account.fee.type === "percentage" ? `${account.fee.value}% per payment` : `${account.fee.value} ${account.currency} per payment`}</dd>
+                <dd>{account.fee.type === "percentage" ? `${account.fee.value}% per payment` : `${account.fee.value} ${account.currency} per payment`}, plus the payment provider&apos;s fee</dd>
               </div>
             )}
             <p className="text-muted-foreground sm:col-span-2">{account.reason ?? statusText[account.status].hint}</p>
