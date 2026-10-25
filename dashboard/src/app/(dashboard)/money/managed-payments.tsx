@@ -56,8 +56,18 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
     load();
   }, [load]);
 
-  // Without an account the card is only the onboarding form.
-  if (!state?.available || (!state.account && !canManage)) return null;
+  if (!state) return <div className="animate-shimmer h-40 rounded-lg" />;
+  if (!state.available || (!state.account && !canManage)) {
+    return (
+      <Card>
+        <CardContent className="p-6 text-sm text-muted-foreground">
+          {state.available
+            ? "Managed payments let you take payments without a provider account of your own. Ask an owner or admin of this organisation to apply."
+            : `Managed payments are not offered on this ${brand.name} deployment.`}
+        </CardContent>
+      </Card>
+    );
+  }
 
   const set = (key: keyof typeof empty, value: string) => setForm((f) => ({ ...f, [key]: value }));
   const field = (key: keyof typeof empty, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
