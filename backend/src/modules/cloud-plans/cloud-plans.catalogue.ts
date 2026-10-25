@@ -12,40 +12,48 @@ import { isSandbox } from '../../config/sandbox';
  * Most of the cloud's income is the managed payments fee, so Free is
  * generous and Growth is priced like a phone bundle, not a US subscription.
  */
-export type CloudTier = 'free' | 'growth' | 'partner';
+export type CloudTier = 'free' | 'growth' | 'enterprise' | 'partner';
 
 export const CLOUD_TIERS: Record<CloudTier, { name: string; limits: PlanLimits }> = {
   free: { name: 'Free', limits: { customers: 1000, activeSubscriptions: 1000, invoicesPerMonth: 2500, teamMembers: 5 } },
   // Absent limits are unlimited.
   growth: { name: 'Growth', limits: {} },
+  // Priced per customer and invoiced by the operator; no public price. Set by the operator.
+  enterprise: { name: 'Enterprise', limits: {} },
   // Cybroid's own products and partners: unlimited, never billed. Set by the operator.
   partner: { name: 'Partner', limits: {} },
 };
 
-/** Not sold: the operator puts an organisation on it from the platform console. */
+/** Not sold through checkout: the operator puts an organisation on these from the control panel. */
 export const PARTNER_CODE = 'cloud_partner';
+export const ENTERPRISE_CODE = 'cloud_enterprise';
+const OPERATOR_SET: Record<string, CloudTier> = { [PARTNER_CODE]: 'partner', [ENTERPRISE_CODE]: 'enterprise' };
 
 /**
- * Growth's monthly price in every currency Flutterwave takes, about $10 each,
+ * Growth's monthly price in every currency Flutterwave takes, about $15 each,
  * rounded to amounts that read naturally locally. The year is ten months.
  */
 export const GROWTH_MONTHLY: Record<string, number> = {
-  UGX: 35000,
-  KES: 1250,
-  TZS: 25000,
-  RWF: 13000,
-  NGN: 15000,
-  GHS: 120,
-  ZAR: 180,
-  XAF: 6000,
-  XOF: 6000,
-  ZMW: 250,
-  MWK: 17000,
-  EGP: 480,
-  USD: 10,
-  EUR: 9,
-  GBP: 8,
+  UGX: 55000,
+  KES: 1900,
+  TZS: 38000,
+  RWF: 20000,
+  NGN: 22000,
+  GHS: 180,
+  ZAR: 270,
+  XAF: 9000,
+  XOF: 9000,
+  ZMW: 380,
+  MWK: 26000,
+  EGP: 720,
+  USD: 15,
+  EUR: 14,
+  GBP: 12,
 };
+
+/** The $10 prices Growth launched with, kept so plans still on them move to the current ones. */
+const GROWTH_MONTHLY_V2: Record<string, number> = { UGX: 35000, KES: 1250, TZS: 25000, RWF: 13000, NGN: 15000, GHS: 120, ZAR: 180, XAF: 6000, XOF: 6000, ZMW: 250, MWK: 17000, EGP: 480, USD: 10, EUR: 9, GBP: 8 };
+const times = (prices: Record<string, number>, months: number) => Object.fromEntries(Object.entries(prices).map(([c, a]) => [c, a * months]));
 const priced = (months: number) => Object.entries(GROWTH_MONTHLY).map(([currency, amount]) => ({ currency, amount: amount * months }));
 
 export interface CloudPlanDefinition {
@@ -95,8 +103,8 @@ export const CLOUD_CATALOGUE: CloudPlanDefinition[] = [
  */
 export const SUPERSEDED_PRICES: Record<string, Record<string, number>[]> = {
   cloud_free: [{ UGX: 0, USD: 0 }],
-  cloud_growth_monthly: [{ UGX: 110000, USD: 29 }],
-  cloud_growth_yearly: [{ UGX: 1100000, USD: 290 }],
+  cloud_growth_monthly: [{ UGX: 110000, USD: 29 }, times(GROWTH_MONTHLY_V2, 1)],
+  cloud_growth_yearly: [{ UGX: 1100000, USD: 290 }, times(GROWTH_MONTHLY_V2, 10)],
 };
 
 /** Earlier tiers' limits: organisations still on them move to the current ones; limits the operator set by hand are kept. */
@@ -106,7 +114,7 @@ export const SUPERSEDED_LIMITS: Partial<Record<CloudTier, PlanLimits[]>> = {
 };
 
 export const tierOf = (code: string | null | undefined): CloudTier | null =>
-  code === PARTNER_CODE ? 'partner' : (CLOUD_CATALOGUE.find((p) => p.code === code)?.tier ?? null);
+  (code && OPERATOR_SET[code]) || (CLOUD_CATALOGUE.find((p) => p.code === code)?.tier ?? null);
 export const PAID_CODES = CLOUD_CATALOGUE.filter((p) => p.tier === 'growth').map((p) => p.code);
 
 /**

@@ -9,7 +9,7 @@ import { COUNTED, forgetPlan, parseLimits, PlanLimits, usageCounter } from '../.
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { WebhooksController } from '../webhooks/webhooks.controller';
-import { CLOUD_CATALOGUE, CLOUD_TIERS, cloudPlansEnabled, CloudTier, PAID_CODES, PARTNER_CODE, SUPERSEDED_LIMITS, SUPERSEDED_PRICES, tierOf } from './cloud-plans.catalogue';
+import { CLOUD_CATALOGUE, CLOUD_TIERS, cloudPlansEnabled, CloudTier, ENTERPRISE_CODE, PAID_CODES, PARTNER_CODE, SUPERSEDED_LIMITS, SUPERSEDED_PRICES, tierOf } from './cloud-plans.catalogue';
 
 const DAY = 86_400_000;
 /** A Growth plan stays on this long after its paid period while the renewal is unpaid. */
@@ -278,8 +278,11 @@ export class CloudPlansService implements OnApplicationBootstrap {
         };
       }
     }
+    const contact = process.env.CLOUD_SALES_EMAIL?.trim() || process.env.BRAND_SUPPORT_EMAIL?.trim() || null;
     return {
       enabled: this.enabled,
+      /** Where to ask about Enterprise, which has no public price. */
+      enterpriseContact: contact,
       plan: {
         code: billing?.planId ?? null,
         name: billing?.planName ?? null,
@@ -305,6 +308,7 @@ export class CloudPlansService implements OnApplicationBootstrap {
     if (tenantId === operator.id) throw new ForbiddenException('The operator organisation does not pay for a plan');
     const billing = await this.central.client.tenantBilling.findUnique({ where: { tenantId }, select: { planId: true } });
     if (billing?.planId === PARTNER_CODE) throw new BadRequestException('Your organisation is a partner: it has no limits and nothing to pay');
+    if (billing?.planId === ENTERPRISE_CODE) throw new BadRequestException('Your organisation is on Enterprise: your plan is invoiced to you directly');
     const db = await this.operatorDb();
     const plan = await db.plan.findUnique({ where: { code: planCode }, include: { prices: { where: { isActive: true } } } });
     const cur = currency.toUpperCase();

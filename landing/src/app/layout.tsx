@@ -75,7 +75,7 @@ const jsonLd = [
     offers: [
       { "@type": "Offer", name: "Self-hosted", price: "0", priceCurrency: "USD", description: "Open source, on your own servers" },
       { "@type": "Offer", name: "Cloud Free", price: "0", priceCurrency: "USD", description: "Hosted: 1,000 customers, 2,500 invoices a month" },
-      { "@type": "Offer", name: "Cloud Growth", price: "35000", priceCurrency: "UGX", description: "Hosted, no limits, billed monthly (also KES 1,250 or USD 10)" },
+      { "@type": "Offer", name: "Cloud Growth", price: "15", priceCurrency: "USD", description: "Hosted, no limits, billed monthly; also payable in UGX, KES, NGN, GHS and other African currencies" },
     ],
   },
   {
