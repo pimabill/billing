@@ -231,7 +231,7 @@ function Pillars() {
     {
       icon: Landmark,
       title: "Start without a merchant account",
-      body: "On the cloud, managed payments collect for you through our provider accounts before you have contracts of your own, and pay out to your mobile money, bank or PayPal.",
+      body: "On the cloud, managed payments let you get paid before you have payment provider contracts of your own, with payouts to your mobile money, bank or PayPal.",
     },
   ];
   return (
@@ -362,7 +362,7 @@ const tiers = [
       "1,000 customers and 1,000 active subscriptions",
       "2,500 invoices a month, 5 team members",
       "Every feature: usage billing, wallets, the ledger",
-      "Managed payments: take payments without a provider account",
+      "Managed payments: get paid without setting up a payment provider",
       "Sandbox with test keys",
       "Community support",
     ],
@@ -384,26 +384,9 @@ const tiers = [
       "Priority support",
       "Automatic updates and backups",
     ],
-    cta: "Start free, upgrade any time",
+    cta: "Choose Growth",
     href: register,
     highlighted: true,
-  },
-  {
-    name: "Self-hosted",
-    price: "Free",
-    period: "",
-    description: "Run the open-source platform on your own servers. No limits.",
-    features: [
-      "Every feature, unlimited organisations and customers",
-      "Bring your own provider accounts: every provider supported",
-      "AGPL-3.0, Docker compose in minutes",
-      "Your own sandbox deployment",
-      "Community support on GitHub",
-      "Managed payments are cloud-only",
-    ],
-    cta: "Deploy from GitHub",
-    href: site.githubUrl,
-    highlighted: false,
   },
   {
     name: "Enterprise",
@@ -424,6 +407,21 @@ const tiers = [
   },
 ];
 
+/** Not a cloud tier: the open-source product on your own servers, shown on its own below the cloud plans. */
+const selfHosted = {
+  name: "Self-hosted",
+  description: "Run the open-source platform on your own servers, free forever, with no limits.",
+  features: [
+    "Every feature, unlimited organisations and customers",
+    "Bring your own payment providers: every provider supported",
+    "AGPL-3.0, running in minutes with Docker Compose",
+    "Your own sandbox deployment",
+    "Community support on GitHub",
+  ],
+  cta: "Deploy from GitHub",
+  href: site.githubUrl,
+};
+
 function Pricing() {
   return (
     <section id="pricing" aria-labelledby="pricing-title" className="border-b border-line">
@@ -433,9 +431,9 @@ function Pricing() {
           <h2 id="pricing-title" className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             Start free. Pay when you grow.
           </h2>
-          <p className="mt-4 text-lg text-ink-2">Free on our cloud while you start, and free to self-host forever.</p>
+          <p className="mt-4 text-lg text-ink-2">We host it for you, with a plan for every stage of your business.</p>
         </div>
-        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
           {tiers.map((t) => (
             <div
               key={t.name}
@@ -443,7 +441,7 @@ function Pricing() {
             >
               <h3 className="text-lg font-semibold">{t.name}</h3>
               <p className="mt-4">
-                <span className="whitespace-nowrap font-display text-3xl font-semibold xl:text-4xl">{t.price}</span>
+                <span className="whitespace-nowrap font-display text-4xl font-semibold">{t.price}</span>
                 {t.period && <span className="text-ink-2">{t.period}</span>}
               </p>
               {"secondary" in t && t.secondary && <p className="mt-1 text-sm text-ink-2">{t.secondary}</p>}
@@ -472,6 +470,28 @@ function Pricing() {
               )}
             </div>
           ))}
+        </div>
+
+        <div className="mt-6 grid gap-6 rounded-2xl border border-line bg-card p-7 lg:grid-cols-[1fr_1.4fr_auto] lg:items-center">
+          <div>
+            <h3 className="text-lg font-semibold">{selfHosted.name}</h3>
+            <p className="mt-1 font-display text-2xl font-semibold">Free</p>
+            <p className="mt-2 text-ink-2">{selfHosted.description}</p>
+          </div>
+          <ul className="grid gap-2.5 text-sm sm:grid-cols-2">
+            {selfHosted.features.map((f) => (
+              <li key={f} className="flex gap-2.5">
+                <Check className="h-4 w-4 shrink-0 translate-y-0.5 text-teal" aria-hidden />
+                {f}
+              </li>
+            ))}
+          </ul>
+          <a
+            href={selfHosted.href}
+            className="inline-flex h-11 items-center justify-center whitespace-nowrap rounded-lg border border-line px-5 font-semibold transition-colors hover:border-teal"
+          >
+            {selfHosted.cta}
+          </a>
         </div>
       </div>
     </section>
