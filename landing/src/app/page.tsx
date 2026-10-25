@@ -1,4 +1,5 @@
-import { ArrowRight, Check, Code2, Landmark, Layers, Server, Smartphone, Users } from "lucide-react";
+import { ArrowRight, Check, Code2, Landmark, Layers, Minus, Server, Smartphone, Users } from "lucide-react";
+import Image from "next/image";
 
 import Header from "@/components/header";
 import { BrandLockup } from "@/components/brand-mark";
@@ -17,10 +18,12 @@ export default function Home() {
       <main id="main">
         <Hero />
         <Rails />
+        <Product />
         <Steps />
         <Pillars />
         <Money />
         <Developers />
+        <Compare />
         <Pricing />
         <Faq />
         <ClosingCta />
@@ -127,6 +130,25 @@ function Hero() {
   );
 }
 
+/** Logos in /public/providers, by the names the rails list uses. */
+const railLogos: Record<string, string> = {
+  "MTN MoMo": "mtn_momo.svg",
+  "Airtel Money": "airtel_money.svg",
+  "Yo! Payments": "yo.png",
+  Eversend: "eversend.png",
+  Flutterwave: "flutterwave.png",
+  Paystack: "paystack.png",
+  Stripe: "stripe.svg",
+  PayPal: "paypal.svg",
+  PayU: "payu.png",
+  DPO: "dpo.png",
+  "USDT on TRON": "tron_usdt.png",
+  "USDT on Ethereum": "eth_usdt.svg",
+  "USDT on BNB Chain": "bsc_usdt.svg",
+  Bitcoin: "btc.svg",
+  "Binance Pay": "binance_pay.svg",
+};
+
 /* Rails: every way the software can collect or pay out. */
 function Rails() {
   const groups = [
@@ -146,7 +168,17 @@ function Rails() {
               <h3 className="font-mono text-xs uppercase tracking-[0.08em] text-ink-2">{g.title}</h3>
               <ul className="mt-3 flex flex-wrap gap-2">
                 {g.items.map((r) => (
-                  <li key={r} className="rounded-full border border-line px-3 py-1 text-sm">
+                  <li key={r} className="flex items-center gap-2 rounded-full border border-line bg-card py-1 pl-1.5 pr-3 text-sm">
+                    {railLogos[r] ? (
+                      <span className={`flex h-6 w-6 items-center justify-center overflow-hidden rounded-full border border-line p-0.5 ${r === "MTN MoMo" ? "bg-[#ffcb05]" : "bg-white"}`} aria-hidden>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={`/providers/${railLogos[r]}`} alt="" className="max-h-full max-w-full object-contain" />
+                      </span>
+                    ) : (
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-mist text-[10px] font-bold text-ink-2" aria-hidden>
+                        {r.slice(0, 2)}
+                      </span>
+                    )}
                     {r}
                   </li>
                 ))}
@@ -154,6 +186,38 @@ function Rails() {
             </div>
           ))}
         </div>
+      </div>
+    </section>
+  );
+}
+
+/* The product itself, before any more words about it. */
+function Product() {
+  return (
+    <section aria-labelledby="product-title" className="border-b border-line">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <SectionHeading
+          eyebrow="The dashboard"
+          title="Your billing and your money, on one screen"
+          lede="Recurring revenue, subscriptions, invoices and payments as they happen, with every shilling traced to the ledger."
+        />
+        <figure className="mt-12 overflow-hidden rounded-2xl border border-line bg-card shadow-[0_30px_80px_-30px_rgba(15,60,55,0.35)]">
+          <div className="flex items-center gap-2 border-b border-line px-4 py-3" aria-hidden>
+            <span className="h-3 w-3 rounded-full bg-line" />
+            <span className="h-3 w-3 rounded-full bg-line" />
+            <span className="h-3 w-3 rounded-full bg-line" />
+            <span className="ml-3 truncate rounded-md bg-mist px-3 py-1 font-mono text-xs text-ink-2">{site.dashboardUrl.replace(/^https?:\/\//, "")}/dashboard</span>
+          </div>
+          <Image
+            src="/product-overview.webp"
+            alt="The dashboard's overview: monthly recurring revenue, active subscriptions, customers, payment success rate, revenue by month and recent payments"
+            width={1920}
+            height={1200}
+            sizes="(min-width: 1152px) 1152px, 100vw"
+            className="h-auto w-full"
+            unoptimized
+          />
+        </figure>
       </div>
     </section>
   );
@@ -406,6 +470,62 @@ const tiers = [
     highlighted: false,
   },
 ];
+
+type Mark = true | false | string;
+const comparison: { feature: string; us: Mark; stripe: Mark; lago: Mark; chargebee: Mark }[] = [
+  { feature: "Open source, self-host on your own servers", us: true, stripe: false, lago: true, chargebee: false },
+  { feature: "Mobile money built in (MTN MoMo, Airtel Money)", us: true, stripe: false, lago: false, chargebee: false },
+  { feature: "Subscriptions, usage billing, coupons and add-ons", us: true, stripe: true, lago: true, chargebee: true },
+  { feature: "Payouts and wallet transfers", us: true, stripe: "With Connect", lago: false, chargebee: false },
+  { feature: "Double-entry ledger of every movement", us: true, stripe: false, lago: false, chargebee: false },
+  { feature: "Get paid without your own provider account", us: "On our cloud", stripe: true, lago: false, chargebee: false },
+  { feature: "Price", us: "Free, then $15 a month", stripe: "0.7% of billing volume", lago: "Free to self-host; cloud on quote", chargebee: "Free to $250K billed, then from about $599 a month" },
+];
+
+function CompareCell({ value }: { value: Mark }) {
+  if (value === true) return <Check className="mx-auto h-5 w-5 text-teal" aria-label="Yes" />;
+  if (value === false) return <Minus className="mx-auto h-5 w-5 text-ink-2/50" aria-label="No" />;
+  return <span className="text-sm">{value}</span>;
+}
+
+/* How it compares, fairly: what each one does out of the box. */
+function Compare() {
+  return (
+    <section id="compare" aria-labelledby="compare-title" className="border-b border-line">
+      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <SectionHeading eyebrow="Compare" title={`How ${site.name} compares`} lede="Built for the way payments work across Africa, without giving up what the global tools do well." />
+        <div className="mt-10 overflow-x-auto rounded-2xl border border-line bg-card">
+          <table className="w-full min-w-[720px] text-left">
+            <caption className="sr-only">{site.name} compared with Stripe Billing, Lago and Chargebee</caption>
+            <thead>
+              <tr className="border-b border-line text-sm">
+                <th scope="col" className="w-[34%] px-5 py-4 font-medium text-ink-2">
+                  <span className="sr-only">Feature</span>
+                </th>
+                <th scope="col" className="bg-teal/5 px-5 py-4 text-center font-semibold text-teal">{site.name}</th>
+                <th scope="col" className="px-5 py-4 text-center font-semibold">Stripe Billing</th>
+                <th scope="col" className="px-5 py-4 text-center font-semibold">Lago</th>
+                <th scope="col" className="px-5 py-4 text-center font-semibold">Chargebee</th>
+              </tr>
+            </thead>
+            <tbody>
+              {comparison.map((row) => (
+                <tr key={row.feature} className="border-b border-line last:border-0">
+                  <th scope="row" className="px-5 py-4 text-sm font-medium">{row.feature}</th>
+                  <td className="bg-teal/5 px-5 py-4 text-center font-medium"><CompareCell value={row.us} /></td>
+                  <td className="px-5 py-4 text-center text-ink-2"><CompareCell value={row.stripe} /></td>
+                  <td className="px-5 py-4 text-center text-ink-2"><CompareCell value={row.lago} /></td>
+                  <td className="px-5 py-4 text-center text-ink-2"><CompareCell value={row.chargebee} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-4 text-xs text-ink-2">Out-of-the-box features and public list prices as of October 2026. Check each vendor&apos;s site for current details.</p>
+      </div>
+    </section>
+  );
+}
 
 /** Not a cloud tier: the open-source product on your own servers, shown on its own below the cloud plans. */
 const selfHosted = {
