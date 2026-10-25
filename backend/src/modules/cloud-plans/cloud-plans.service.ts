@@ -5,11 +5,11 @@ import { CentralPrismaService } from '../../database/central-prisma.service';
 import { TenantDatabaseService } from '../../database/tenant-database.service';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { CronLockService } from '../../common/scheduling/cron-lock.service';
-import { COUNTED, usageCounter } from '../../common/guards/plan-limits';
+import { COUNTED, forgetPlan, parseLimits, PlanLimits, usageCounter } from '../../common/guards/plan-limits';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { WebhooksController } from '../webhooks/webhooks.controller';
-import { CLOUD_CATALOGUE, CLOUD_TIERS, cloudPlansEnabled, CloudTier, PAID_CODES, tierOf } from './cloud-plans.catalogue';
+import { CLOUD_CATALOGUE, CLOUD_TIERS, cloudPlansEnabled, CloudTier, PAID_CODES, PARTNER_CODE, SUPERSEDED_LIMITS, SUPERSEDED_PRICES, tierOf } from './cloud-plans.catalogue';
 
 const DAY = 86_400_000;
 /** A Growth plan stays on this long after its paid period while the renewal is unpaid. */
@@ -64,6 +64,7 @@ export class CloudPlansService implements OnApplicationBootstrap {
     try {
       await this.ensureCatalogue();
       await this.assignFree();
+      await this.refreshLimits();
       const db = await this.operatorDb();
       const customers = await db.customer.findMany({
         where: { subscriptions: { some: { plan: { code: { in: PAID_CODES } } } } },
@@ -90,23 +91,45 @@ export class CloudPlansService implements OnApplicationBootstrap {
     return this.tenantDb.getTenantClient(this.operatorId ?? (await this.operator()).id);
   }
 
-  /** Create the cloud plans in the operator's billing if they are missing; prices set there afterwards are kept. */
+  /**
+   * Create the cloud plans in the operator's billing if they are missing, and
+   * bring plans still on an earlier catalogue's prices up to date. Prices the
+   * operator set there are kept.
+   */
   async ensureCatalogue(): Promise<void> {
     const db = await this.operatorDb();
     for (const plan of CLOUD_CATALOGUE) {
-      if (await db.plan.findUnique({ where: { code: plan.code } })) continue;
-      await db.plan.create({
-        data: {
-          code: plan.code,
-          name: plan.name,
-          description: plan.description,
-          billingInterval: plan.interval,
-          billingTiming: 'IN_ADVANCE',
-          features: plan.features,
-          prices: { create: plan.prices.map((p) => ({ currency: p.currency, amount: p.amount })) },
-        },
-      });
-      this.logger.log(`Created cloud plan ${plan.code}`);
+      const existing = await db.plan.findUnique({ where: { code: plan.code }, include: { prices: { where: { isActive: true } } } });
+      const details = { name: plan.name, description: plan.description, features: plan.features };
+      if (!existing) {
+        await db.plan.create({
+          data: {
+            code: plan.code,
+            ...details,
+            billingInterval: plan.interval,
+            billingTiming: 'IN_ADVANCE',
+            prices: { create: plan.prices.map((p) => ({ currency: p.currency, amount: p.amount })) },
+          },
+        });
+        this.logger.log(`Created cloud plan ${plan.code}`);
+        continue;
+      }
+      const current = Object.fromEntries(existing.prices.map((p) => [p.currency, Number(p.amount)]));
+      const superseded = (SUPERSEDED_PRICES[plan.code] ?? []).some(
+        (old) => Object.keys(old).length === Object.keys(current).length && Object.entries(old).every(([c, a]) => current[c] === a),
+      );
+      if (!superseded) continue;
+      await db.$transaction([
+        db.plan.update({ where: { id: existing.id }, data: details }),
+        ...plan.prices.map((p) =>
+          db.planPrice.upsert({
+            where: { planId_currency: { planId: existing.id, currency: p.currency } },
+            create: { planId: existing.id, currency: p.currency, amount: p.amount },
+            update: { amount: p.amount, isActive: true },
+          }),
+        ),
+      ]);
+      this.logger.log(`Updated cloud plan ${plan.code} to the current prices`);
     }
   }
 
@@ -122,6 +145,22 @@ export class CloudPlansService implements OnApplicationBootstrap {
     return tenants.length;
   }
 
+  /** Organisations still on an earlier tier's limits move to the current ones. */
+  async refreshLimits(): Promise<number> {
+    const rows = await this.central.client.tenantBilling.findMany({ where: { planId: { startsWith: 'cloud_' } }, select: { tenantId: true, planId: true, limits: true } });
+    const same = (a: PlanLimits | null, b: PlanLimits) => JSON.stringify(Object.entries(a ?? {}).sort()) === JSON.stringify(Object.entries(b).sort());
+    let moved = 0;
+    for (const row of rows) {
+      const tier = tierOf(row.planId);
+      if (!tier || !(SUPERSEDED_LIMITS[tier] ?? []).some((old) => same(parseLimits(row.limits), old))) continue;
+      await this.central.client.tenantBilling.update({ where: { tenantId: row.tenantId }, data: { limits: CLOUD_TIERS[tier].limits as object } });
+      forgetPlan(row.tenantId);
+      moved++;
+    }
+    if (moved) this.logger.log(`Moved ${moved} organisation(s) to the current plan limits`);
+    return moved;
+  }
+
   private async setTier(tenantId: string, tier: CloudTier, planId: string, extra: { status?: string; manageUrl?: string | null } = {}) {
     const data = {
       planId,
@@ -132,6 +171,7 @@ export class CloudPlansService implements OnApplicationBootstrap {
       trialEndsAt: null,
     };
     await this.central.client.tenantBilling.upsert({ where: { tenantId }, create: { tenantId, ...data }, update: data });
+    forgetPlan(tenantId);
   }
 
   private manageUrl(): string {
@@ -263,6 +303,8 @@ export class CloudPlansService implements OnApplicationBootstrap {
     if (!PAID_CODES.includes(planCode)) throw new BadRequestException(`Unknown plan ${planCode}`);
     const operator = await this.operator();
     if (tenantId === operator.id) throw new ForbiddenException('The operator organisation does not pay for a plan');
+    const billing = await this.central.client.tenantBilling.findUnique({ where: { tenantId }, select: { planId: true } });
+    if (billing?.planId === PARTNER_CODE) throw new BadRequestException('Your organisation is a partner: it has no limits and nothing to pay');
     const db = await this.operatorDb();
     const plan = await db.plan.findUnique({ where: { code: planCode }, include: { prices: { where: { isActive: true } } } });
     const cur = currency.toUpperCase();

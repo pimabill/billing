@@ -359,8 +359,8 @@ const tiers = [
     period: "",
     description: "We host it. Start billing today, free while you stay within the limits.",
     features: [
-      "100 customers and 100 active subscriptions",
-      "300 invoices a month, 2 team members",
+      "1,000 customers and 1,000 active subscriptions",
+      "2,500 invoices a month, 5 team members",
       "Every feature: usage billing, wallets, the ledger",
       "Managed payments: take payments without a provider account",
       "Sandbox with test keys",
@@ -372,16 +372,16 @@ const tiers = [
   },
   {
     name: "Cloud Growth",
-    price: "$29",
+    price: "UGX 35,000",
     period: "/mo",
-    secondary: "or UGX 110,000 a month · two months free yearly",
-    description: "For businesses billing every month.",
+    secondary: "KES 1,250 · NGN 15,000 · GHS 120 · $10, or your currency · two months free yearly",
+    description: "No limits, priced for African businesses.",
     features: [
-      "5,000 customers and 5,000 active subscriptions",
-      "10,000 invoices a month, 10 team members",
+      "Unlimited customers and subscriptions",
+      "Unlimited invoices and team members",
       "Everything in Cloud Free",
-      "Pay by card or mobile money",
-      "Priority email support",
+      "Pay by card or mobile money, in your currency",
+      "Priority support",
       "Automatic updates and backups",
     ],
     cta: "Start free, upgrade any time",
@@ -443,7 +443,7 @@ function Pricing() {
             >
               <h3 className="text-lg font-semibold">{t.name}</h3>
               <p className="mt-4">
-                <span className="font-display text-4xl font-semibold">{t.price}</span>
+                <span className="whitespace-nowrap font-display text-3xl font-semibold xl:text-4xl">{t.price}</span>
                 {t.period && <span className="text-ink-2">{t.period}</span>}
               </p>
               {"secondary" in t && t.secondary && <p className="mt-1 text-sm text-ink-2">{t.secondary}</p>}

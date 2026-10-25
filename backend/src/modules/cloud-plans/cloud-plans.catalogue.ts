@@ -6,17 +6,47 @@ import { isSandbox } from '../../config/sandbox';
  * operator organisation's own billing (edit them there, under Plans); the
  * limits each tier grants live here. Every organisation starts on Free.
  *
- * Priced against Lago (no free cloud tier), Chargebee (free to ~$250K of
- * billing, then ~$599/month), Stripe Billing (0.7% of volume) and Zoho
- * Billing ($39/$79 a month): Growth is well below them, in local currency
- * as well as dollars, so a growing business in East Africa can afford it.
+ * Priced for African businesses first. Zoho Books in Kenya is KSh 999-1,999
+ * a month and Akaunting about $5; billing tools priced for the US (Chargebee
+ * ~$599, Zoho Billing $39-79, Stripe Billing 0.7% of volume) are out of reach.
+ * Most of the cloud's income is the managed payments fee, so Free is
+ * generous and Growth is priced like a phone bundle, not a US subscription.
  */
-export type CloudTier = 'free' | 'growth';
+export type CloudTier = 'free' | 'growth' | 'partner';
 
 export const CLOUD_TIERS: Record<CloudTier, { name: string; limits: PlanLimits }> = {
-  free: { name: 'Free', limits: { customers: 100, activeSubscriptions: 100, invoicesPerMonth: 300, teamMembers: 2 } },
-  growth: { name: 'Growth', limits: { customers: 5000, activeSubscriptions: 5000, invoicesPerMonth: 10000, teamMembers: 10 } },
+  free: { name: 'Free', limits: { customers: 1000, activeSubscriptions: 1000, invoicesPerMonth: 2500, teamMembers: 5 } },
+  // Absent limits are unlimited.
+  growth: { name: 'Growth', limits: {} },
+  // Cybroid's own products and partners: unlimited, never billed. Set by the operator.
+  partner: { name: 'Partner', limits: {} },
 };
+
+/** Not sold: the operator puts an organisation on it from the platform console. */
+export const PARTNER_CODE = 'cloud_partner';
+
+/**
+ * Growth's monthly price in every currency Flutterwave takes, about $10 each,
+ * rounded to amounts that read naturally locally. The year is ten months.
+ */
+export const GROWTH_MONTHLY: Record<string, number> = {
+  UGX: 35000,
+  KES: 1250,
+  TZS: 25000,
+  RWF: 13000,
+  NGN: 15000,
+  GHS: 120,
+  ZAR: 180,
+  XAF: 6000,
+  XOF: 6000,
+  ZMW: 250,
+  MWK: 17000,
+  EGP: 480,
+  USD: 10,
+  EUR: 9,
+  GBP: 8,
+};
+const priced = (months: number) => Object.entries(GROWTH_MONTHLY).map(([currency, amount]) => ({ currency, amount: amount * months }));
 
 export interface CloudPlanDefinition {
   code: string;
@@ -33,25 +63,19 @@ export const CLOUD_CATALOGUE: CloudPlanDefinition[] = [
     code: 'cloud_free',
     tier: 'free',
     name: 'Free',
-    description: 'Everything you need to start billing, free for as long as you stay within the limits.',
+    description: 'Everything you need to run your billing, free for as long as you stay within the limits.',
     interval: 'MONTHLY',
-    prices: [
-      { currency: 'UGX', amount: 0 },
-      { currency: 'USD', amount: 0 },
-    ],
-    features: ['100 customers', '100 active subscriptions', '300 invoices a month', '2 team members', 'Every feature, including managed payments', 'Community support'],
+    prices: priced(0),
+    features: ['1,000 customers', '1,000 active subscriptions', '2,500 invoices a month', '5 team members', 'Every feature, including managed payments', 'Community support'],
   },
   {
     code: 'cloud_growth_monthly',
     tier: 'growth',
     name: 'Growth',
-    description: 'For businesses billing every month: higher limits and priority support.',
+    description: 'No limits on customers, subscriptions, invoices or team, with priority support.',
     interval: 'MONTHLY',
-    prices: [
-      { currency: 'UGX', amount: 110000 },
-      { currency: 'USD', amount: 29 },
-    ],
-    features: ['5,000 customers', '5,000 active subscriptions', '10,000 invoices a month', '10 team members', 'Every feature, including managed payments', 'Priority email support'],
+    prices: priced(1),
+    features: ['Unlimited customers and subscriptions', 'Unlimited invoices', 'Unlimited team members', 'Every feature, including managed payments', 'Priority support'],
   },
   {
     code: 'cloud_growth_yearly',
@@ -59,16 +83,31 @@ export const CLOUD_CATALOGUE: CloudPlanDefinition[] = [
     name: 'Growth (yearly)',
     description: 'Growth paid yearly: two months free.',
     interval: 'YEARLY',
-    prices: [
-      { currency: 'UGX', amount: 1100000 },
-      { currency: 'USD', amount: 290 },
-    ],
+    prices: priced(10),
     features: ['Everything in Growth', 'Two months free'],
   },
 ];
 
-export const tierOf = (code: string | null | undefined): CloudTier | null => CLOUD_CATALOGUE.find((p) => p.code === code)?.tier ?? null;
-export const PAID_CODES = CLOUD_CATALOGUE.filter((p) => p.tier !== 'free').map((p) => p.code);
+/**
+ * Earlier catalogue prices. A plan still carrying one of these was never
+ * changed by the operator, so it is brought up to the current catalogue;
+ * a plan with any other prices was edited in the operator's billing and is kept.
+ */
+export const SUPERSEDED_PRICES: Record<string, Record<string, number>[]> = {
+  cloud_free: [{ UGX: 0, USD: 0 }],
+  cloud_growth_monthly: [{ UGX: 110000, USD: 29 }],
+  cloud_growth_yearly: [{ UGX: 1100000, USD: 290 }],
+};
+
+/** Earlier tiers' limits: organisations still on them move to the current ones; limits the operator set by hand are kept. */
+export const SUPERSEDED_LIMITS: Partial<Record<CloudTier, PlanLimits[]>> = {
+  free: [{ customers: 100, activeSubscriptions: 100, invoicesPerMonth: 300, teamMembers: 2 }],
+  growth: [{ customers: 5000, activeSubscriptions: 5000, invoicesPerMonth: 10000, teamMembers: 10 }],
+};
+
+export const tierOf = (code: string | null | undefined): CloudTier | null =>
+  code === PARTNER_CODE ? 'partner' : (CLOUD_CATALOGUE.find((p) => p.code === code)?.tier ?? null);
+export const PAID_CODES = CLOUD_CATALOGUE.filter((p) => p.tier === 'growth').map((p) => p.code);
 
 /**
  * On when this deployment is the hosted cloud: CLOUD_PLANS=true, or managed

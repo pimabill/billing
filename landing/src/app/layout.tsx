@@ -74,8 +74,8 @@ const jsonLd = [
     codeRepository: site.githubUrl,
     offers: [
       { "@type": "Offer", name: "Self-hosted", price: "0", priceCurrency: "USD", description: "Open source, on your own servers" },
-      { "@type": "Offer", name: "Cloud Free", price: "0", priceCurrency: "USD", description: "Hosted: 100 customers, 300 invoices a month" },
-      { "@type": "Offer", name: "Cloud Growth", price: "29", priceCurrency: "USD", description: "Hosted: 5,000 customers, 10,000 invoices a month, billed monthly" },
+      { "@type": "Offer", name: "Cloud Free", price: "0", priceCurrency: "USD", description: "Hosted: 1,000 customers, 2,500 invoices a month" },
+      { "@type": "Offer", name: "Cloud Growth", price: "35000", priceCurrency: "UGX", description: "Hosted, no limits, billed monthly (also KES 1,250 or USD 10)" },
     ],
   },
   {
