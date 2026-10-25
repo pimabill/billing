@@ -231,7 +231,7 @@ function Pillars() {
     {
       icon: Landmark,
       title: "Start without a merchant account",
-      body: "On the cloud, managed payments let you take payments before you have provider contracts; money settles to your own bank.",
+      body: "On the cloud, managed payments collect for you through our provider accounts before you have contracts of your own, and pay out to your mobile money, bank or PayPal.",
     },
   ];
   return (
@@ -269,7 +269,7 @@ function Money() {
         <SectionHeading
           eyebrow="Money movement"
           title="Collect, pay out and reconcile in one place"
-          lede={`${site.name} never holds funds: every rail moves money between your payers and accounts you own.`}
+          lede="With your own provider accounts, every rail moves money between your payers and accounts you own. Without them, managed payments collects for you and pays you out."
         />
         <dl className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
           {items.map(([title, body]) => (
@@ -290,6 +290,7 @@ function Developers() {
     "TypeScript, Python and PHP SDKs under the MIT licence",
     "Webhooks signed with HMAC-SHA256, every attempt logged",
     "Idempotency keys on collections, payouts and transfers",
+    "A sandbox with sk_test_ keys and provider test accounts, one switch away in the dashboard",
     "A separate database per organisation",
   ];
   return (
