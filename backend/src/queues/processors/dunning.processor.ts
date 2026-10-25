@@ -10,6 +10,7 @@ import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { EMAIL_QUEUE, WEBHOOK_QUEUE, EmailJobType, WebhookJobType } from '../billing.queue';
 import { PdfService } from '../../services/pdf.service';
 import { RecurringChargeService } from '../../modules/billing/recurring-charge.service';
+import { CurrenciesService } from '../../modules/currencies/currencies.service';
 import { CronLockService } from '../../common/scheduling/cron-lock.service';
 
 /** Days to wait after each failed attempt. */
@@ -32,6 +33,7 @@ export class DunningProcessor extends WorkerHost {
     @InjectQueue(WEBHOOK_QUEUE) private readonly webhookQueue: Queue,
     private readonly recurring: RecurringChargeService,
     @Optional() private readonly cronLock?: CronLockService,
+    @Optional() private readonly currencies?: CurrenciesService,
   ) {
     super();
   }
@@ -40,7 +42,9 @@ export class DunningProcessor extends WorkerHost {
     const { tenantId, retryId } = job.data;
     const prisma = await this.tenantDb.getTenantClient(tenantId);
     const retry = await prisma.paymentRetry.findUnique({ where: { id: retryId } });
-    if (retry) await this.processRetry(prisma, tenantId, retry);
+    if (!retry) return;
+    const run = () => this.processRetry(prisma, tenantId, retry);
+    await (this.currencies ? this.currencies.runFor(prisma, tenantId, run) : run());
   }
 
   @Cron(CronExpression.EVERY_HOUR)

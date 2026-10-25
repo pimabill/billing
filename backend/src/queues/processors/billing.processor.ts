@@ -28,6 +28,7 @@ import { chargeCost, dec, Dec, roundMoney } from '../../modules/billing/pricing'
 import { aggregateUsage } from '../../modules/billing/usage';
 import { firstPeriodEnd, nextBoundary } from '../../modules/billing/period';
 import { nextInvoiceNumber } from '../../modules/billing/invoice-number';
+import { CurrenciesService } from '../../modules/currencies/currencies.service';
 import { billingKey, jobIdFor } from '../../modules/billing/billing-keys';
 
 interface LineItem {
@@ -62,6 +63,7 @@ export class BillingProcessor extends WorkerHost {
     @InjectQueue(EMAIL_QUEUE) private readonly emailQueue: Queue,
     @InjectQueue(PAYMENT_QUEUE) private readonly paymentQueue: Queue,
     @Optional() private readonly cronLock?: CronLockService,
+    @Optional() private readonly currencies?: CurrenciesService,
   ) {
     super();
   }
@@ -117,6 +119,16 @@ export class BillingProcessor extends WorkerHost {
   }
 
   async process(job: Job): Promise<void> {
+    // A job for one organisation runs in its currency context, so its own currencies round right.
+    const tenantId: string | undefined = job.data?.tenantId;
+    if (tenantId && this.currencies) {
+      const db = await this.tenantDbService.getTenantClient(tenantId);
+      return this.currencies.runFor(db, tenantId, () => this.dispatch(job));
+    }
+    return this.dispatch(job);
+  }
+
+  private async dispatch(job: Job): Promise<void> {
     switch (job.name) {
       case BillingJobType.DAILY_BILLING_CYCLE:
         return this.handleDailyBillingCycle(job);

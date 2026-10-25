@@ -176,6 +176,8 @@ export interface RevenueData {
   revenue: number;
   mrr: number;
   oneTime: number;
+  /** The reporting currency the amounts are in. */
+  currency?: string;
 }
 
 export interface ChartData {

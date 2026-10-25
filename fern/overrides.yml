@@ -626,6 +626,29 @@ paths:
       x-fern-sdk-method-name: getKpis
 
   # ==================== Customer Portal ====================
+  /api/analytics/by-currency:
+    get:
+      x-fern-sdk-group-name: analytics
+      x-fern-sdk-method-name: getByCurrency
+  /api/currencies/settings:
+    get:
+      x-fern-sdk-group-name: currencies
+      x-fern-sdk-method-name: getSettings
+  /api/currencies/reporting:
+    put:
+      x-fern-sdk-group-name: currencies
+      x-fern-sdk-method-name: setReportingCurrency
+  /api/currencies/custom:
+    post:
+      x-fern-sdk-group-name: currencies
+      x-fern-sdk-method-name: createCustom
+  /api/currencies/custom/{code}:
+    patch:
+      x-fern-sdk-group-name: currencies
+      x-fern-sdk-method-name: updateCustom
+    delete:
+      x-fern-sdk-group-name: currencies
+      x-fern-sdk-method-name: deleteCustom
   /api/portal/customers/{externalId}/billing:
     get:
       x-fern-sdk-group-name: portal

@@ -21,6 +21,7 @@ import { brand } from "@/lib/brand";
 import { BrandMark } from "@/components/brand-mark";
 import { ApiKeysPanel } from "@/components/settings/api-keys-panel";
 import { SecurityPanel } from "@/components/settings/security-panel";
+import { CurrenciesPanel } from "@/components/settings/currencies-panel";
 
 function maskApiKey(key: string): string {
   if (!key || key.length < 12) return key;
@@ -282,8 +283,13 @@ export default function SettingsPage() {
           <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="api">API Keys</TabsTrigger>
+          <TabsTrigger value="currencies">Currencies</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="currencies" className="space-y-4">
+          <CurrenciesPanel />
+        </TabsContent>
 
         <TabsContent value="security" className="space-y-4">
           <SecurityPanel />

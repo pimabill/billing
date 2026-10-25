@@ -8,6 +8,7 @@ import {
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { CreatePlanDto } from './dto/create-plan.dto';
 import { UpdatePlanDto } from './dto/update-plan.dto';
+import { assertKnownCurrency } from '../../common/utils/currency.utils';
 import { CreatePlanPriceDto } from './dto/create-plan-price.dto';
 
 @Injectable()
@@ -51,6 +52,7 @@ export class PlansService {
     if (existing) {
       throw new ConflictException('Plan with this code already exists');
     }
+    for (const p of dto.prices ?? []) await assertKnownCurrency(db, p.currency);
 
     return db.plan.create({
       data: {
@@ -130,7 +132,7 @@ export class PlansService {
     return db.planPrice.create({
       data: {
         planId,
-        currency: dto.currency.toUpperCase(),
+        currency: await assertKnownCurrency(db, dto.currency),
         amount: dto.amount,
       },
     });

@@ -8,6 +8,7 @@ type WalletTx = Prisma.TransactionClient;
 const INBOUND_KINDS = new Set<WalletTransactionKind>(['PURCHASED', 'GRANTED', 'PAYOUT_REVERSED', 'TRANSFERRED_IN', 'REFUNDED']);
 import { CreateWalletDto, UpdateWalletDto, TopUpWalletDto } from './dto/create-wallet.dto';
 import { WEBHOOK_QUEUE, WebhookJobType } from '../../queues/billing.queue';
+import { assertKnownCurrency } from '../../common/utils/currency.utils';
 import { dec, Dec } from '../billing/pricing';
 
 @Injectable()
@@ -43,7 +44,7 @@ export class WalletsService {
       data: {
         customerId: dto.customerId,
         name: dto.name || null,
-        currency: dto.currency.toUpperCase(),
+        currency: await assertKnownCurrency(db, dto.currency),
         rateAmount,
         expirationAt: dto.expirationAt ? new Date(dto.expirationAt) : null,
         metadata: dto.metadata as any,

@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
+import { assertKnownCurrency } from '../../common/utils/currency.utils';
 import { CreateAddOnDto, UpdateAddOnDto, ApplyAddOnDto } from './dto/create-add-on.dto';
 
 @Injectable()
@@ -43,6 +44,7 @@ export class AddOnsService {
     if (!dto.prices || dto.prices.length === 0) {
       throw new BadRequestException('At least one price is required');
     }
+    for (const p of dto.prices) await assertKnownCurrency(db, p.currency);
 
     return db.addOn.create({
       data: {
@@ -65,6 +67,7 @@ export class AddOnsService {
   async update(db: PrismaClient, id: string, dto: UpdateAddOnDto) {
     const addOn = await db.addOn.findUnique({ where: { id } });
     if (!addOn) throw new NotFoundException('Add-on not found');
+    for (const p of dto.prices ?? []) await assertKnownCurrency(db, p.currency);
 
     return db.$transaction(async (tx) => {
       if (dto.prices) {
