@@ -10,7 +10,7 @@ import { useEnvironment } from "@/lib/environment";
  * Live / sandbox, like a test-mode switch: the same account and organisation,
  * with the sandbox's separate data and sk_test_ keys.
  */
-export function EnvironmentSwitch() {
+export function EnvironmentSwitch({ collapsed = false }: { collapsed?: boolean }) {
   const env = useEnvironment();
   const [busy, setBusy] = useState(false);
   if (!env?.canSwitch) return null;
@@ -35,10 +35,14 @@ export function EnvironmentSwitch() {
     }
   };
 
+  // Sits with Documentation at the foot of the sidebar; collapsed, only the switch shows.
   return (
-    <label className="flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium text-muted-foreground has-[[data-state=checked]]:text-violet-600">
-      <FlaskConical className="h-4 w-4" aria-hidden="true" />
-      <span className="hidden sm:inline">Sandbox</span>
+    <label
+      className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors has-[[data-state=checked]]:text-violet-600"
+      title={collapsed ? (env.sandbox ? "Sandbox: on" : "Sandbox: off") : "Show the sandbox: test data and sk_test_ keys"}
+    >
+      {!collapsed && <FlaskConical className="h-4 w-4 flex-shrink-0" aria-hidden="true" />}
+      {!collapsed && <span className="flex-1">Sandbox</span>}
       <Switch checked={env.sandbox} disabled={busy} onCheckedChange={change} aria-label="Sandbox" />
     </label>
   );

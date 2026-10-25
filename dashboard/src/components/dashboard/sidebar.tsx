@@ -46,6 +46,7 @@ import { brand } from "@/lib/brand";
 import { roleLabels } from "@/lib/permissions";
 import { NewOrganisationDialog } from "@/components/dashboard/new-organisation-dialog";
 import { useState } from "react";
+import { EnvironmentSwitch } from "./environment-switch";
 import { toast } from "sonner";
 
 interface NavItem {
@@ -193,8 +194,9 @@ export function Sidebar() {
         ))}
       </nav>
 
-      {/* External Links */}
+      {/* Environment and external links */}
       <div className="px-2 pb-2 border-t border-border pt-2">
+        <EnvironmentSwitch collapsed={sidebarCollapsed} />
         <a
           href={DOCS_URL}
           target="_blank"
