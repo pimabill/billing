@@ -11,6 +11,8 @@ import { formatScaled, toScaled } from '../ledger/ledger.money';
 import { ProviderRegistryService } from './provider-registry.service';
 import { majorAmount, MoneyProvider, Party, ProviderAmbiguousError, ProviderOutcome, Rail, PaymentDetails } from './types';
 import { parseParty } from './party';
+import { notificationUrls } from './notification-urls';
+export { notificationUrls };
 import { CommissionKind, CommissionQuote, CommissionSettings, quoteCommission, validateCommission } from './commission';
 
 export interface MoneySettings {
@@ -807,18 +809,6 @@ export class MoneyService {
       completedAt: intent.completedAt,
     };
   }
-}
-
-/**
- * Where providers send collection notifications. Yo takes success and
- * failure URLs with each request; MTN takes one callback URL per request;
- * Airtel's callback is set once in its portal (the same URL shown here).
- */
-export function notificationUrls(provider: string, tenantId: string) {
-  const base = `${process.env.API_BASE_URL || 'http://localhost:4000'}/webhooks/${provider}/${tenantId}`;
-  return provider === 'yo'
-    ? { notificationUrl: `${base}/ipn`, failureNotificationUrl: `${base}/failure` }
-    : { notificationUrl: `${base}/callback` };
 }
 
 function newReference(prefix: string): string {

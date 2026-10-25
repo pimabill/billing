@@ -72,7 +72,11 @@ const jsonLd = [
     operatingSystem: "Linux, Docker, Web",
     license: `https://spdx.org/licenses/${site.license}.html`,
     codeRepository: site.githubUrl,
-    offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Self-hosted, open source" },
+    offers: [
+      { "@type": "Offer", name: "Self-hosted", price: "0", priceCurrency: "USD", description: "Open source, on your own servers" },
+      { "@type": "Offer", name: "Cloud Free", price: "0", priceCurrency: "USD", description: "Hosted: 100 customers, 300 invoices a month" },
+      { "@type": "Offer", name: "Cloud Growth", price: "29", priceCurrency: "USD", description: "Hosted: 5,000 customers, 10,000 invoices a month, billed monthly" },
+    ],
   },
   {
     "@context": "https://schema.org",

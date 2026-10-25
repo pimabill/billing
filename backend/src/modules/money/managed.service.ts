@@ -1,8 +1,10 @@
-import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { EncryptionService } from '../../services/encryption.service';
 import { ManagedAccount, ManagedCredentials, managedConfig, ManagedPaymentsClient, OpenManagedAccount, UpdateManagedAccount } from './adapters/managed.adapter';
-import { notificationUrls } from './money.service';
+import { notificationUrls } from './notification-urls';
+import { CentralPrismaService } from '../../database/central-prisma.service';
+import { cloudPlansEnabled } from '../cloud-plans/cloud-plans.catalogue';
 
 /** Lowest priority, so a tenant's own provider accounts are always preferred when it has them. */
 const MANAGED_PRIORITY = 1000;
@@ -16,7 +18,26 @@ const MANAGED_PRIORITY = 1000;
 export class ManagedAccountsService {
   private readonly logger = new Logger(ManagedAccountsService.name);
 
-  constructor(private readonly encryption: EncryptionService) {}
+  constructor(
+    private readonly encryption: EncryptionService,
+    private readonly central: CentralPrismaService,
+  ) {}
+
+  /**
+   * Managed payments are a hosted-cloud service: offered to organisations on a
+   * cloud plan (and to the operator). A self-hosted deployment has no managed
+   * payments key, so it never gets here.
+   */
+  async allowedFor(tenantId: string): Promise<boolean> {
+    if (!managedConfig()) return false;
+    const tenant = await this.central.client.tenant.findUnique({
+      where: { id: tenantId },
+      select: { isPlatformOperator: true, tenantBilling: { select: { planId: true } } },
+    });
+    if (!tenant) return false;
+    if (tenant.isPlatformOperator || !cloudPlansEnabled()) return true;
+    return Boolean(tenant.tenantBilling?.planId?.startsWith('cloud_'));
+  }
 
   private client(): ManagedPaymentsClient {
     const config = managedConfig();
@@ -24,10 +45,10 @@ export class ManagedAccountsService {
     return new ManagedPaymentsClient(config);
   }
 
-  async status(db: PrismaClient): Promise<{ available: boolean; account: ManagedAccount | null }> {
+  async status(db: PrismaClient, tenantId: string): Promise<{ available: boolean; account: ManagedAccount | null }> {
     if (!managedConfig()) return { available: false, account: null };
     const id = await this.accountId(db);
-    if (!id) return { available: true, account: null };
+    if (!id) return { available: await this.allowedFor(tenantId), account: null };
     const r = await this.client().getAccount(id);
     if (!r.data) throw new BadRequestException(r.error ?? 'Could not load the managed account');
     await this.sync(db, r.data);
@@ -36,6 +57,7 @@ export class ManagedAccountsService {
 
   async open(db: PrismaClient, tenantId: string, input: Omit<OpenManagedAccount, 'externalId' | 'notificationUrl'>): Promise<ManagedAccount> {
     if (await this.accountId(db)) throw new BadRequestException('This account already has managed payments');
+    if (!(await this.allowedFor(tenantId))) throw new ForbiddenException('Managed payments are included with the cloud plans; this organisation is not on one');
     const r = await this.client().openAccount({ ...input, externalId: tenantId, notificationUrl: notificationUrls('managed', tenantId).notificationUrl });
     if (!r.data) throw new BadRequestException(r.error ?? 'Managed payments could not open the account');
     await this.sync(db, r.data);

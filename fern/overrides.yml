@@ -42,6 +42,22 @@ paths:
     post:
       x-fern-sdk-group-name: auth
       x-fern-sdk-method-name: createOrganisation
+  /api/tenants/me/plan:
+    get:
+      x-fern-sdk-group-name: plan
+      x-fern-sdk-method-name: get
+  /api/tenants/me/plan/checkout:
+    post:
+      x-fern-sdk-group-name: plan
+      x-fern-sdk-method-name: checkout
+  /api/tenants/me/plan/sync:
+    post:
+      x-fern-sdk-group-name: plan
+      x-fern-sdk-method-name: sync
+  /api/tenants/me/plan/cancel:
+    post:
+      x-fern-sdk-group-name: plan
+      x-fern-sdk-method-name: cancel
   /api/auth/sandbox/link:
     post:
       x-fern-sdk-group-name: auth

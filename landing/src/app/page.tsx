@@ -354,37 +354,55 @@ function Developers() {
 
 const tiers = [
   {
-    name: "Community",
+    name: "Cloud Free",
     price: "Free",
     period: "",
-    description: "Self-host the whole platform. No limits.",
+    description: "We host it. Start billing today, free while you stay within the limits.",
     features: [
-      "Every feature included",
-      "Unlimited organisations and customers",
-      "Every payment provider",
-      "Usage billing, wallets and the ledger",
-      "Dashboard and analytics",
-      "Community support on GitHub",
+      "100 customers and 100 active subscriptions",
+      "300 invoices a month, 2 team members",
+      "Every feature: usage billing, wallets, the ledger",
+      "Managed payments: take payments without a provider account",
+      "Sandbox with test keys",
+      "Community support",
     ],
-    cta: "Deploy from GitHub",
-    href: site.githubUrl,
+    cta: "Start free",
+    href: register,
+    highlighted: false,
+  },
+  {
+    name: "Cloud Growth",
+    price: "$29",
+    period: "/mo",
+    secondary: "or UGX 110,000 a month · two months free yearly",
+    description: "For businesses billing every month.",
+    features: [
+      "5,000 customers and 5,000 active subscriptions",
+      "10,000 invoices a month, 10 team members",
+      "Everything in Cloud Free",
+      "Pay by card or mobile money",
+      "Priority email support",
+      "Automatic updates and backups",
+    ],
+    cta: "Start free, upgrade any time",
+    href: register,
     highlighted: true,
   },
   {
-    name: "Cloud",
-    price: "$15",
-    period: "/mo",
-    description: "We host and run it. You focus on your product.",
+    name: "Self-hosted",
+    price: "Free",
+    period: "",
+    description: "Run the open-source platform on your own servers. No limits.",
     features: [
-      "Everything in Community",
-      "Managed infrastructure",
-      "Automatic updates and backups",
-      "Priority email support",
-      "99.9% uptime SLA",
-      "Custom domain for the dashboard",
+      "Every feature, unlimited organisations and customers",
+      "Bring your own provider accounts: every provider supported",
+      "AGPL-3.0, Docker compose in minutes",
+      "Your own sandbox deployment",
+      "Community support on GitHub",
+      "Managed payments are cloud-only",
     ],
-    cta: "Coming soon",
-    href: undefined,
+    cta: "Deploy from GitHub",
+    href: site.githubUrl,
     highlighted: false,
   },
   {
@@ -393,7 +411,7 @@ const tiers = [
     period: "",
     description: "For large, multi-entity billing operations.",
     features: [
-      "Everything in Cloud",
+      "Everything in Cloud Growth",
       "Dedicated database cluster",
       "Custom SLA",
       "SSO / SAML",
@@ -413,10 +431,11 @@ function Pricing() {
         <div className="max-w-2xl">
           <Eyebrow>Pricing</Eyebrow>
           <h2 id="pricing-title" className="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            Free to self-host. Always.
+            Start free. Pay when you grow.
           </h2>
+          <p className="mt-4 text-lg text-ink-2">Free on our cloud while you start, and free to self-host forever.</p>
         </div>
-        <div className="mt-12 grid gap-6 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
           {tiers.map((t) => (
             <div
               key={t.name}
@@ -427,6 +446,7 @@ function Pricing() {
                 <span className="font-display text-4xl font-semibold">{t.price}</span>
                 {t.period && <span className="text-ink-2">{t.period}</span>}
               </p>
+              {"secondary" in t && t.secondary && <p className="mt-1 text-sm text-ink-2">{t.secondary}</p>}
               <p className="mt-3 text-ink-2">{t.description}</p>
               <ul className="mt-6 grid flex-1 gap-2.5 text-sm">
                 {t.features.map((f) => (

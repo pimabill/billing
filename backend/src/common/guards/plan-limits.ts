@@ -18,6 +18,8 @@ export type Counted = (typeof COUNTED)[number];
 /** Features a plan can leave out, by the routes that make them up. */
 export const FEATURE_ROUTES = {
   usage_billing: ['/events', '/billable-metrics'],
+  // Before money_movement: the first matching prefix decides.
+  managed_payments: ['/money/managed'],
   money_movement: ['/money', '/collections', '/payouts', '/transfers'],
   wallets: ['/wallets'],
   ledger: ['/ledger'],
@@ -29,6 +31,7 @@ const FEATURE_LABELS: Record<PlanFeature, string> = {
   money_movement: 'Money movement',
   wallets: 'Wallets',
   ledger: 'The ledger',
+  managed_payments: 'Managed payments',
 };
 
 /** Creating one of these counts against a limit. */

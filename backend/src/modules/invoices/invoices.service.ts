@@ -11,6 +11,7 @@ import { CHECKOUT_PROVIDER_NAMES, ProviderFactory } from '../../providers/provid
 import { WalletsService } from '../wallets/wallets.service';
 import { nextInvoiceNumber } from '../billing/invoice-number';
 import { dec, Dec, roundMoney } from '../billing/pricing';
+import { isSandbox } from '../../config/sandbox';
 import {
   EMAIL_QUEUE,
   WEBHOOK_QUEUE,
@@ -461,7 +462,7 @@ export class InvoicesService {
     return { message: `Invoice email queued for ${email}` };
   }
 
-  async createCheckout(db: PrismaClient, id: string, callbackUrl?: string, providerName?: string) {
+  async createCheckout(db: PrismaClient, id: string, callbackUrl?: string, providerName?: string, tenantId?: string) {
     const invoice = await db.invoice.findUnique({
       where: { id },
       include: { customer: true },
@@ -482,18 +483,14 @@ export class InvoicesService {
       throw new BadRequestException('Nothing to pay on this invoice');
     }
 
-    // Find the requested provider or fall back to the highest-priority active one
-    const providerConfig = providerName
-      ? await db.paymentProvider.findFirst({
-          where: { isActive: true, providerName },
-          orderBy: { priority: 'asc' },
-        })
-      : await db.paymentProvider.findFirst({
-          where: { isActive: true, providerName: { in: CHECKOUT_PROVIDER_NAMES } },
-          orderBy: { priority: 'asc' },
-        });
+    // The requested provider, or every active one in priority order: when one cannot start a
+    // checkout (a revoked key, an outage) the next is tried, managed payments last.
+    const candidates = await db.paymentProvider.findMany({
+      where: { isActive: true, providerName: providerName ? providerName : { in: CHECKOUT_PROVIDER_NAMES } },
+      orderBy: { priority: 'asc' },
+    });
 
-    if (!providerConfig) {
+    if (!candidates.length) {
       throw new BadRequestException(
         providerName
           ? `Payment provider "${providerName}" is not configured or not active`
@@ -501,52 +498,67 @@ export class InvoicesService {
       );
     }
 
-    const credentials = JSON.parse(this.encryptionService.decrypt(providerConfig.credentials));
-    const provider = ProviderFactory.create(providerConfig.providerName, credentials);
+    let lastError = 'Failed to create checkout session';
+    for (const providerConfig of candidates) {
+      const credentials = JSON.parse(this.encryptionService.decrypt(providerConfig.credentials));
+      // A live deployment never sends a payer to a provider's test environment unless asked to by name.
+      if (!providerName && !isSandbox() && ['sandbox', 'test', 'staging'].includes(String(credentials.environment ?? '').toLowerCase())) {
+        this.logger.warn(`Skipped ${providerConfig.providerName} for invoice ${id}: its credentials are for its test environment`);
+        continue;
+      }
+      if (providerConfig.providerName === 'managed' && tenantId) credentials.tenantId = tenantId;
+      const provider = ProviderFactory.create(providerConfig.providerName, credentials);
 
-    // Create a pending payment record
-    const payment = await db.payment.create({
-      data: {
-        invoiceId: id,
-        provider: providerConfig.providerName,
-        amount: invoice.amount,
-        currency: invoice.currency,
-        status: 'PROCESSING',
-      },
-    });
+      // Create a pending payment record
+      const payment = await db.payment.create({
+        data: {
+          invoiceId: id,
+          provider: providerConfig.providerName,
+          amount: invoice.amount,
+          currency: invoice.currency,
+          status: 'PROCESSING',
+        },
+      });
 
-    // Initiate the charge to get a payment URL
-    const result = await provider.charge({
-      amount: Number(invoice.amount),
-      currency: invoice.currency,
-      email: invoice.customer.email,
-      customerName: invoice.customer.name ?? undefined,
-      // Each attempt has its own reference (providers refuse a reused one); webhooks match it to this payment.
-      reference: payment.id,
-      callbackUrl,
-      paymentOptions: 'card',
-      metadata: { invoiceId: id, paymentId: payment.id },
-    });
+      // Initiate the charge to get a payment URL. Starting a checkout moves no money, so a
+      // failure here is safe to follow with the next provider.
+      const result = await provider
+        .charge({
+          amount: Number(invoice.amount),
+          currency: invoice.currency,
+          email: invoice.customer.email,
+          customerName: invoice.customer.name ?? undefined,
+          // Each attempt has its own reference (providers refuse a reused one); webhooks match it to this payment.
+          reference: payment.id,
+          callbackUrl,
+          paymentOptions: 'card',
+          metadata: { invoiceId: id, paymentId: payment.id, description: `Invoice ${invoice.invoiceNumber}` },
+        })
+        .catch((error: Error) => ({ success: false, error: error.message, transactionId: undefined, paymentUrl: undefined }));
 
-    if (!result.success) {
+      if (!result.success || !result.paymentUrl) {
+        lastError = result.error || lastError;
+        this.logger.warn(`Checkout through ${providerConfig.providerName} failed for invoice ${id}: ${lastError}`);
+        await db.payment.update({
+          where: { id: payment.id },
+          data: { status: 'FAILED', failureReason: lastError },
+        });
+        continue;
+      }
+
+      // Update payment with transaction ID
       await db.payment.update({
         where: { id: payment.id },
-        data: { status: 'FAILED', failureReason: result.error },
+        data: { providerTransactionId: result.transactionId },
       });
-      throw new BadRequestException(result.error || 'Failed to create checkout session');
+
+      return {
+        checkoutUrl: result.paymentUrl,
+        paymentId: payment.id,
+        provider: providerConfig.providerName,
+        expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min
+      };
     }
-
-    // Update payment with transaction ID
-    await db.payment.update({
-      where: { id: payment.id },
-      data: { providerTransactionId: result.transactionId },
-    });
-
-    return {
-      checkoutUrl: result.paymentUrl,
-      paymentId: payment.id,
-      provider: providerConfig.providerName,
-      expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 min
-    };
+    throw new BadRequestException(lastError);
   }
 }

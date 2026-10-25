@@ -19,7 +19,7 @@ describe('WebhooksController (payment notifications)', () => {
     controller = new WebhooksController(
       {
         client: {
-          tenant: { findMany: jest.fn().mockResolvedValue([{ id: 't1', name: 'Acme' }]) },
+          tenant: { findMany: jest.fn().mockResolvedValue([{ id: 't1', name: 'Acme' }]), findUnique: jest.fn().mockResolvedValue({ id: 't1', name: 'Acme' }) },
           webhookLog: { create: jest.fn().mockResolvedValue({}) },
         },
       } as never,
@@ -28,6 +28,7 @@ describe('WebhooksController (payment notifications)', () => {
       createMockQueue() as never,
       createMockQueue() as never,
       money as never,
+      {} as never,
     );
   });
   afterEach(() => jest.restoreAllMocks());
@@ -46,6 +47,28 @@ describe('WebhooksController (payment notifications)', () => {
     handleWebhook.mockResolvedValue({ status: 'succeeded', transactionId: 'cs_1', amount: 49, currency: 'USD' });
     db.payment.findFirst.mockRejectedValue(new Error('connection reset'));
     await expect(controller.stripe(req({ 'stripe-signature': 't=1,v1=x' }), {})).rejects.toThrow('Could not process stripe webhook');
+  });
+
+  it('settles an invoice paid through managed payments once the service confirms it', async () => {
+    db.payment.findFirst.mockResolvedValue({ id: 'pay_m', provider: 'managed', status: 'PROCESSING', amount: '110000', currency: 'UGX', invoiceId: 'inv_m', invoice: { id: 'inv_m', invoiceNumber: 'INV-1', customer: null } });
+    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'managed', credentials: 'enc' });
+    db.providerEvent.create.mockResolvedValue({});
+    db.payment.updateMany.mockResolvedValue({ count: 1 });
+    db.invoice.updateMany.mockResolvedValue({ count: 1 });
+    const getPaymentStatus = jest.fn().mockResolvedValue({ status: 'succeeded', transactionId: 'pay_m', amount: 110000, currency: 'UGX', reference: 'pay_m' });
+    jest.spyOn(ProviderFactory, 'create').mockReturnValue({ getPaymentStatus } as never);
+
+    expect(await controller.settleManagedPayment(db as never, 't1', 'pay_m')).toBe(true);
+    expect(getPaymentStatus).toHaveBeenCalledWith('pay_m');
+    expect(db.invoice.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: 'inv_m' }), data: expect.objectContaining({ status: 'PAID' }) }));
+  });
+
+  it('leaves a managed invoice payment open while the service still reports it pending', async () => {
+    db.payment.findFirst.mockResolvedValue({ id: 'pay_p', provider: 'managed', status: 'PROCESSING', amount: '29', currency: 'USD', invoiceId: 'inv_p' });
+    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'managed', credentials: 'enc' });
+    jest.spyOn(ProviderFactory, 'create').mockReturnValue({ getPaymentStatus: jest.fn().mockResolvedValue({ status: 'pending', transactionId: 'pay_p', amount: 0, currency: '' }) } as never);
+    expect(await controller.settleManagedPayment(db as never, 't1', 'pay_p')).toBe(true);
+    expect(db.invoice.updateMany).not.toHaveBeenCalled();
   });
 
   it('keeps looking when the first tenant sharing the provider account does not own the payment', async () => {
@@ -73,6 +96,7 @@ describe('WebhooksController (payment notifications)', () => {
       createMockQueue() as never,
       createMockQueue() as never,
       money as never,
+      {} as never,
     );
 
     await shared.flutterwave(req({ 'verif-hash': 'h' }), { event: 'charge.completed' });

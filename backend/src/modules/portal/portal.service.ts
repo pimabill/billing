@@ -1,13 +1,12 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
-import { EncryptionService } from '../../services/encryption.service';
-import { CHECKOUT_PROVIDER_NAMES, ProviderFactory } from '../../providers/provider.factory';
+import { InvoicesService } from '../invoices/invoices.service';
 
 @Injectable()
 export class PortalService {
   private readonly logger = new Logger(PortalService.name);
 
-  constructor(private readonly encryptionService: EncryptionService) {}
+  constructor(private readonly invoices: InvoicesService) {}
 
   async getCustomerByExternalId(db: PrismaClient, externalId: string) {
     const customer = await db.customer.findUnique({
@@ -144,7 +143,7 @@ export class PortalService {
     };
   }
 
-  async getInvoiceCheckout(db: PrismaClient, customerId: string, invoiceId: string, callbackUrl?: string) {
+  async getInvoiceCheckout(db: PrismaClient, customerId: string, invoiceId: string, callbackUrl?: string, tenantId?: string) {
     const invoice = await db.invoice.findUnique({
       where: { id: invoiceId },
       include: { customer: true },
@@ -156,57 +155,13 @@ export class PortalService {
     if (invoice.status === 'CANCELED') throw new BadRequestException('Invoice has been voided');
     if (Number(invoice.amount) <= 0) throw new BadRequestException('Nothing to pay on this invoice');
 
-    const providerConfig = await db.paymentProvider.findFirst({
-      where: { isActive: true, providerName: { in: CHECKOUT_PROVIDER_NAMES } },
-      orderBy: { priority: 'asc' },
-    });
-
-    if (!providerConfig) {
-      throw new BadRequestException('No active payment provider configured');
-    }
-
-    const credentials = JSON.parse(this.encryptionService.decrypt(providerConfig.credentials));
-    const provider = ProviderFactory.create(providerConfig.providerName, credentials);
-
-    const payment = await db.payment.create({
-      data: {
-        invoiceId,
-        provider: providerConfig.providerName,
-        amount: invoice.amount,
-        currency: invoice.currency,
-        status: 'PROCESSING',
-      },
-    });
-
-    const result = await provider.charge({
-      amount: Number(invoice.amount),
-      currency: invoice.currency,
-      email: invoice.customer.email,
-      customerName: invoice.customer.name ?? undefined,
-      // Each attempt has its own reference (providers refuse a reused one); webhooks match it to this payment.
-      reference: payment.id,
-      callbackUrl,
-      paymentOptions: 'card',
-      metadata: { invoiceId, paymentId: payment.id },
-    });
-
-    if (!result.success) {
-      await db.payment.update({
-        where: { id: payment.id },
-        data: { status: 'FAILED', failureReason: result.error },
-      });
-      throw new BadRequestException(result.error || 'Failed to create checkout session');
-    }
-
-    await db.payment.update({
-      where: { id: payment.id },
-      data: { providerTransactionId: result.transactionId },
-    });
+    // The same checkout as the API: providers in priority order, managed payments last.
+    const result = await this.invoices.createCheckout(db, invoiceId, callbackUrl, undefined, tenantId);
 
     return {
-      checkoutUrl: result.paymentUrl,
-      paymentId: payment.id,
-      provider: providerConfig.providerName,
+      checkoutUrl: result.checkoutUrl,
+      paymentId: result.paymentId,
+      provider: result.provider,
       invoiceNumber: invoice.invoiceNumber,
       amount: Number(invoice.amount),
       currency: invoice.currency,

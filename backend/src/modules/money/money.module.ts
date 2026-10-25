@@ -15,6 +15,6 @@ import { OperatorWebhooksController } from './operator-webhooks.controller';
   imports: [WalletsModule, BullModule.registerQueue({ name: WEBHOOK_QUEUE })],
   controllers: [CollectionsController, PayoutsController, TransfersController, MoneySettingsController, YoWebhooksController, OperatorWebhooksController],
   providers: [MoneyService, ProviderRegistryService, ManagedAccountsService, MoneyPollerService, IdempotencyInterceptor],
-  exports: [MoneyService],
+  exports: [MoneyService, ManagedAccountsService],
 })
 export class MoneyModule {}
