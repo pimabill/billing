@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandMark } from "@/components/brand-mark";
 import { useCan } from "@/lib/permissions";
 import { planApi, type CloudPlanOption, type PlanStatus } from "@/lib/api/plan";
@@ -106,6 +107,7 @@ function PlanPage() {
   const limits = (data.plan.limits ?? {}) as Record<string, number | undefined>;
   const currencies = [...new Set(data.plans.flatMap((p) => p.prices.map((x) => x.currency)))];
   const onGrowth = data.plan.tier === "growth";
+  const partner = data.plan.tier === "partner";
   const sub = data.subscription;
 
   return (
@@ -123,9 +125,11 @@ function PlanPage() {
             {sub?.cancelAt && <Badge variant="outline">Ends {date(sub.cancelAt)}</Badge>}
           </CardTitle>
           <CardDescription>
-            {onGrowth && sub?.paidThrough
-              ? `Paid through ${date(sub.paidThrough)}.`
-              : "Free for as long as you stay within these limits. Upgrade any time."}
+            {partner
+              ? "A partner organisation: no limits and nothing to pay."
+              : onGrowth && sub?.paidThrough
+                ? `Paid through ${date(sub.paidThrough)}.`
+                : "Free for as long as you stay within these limits. Upgrade any time."}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-5 sm:grid-cols-2">
@@ -162,13 +166,18 @@ function PlanPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">Plans</h2>
         {currencies.length > 1 && (
-          <div className="flex gap-1" role="group" aria-label="Currency">
-            {currencies.map((c) => (
-              <Button key={c} size="sm" variant={currency === c ? "default" : "outline"} aria-pressed={currency === c} onClick={() => setCurrency(c)}>
-                {c}
-              </Button>
-            ))}
-          </div>
+          <Select value={currency} onValueChange={setCurrency}>
+            <SelectTrigger className="w-32" aria-label="Currency">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {currencies.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
       </div>
       <div className="grid gap-4 md:grid-cols-3">
@@ -198,7 +207,7 @@ function PlanPage() {
                     </li>
                   ))}
                 </ul>
-                {p.tier === "growth" && !current && canManage && (
+                {p.tier === "growth" && !current && !partner && canManage && (
                   <Button className="w-full" disabled={busy !== null} onClick={() => upgrade(p)}>
                     {busy === p.code ? <BrandMark animated tight className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" aria-hidden />}
                     Upgrade, pay with card or mobile money

@@ -2,7 +2,7 @@ import { apiFetch } from "./client";
 
 export interface CloudPlanOption {
   code: string;
-  tier: "free" | "growth";
+  tier: "free" | "growth" | "partner";
   name: string;
   description: string | null;
   interval: "MONTHLY" | "YEARLY" | string;
@@ -12,7 +12,7 @@ export interface CloudPlanOption {
 
 export interface PlanStatus {
   enabled: boolean;
-  plan: { code: string | null; name: string | null; tier: "free" | "growth" | null; status: string | null; limits: Record<string, unknown> | null };
+  plan: { code: string | null; name: string | null; tier: "free" | "growth" | "partner" | null; status: string | null; limits: Record<string, unknown> | null };
   usage: Record<"customers" | "activeSubscriptions" | "invoicesPerMonth" | "teamMembers", number>;
   subscription: { plan: string; status: string; paidThrough: string | null; cancelAt: string | null; openInvoice: { id: string; amount: string; currency: string } | null } | null;
   plans: CloudPlanOption[];
