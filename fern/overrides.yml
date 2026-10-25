@@ -698,6 +698,9 @@ paths:
     post:
       x-fern-sdk-group-name: money
       x-fern-sdk-method-name: openManaged
+    patch:
+      x-fern-sdk-group-name: money
+      x-fern-sdk-method-name: updateManaged
   /api/money/crypto-deposits:
     get:
       x-fern-sdk-group-name: money

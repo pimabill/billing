@@ -20,7 +20,9 @@ const statusText: Record<ManagedAccount["status"], { label: string; variant: "su
   suspended: { label: "Suspended", variant: "error", hint: "New payments are paused. Contact support." },
 };
 
-const empty = { businessName: "", email: "", phone: "", country: "UG", currency: "UGX", msisdn: "", paypalEmail: "", bankCode: "", accountNumber: "", accountName: "" };
+const empty = { businessName: "", email: "", phone: "", country: "UG", currency: "UGX", msisdn: "", mobileName: "", paypalEmail: "", bankCode: "", accountNumber: "", accountName: "" };
+
+type PayoutChoice = ManagedPayoutType | "keep";
 
 const payoutTypes: { value: ManagedPayoutType; label: string }[] = [
   { value: "mobile_money", label: "Mobile money" },
@@ -37,7 +39,8 @@ const payoutTypes: { value: ManagedPayoutType; label: string }[] = [
 export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
   const [state, setState] = useState<{ available: boolean; account: ManagedAccount | null } | null>(null);
   const [form, setForm] = useState(empty);
-  const [payoutType, setPayoutType] = useState<ManagedPayoutType>("mobile_money");
+  const [payoutType, setPayoutType] = useState<PayoutChoice>("mobile_money");
+  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const canManage = useCan("settings.providers");
 
@@ -65,7 +68,10 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
   );
 
   const destination = (): Pick<OpenManagedAccount, "bank" | "payoutDestination"> => {
-    if (payoutType === "mobile_money") return { payoutDestination: { type: "mobile_money", msisdn: form.msisdn.replace(/[\s+]/g, "") } };
+    if (payoutType === "keep") return {};
+    if (payoutType === "mobile_money") {
+      return { payoutDestination: { type: "mobile_money", msisdn: form.msisdn.replace(/[\s+]/g, ""), name: form.mobileName || undefined } };
+    }
     if (payoutType === "paypal") return { payoutDestination: { type: "paypal", email: form.paypalEmail } };
     const accountName = form.accountName || undefined;
     return {
@@ -96,6 +102,57 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
     }
   };
 
+  const startEditing = (a: ManagedAccount) => {
+    setForm({ ...empty, email: a.email ?? "", phone: a.phone ?? "" });
+    setPayoutType("keep");
+    setEditing(true);
+  };
+
+  const saveChanges = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      const { payoutDestination } = destination();
+      await moneyApi.updateManaged({ email: form.email || undefined, phone: form.phone || undefined, ...(payoutDestination && { payoutDestination }) });
+      toast.success("Managed payments details saved");
+      setEditing(false);
+      await load();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save the details");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const payoutFields = (allowKeep: boolean) => (
+    <>
+      <fieldset className="space-y-1.5 sm:col-span-2">
+        <legend className="text-sm font-medium">Pay out to</legend>
+        <div className="flex flex-wrap gap-2">
+          {[...(allowKeep ? [{ value: "keep" as const, label: "Keep current" }] : []), ...payoutTypes].map((t) => (
+            <Button key={t.value} type="button" size="sm" variant={payoutType === t.value ? "default" : "outline"} aria-pressed={payoutType === t.value} onClick={() => setPayoutType(t.value)}>
+              {t.label}
+            </Button>
+          ))}
+        </div>
+      </fieldset>
+      {payoutType === "mobile_money" && (
+        <>
+          {field("msisdn", "Mobile money number", { placeholder: "256771234567", inputMode: "tel", required: true })}
+          {field("mobileName", "Name on the mobile money account (optional)")}
+        </>
+      )}
+      {payoutType === "paypal" && field("paypalEmail", "PayPal email", { type: "email", required: true })}
+      {payoutType === "bank" && (
+        <>
+          {field("bankCode", "Bank code", { placeholder: "From Flutterwave's bank list", required: true })}
+          {field("accountNumber", "Bank account number", { required: true })}
+          {field("accountName", "Name on the account", { required: true })}
+        </>
+      )}
+    </>
+  );
+
   const account = state.account;
   return (
     <Card>
@@ -110,7 +167,23 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {account ? (
+        {account && editing ? (
+          <form onSubmit={saveChanges} className="grid gap-4 sm:grid-cols-2">
+            {field("email", "Finance email", { type: "email", required: true })}
+            {field("phone", "Business phone", { placeholder: "+256…", required: true })}
+            {payoutFields(true)}
+            <div className="flex items-end gap-2 sm:col-span-2">
+              <Button type="submit" disabled={saving}>
+                {saving && <BrandMark animated tight className="mr-2 h-4 w-4" />}
+                Save details
+              </Button>
+              <Button type="button" variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+                Cancel
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground sm:col-span-2">Changes apply to payouts from now on and are recorded by {brand.name}.</p>
+          </form>
+        ) : account ? (
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>
               <dt className="text-muted-foreground">Business</dt>
@@ -131,7 +204,20 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
                 <dd>{account.fee.type === "percentage" ? `${account.fee.value}% per payment` : `${account.fee.value} ${account.currency} per payment`}, plus the payment provider&apos;s fee</dd>
               </div>
             )}
+            {(account.email || account.phone) && (
+              <div>
+                <dt className="text-muted-foreground">Contact</dt>
+                <dd>{[account.email, account.phone].filter(Boolean).join(" · ")}</dd>
+              </div>
+            )}
             <p className="text-muted-foreground sm:col-span-2">{account.reason ?? statusText[account.status].hint}</p>
+            {canManage && (
+              <div className="sm:col-span-2">
+                <Button size="sm" variant="outline" onClick={() => startEditing(account)}>
+                  Edit details
+                </Button>
+              </div>
+            )}
           </dl>
         ) : (
           <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
@@ -142,25 +228,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
               {field("country", "Country", { maxLength: 2, required: true })}
               {field("currency", "Settlement currency", { maxLength: 3, required: true })}
             </div>
-            <fieldset className="space-y-1.5 sm:col-span-2">
-              <legend className="text-sm font-medium">Pay out to</legend>
-              <div className="flex flex-wrap gap-2">
-                {payoutTypes.map((t) => (
-                  <Button key={t.value} type="button" size="sm" variant={payoutType === t.value ? "default" : "outline"} aria-pressed={payoutType === t.value} onClick={() => setPayoutType(t.value)}>
-                    {t.label}
-                  </Button>
-                ))}
-              </div>
-            </fieldset>
-            {payoutType === "mobile_money" && field("msisdn", "Mobile money number", { placeholder: "256771234567", inputMode: "tel", required: true })}
-            {payoutType === "paypal" && field("paypalEmail", "PayPal email", { type: "email", required: true })}
-            {payoutType === "bank" && (
-              <>
-                {field("bankCode", "Bank code", { placeholder: "From Flutterwave's bank list", required: true })}
-                {field("accountNumber", "Bank account number", { required: true })}
-                {field("accountName", "Name on the account", { required: true })}
-              </>
-            )}
+            {payoutFields(false)}
             <div className="flex items-end">
               <Button type="submit" disabled={saving}>
                 {saving && <BrandMark animated tight className="mr-2 h-4 w-4" />}

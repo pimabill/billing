@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { EncryptionService } from '../../services/encryption.service';
-import { ManagedAccount, ManagedCredentials, managedConfig, ManagedPaymentsClient, OpenManagedAccount } from './adapters/managed.adapter';
+import { ManagedAccount, ManagedCredentials, managedConfig, ManagedPaymentsClient, OpenManagedAccount, UpdateManagedAccount } from './adapters/managed.adapter';
 import { notificationUrls } from './money.service';
 
 /** Lowest priority, so a tenant's own provider accounts are always preferred when it has them. */
@@ -40,6 +40,16 @@ export class ManagedAccountsService {
     if (!r.data) throw new BadRequestException(r.error ?? 'Managed payments could not open the account');
     await this.sync(db, r.data);
     this.logger.log(`Managed account ${r.data.id} opened for tenant ${tenantId} (${r.data.status})`);
+    return r.data;
+  }
+
+  /** Change the managed account's contact details or payout destination. */
+  async update(db: PrismaClient, changes: UpdateManagedAccount): Promise<ManagedAccount> {
+    if (!managedConfig()) throw new BadRequestException('Managed payments are not offered on this deployment');
+    const id = await this.accountId(db);
+    if (!id) throw new BadRequestException('This account has no managed payments yet');
+    const r = await this.client().updateAccount(id, changes);
+    if (!r.data) throw new BadRequestException(r.error ?? 'Managed payments could not update the account');
     return r.data;
   }
 

@@ -87,6 +87,21 @@ describe('ManagedAdapter', () => {
   });
 });
 
+describe('ManagedPaymentsClient.updateAccount', () => {
+  it('sends only the changed details to the account', async () => {
+    const fetch = jest.fn(() => json({ id: 'acc_9', status: 'active', businessName: 'Rapcio', country: 'UG', currency: 'UGX', phone: '+256762746464', payoutDestination: 'Mobile money ****6464' }));
+    const r = await new ManagedPaymentsClient(config, fetch as never).updateAccount('acc_9', {
+      phone: '+256762746464',
+      payoutDestination: { type: 'mobile_money', msisdn: '256762746464', name: 'Rapcio Ltd' },
+    });
+    const [url, init] = (fetch.mock.calls[0] as unknown) as [string, RequestInit];
+    expect(url).toBe('https://managed.example.com/v1/accounts/acc_9');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toEqual({ phone: '+256762746464', payoutDestination: { type: 'mobile_money', msisdn: '256762746464', name: 'Rapcio Ltd' } });
+    expect(r.data).toMatchObject({ payoutDestination: 'Mobile money ****6464' });
+  });
+});
+
 describe('managed notification signatures', () => {
   const client = new ManagedPaymentsClient(config);
   const sign = (body: string, t = Math.floor(Date.now() / 1000)) => `t=${t},v1=${createHmac('sha256', 'whsec').update(`${t}.${body}`).digest('hex')}`;
