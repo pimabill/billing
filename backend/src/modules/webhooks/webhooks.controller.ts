@@ -9,8 +9,10 @@ import {
   Req,
   RawBodyRequest,
   Body,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiExcludeEndpoint } from '@nestjs/swagger';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Request } from 'express';
@@ -22,6 +24,8 @@ import { EncryptionService } from '../../services/encryption.service';
 import { ProviderFactory } from '../../providers/provider.factory';
 import { WebhookData } from '../../providers/base-payment.provider';
 import { MoneyService } from '../money/money.service';
+import { ManagedAccountStatus, managedConfig, ManagedPaymentsClient } from '../money/adapters/managed.adapter';
+import { ManagedAccountsService } from '../money/managed.service';
 import { Prisma, PrismaClient } from '../../generated/prisma-tenant/client';
 import { toScaled } from '../ledger/ledger.money';
 import {
@@ -59,8 +63,94 @@ export class WebhooksController {
     @InjectQueue(WEBHOOK_QUEUE) private readonly webhookQueue: Queue,
     @InjectQueue(EMAIL_QUEUE) private readonly emailQueue: Queue,
     private readonly money: MoneyService,
+    private readonly managed: ManagedAccountsService,
     private readonly pdfService?: PdfService,
   ) {}
+
+  /**
+   * Managed payments notifications, signed with this deployment's webhook
+   * secret. An account notice switches the tenant's managed connection on or
+   * off. A payment notice is never trusted for its content: the payment is
+   * looked up with the service, then settled like any provider's. It may be a
+   * one-time collection, or an invoice checkout (the reference is our payment id).
+   */
+  @Public()
+  @ApiExcludeEndpoint()
+  @Post('managed/:tenantId/callback')
+  @HttpCode(200)
+  async managedPayments(
+    @Param('tenantId') tenantId: string,
+    @Req() req: RawBodyRequest<Request>,
+    @Body() body: { event?: string; id?: string; collection?: { reference?: string }; account?: { id?: string; status?: ManagedAccountStatus } },
+    @Headers('x-managed-signature') signature?: string,
+  ) {
+    const config = managedConfig();
+    if (!config) throw new NotFoundException();
+    const raw = req.rawBody?.toString('utf8') ?? JSON.stringify(body);
+    if (!new ManagedPaymentsClient(config).verifySignature(raw, signature)) throw new UnauthorizedException('Invalid managed payments signature');
+    const db = await this.tenantDbService.getTenantClient(tenantId).catch(() => null);
+    if (!db) return { status: 'ignored' };
+
+    if (body.account?.id && body.account.status) {
+      if ((await this.managed.accountId(db)) !== body.account.id) return { status: 'ignored' };
+      await this.managed.sync(db, { id: body.account.id, status: body.account.status });
+      return { status: 'ok' };
+    }
+    const reference = body.collection?.reference;
+    if (!reference) return { status: 'ignored' };
+
+    const intent = await this.money.findByProviderRef(db, 'managed', { reference });
+    if (intent) {
+      await this.recordManagedEvent(db, body, reference, intent.id);
+      await this.money.refresh(db, tenantId, intent.id).catch((error) =>
+        this.logger.warn(`Managed collection check failed for ${intent.id}: ${error instanceof Error ? error.message : error}`),
+      );
+      return { status: 'ok' };
+    }
+
+    if (await this.settleManagedPayment(db, tenantId, reference)) return { status: 'ok' };
+    await this.recordManagedEvent(db, body, reference);
+    return { status: 'ignored' };
+  }
+
+  /** Ask managed payments how an invoice checkout ended, and settle the payment if it has. */
+  async settleManagedPayment(db: PrismaClient, tenantId: string, paymentId: string): Promise<boolean> {
+    const payment = await db.payment.findFirst({ where: { id: paymentId, provider: 'managed' } });
+    if (!payment) return false;
+    const row = await db.paymentProvider.findUnique({ where: { providerName: 'managed' } });
+    if (!row) return false;
+    const provider = ProviderFactory.create('managed', JSON.parse(this.encryptionService.decrypt(row.credentials)));
+    const status = await provider.getPaymentStatus(paymentId);
+    if (status.status === 'pending') return true;
+    const tenant = await this.centralPrisma.client.tenant.findUnique({ where: { id: tenantId }, select: { id: true, name: true } });
+    if (!tenant) return false;
+    return this.settle(db, tenant, 'managed', 'tenant', { reference: paymentId, status: status.status } as Record<string, unknown>, {
+      status: status.status,
+      transactionId: paymentId,
+      amount: status.amount,
+      currency: status.currency,
+      invoiceId: paymentId,
+      referenceVerified: true,
+    });
+  }
+
+  private async recordManagedEvent(db: PrismaClient, body: { event?: string; id?: string }, reference: string, intentId?: string) {
+    try {
+      await db.providerEvent.create({
+        data: {
+          provider: 'managed',
+          eventKey: `event:${body.id ?? `${reference}:${body.event}`}`,
+          eventType: body.event ?? 'collection',
+          status: intentId ? 'PROCESSED' : 'IGNORED',
+          route: 'tenant',
+          intentId,
+          payload: body as never,
+        },
+      });
+    } catch (error) {
+      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error;
+    }
+  }
 
   @Public()
   @Post('paystack')

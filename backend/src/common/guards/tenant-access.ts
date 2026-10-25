@@ -20,6 +20,8 @@ export function assertTenantAccess(
   if (mode === 'FULL') return;
   const isRead = ['GET', 'HEAD', 'OPTIONS'].includes(method);
   const route = routeOf(path);
+  // Paying for a plan is how a restricted organisation gets back; allow it in any mode.
+  if (route === '/tenants/me/plan' || route.startsWith('/tenants/me/plan/')) return;
   if (mode === 'READ_ONLY' && isRead) return;
   if (mode === 'SUSPENDED' && isRead && SUSPENDED_ALLOWED.includes(route)) return;
   throw new ForbiddenException({

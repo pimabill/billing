@@ -118,7 +118,13 @@ describe('managed notification signatures', () => {
 
 describe('ManagedAccountsService', () => {
   const encryption = { encrypt: (v: string) => `enc:${v}`, decrypt: (v: string) => v.slice(4) };
-  const service = new ManagedAccountsService(encryption as never);
+  const tenants: Record<string, { isPlatformOperator: boolean; tenantBilling: { planId: string | null } | null }> = {
+    operator: { isPlatformOperator: true, tenantBilling: null },
+    free: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_free' } },
+    none: { isPlatformOperator: false, tenantBilling: { planId: null } },
+  };
+  const central = { client: { tenant: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => tenants[where.id] ?? null) } } };
+  const service = new ManagedAccountsService(encryption as never, central as never);
 
   it('keeps the managed connection active only while the account is, at the lowest priority', async () => {
     const upsert = jest.fn();
@@ -135,7 +141,22 @@ describe('ManagedAccountsService', () => {
 
   it('reports managed payments as unavailable without a subscription', async () => {
     delete process.env.MANAGED_PAYMENTS_URL;
-    expect(await service.status({} as never)).toEqual({ available: false, account: null });
+    expect(await service.status({} as never, 'free')).toEqual({ available: false, account: null });
+  });
+
+  it('offers managed payments only to organisations on a cloud plan, and the operator', async () => {
+    process.env.MANAGED_PAYMENTS_URL = 'https://managed.example.com';
+    process.env.MANAGED_PAYMENTS_API_KEY = 'inst_key';
+    delete process.env.CLOUD_PLANS;
+    try {
+      expect(await service.allowedFor('free')).toBe(true);
+      expect(await service.allowedFor('operator')).toBe(true);
+      expect(await service.allowedFor('none')).toBe(false);
+      expect(await service.allowedFor('missing')).toBe(false);
+    } finally {
+      delete process.env.MANAGED_PAYMENTS_URL;
+      delete process.env.MANAGED_PAYMENTS_API_KEY;
+    }
   });
 });
 

@@ -147,6 +147,7 @@ export class PortalController {
   @ApiResponse({ status: 400, description: 'Invoice already paid or no provider configured' })
   async createCheckout(
     @TenantDb() db: PrismaClient,
+    @Req() req: { tenant: { id: string } },
     @Param('externalId') externalId: string,
     @Param('invoiceId') invoiceId: string,
     @Body() body: { callbackUrl?: string },
@@ -155,7 +156,7 @@ export class PortalController {
     if (body?.callbackUrl !== undefined && !/^https?:\/\//i.test(String(body.callbackUrl))) {
       throw new BadRequestException('callbackUrl must be an http(s) URL');
     }
-    return this.portalService.getInvoiceCheckout(db, customerId, invoiceId, body?.callbackUrl);
+    return this.portalService.getInvoiceCheckout(db, customerId, invoiceId, body?.callbackUrl, req.tenant.id);
   }
 
   @Get(':externalId/invoices/:invoiceId/pdf')

@@ -4,7 +4,7 @@ import { site } from "@/lib/site";
 export const faq = [
   {
     question: `Is ${site.name} free and open source?`,
-    answer: `Yes. ${site.name} is released under the AGPL-3.0 licence and the SDKs under MIT. You can self-host it with Docker at no cost, or use the hosted cloud if you would rather not run servers.`,
+    answer: `Yes. ${site.name} is released under the AGPL-3.0 licence and the SDKs under MIT. You can self-host it with Docker at no cost, or use our cloud: free up to 100 customers, then Growth at $29 (UGX 110,000) a month. Managed payments are part of the cloud only.`,
   },
   {
     question: "Can I bill customers with mobile money?",

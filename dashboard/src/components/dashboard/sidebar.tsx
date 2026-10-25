@@ -13,6 +13,7 @@ import {
   Plug,
   BarChart3,
   Settings,
+  Gem,
   ChevronLeft,
   ChevronRight,
   BookOpen,
@@ -113,6 +114,7 @@ const navigation: NavGroup[] = [
     label: "Admin",
     items: [
       { name: "Team", href: "/team", icon: UsersRound },
+      { name: "Plan", href: "/settings/plan", icon: Gem },
       { name: "Settings", href: "/settings", icon: Settings },
     ],
   },

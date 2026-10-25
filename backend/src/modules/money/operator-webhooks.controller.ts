@@ -21,8 +21,6 @@ import { MoneyService } from './money.service';
 import { ProviderRegistryService } from './provider-registry.service';
 import { NowPaymentsAdapter, NowPaymentsNotification } from './adapters/nowpayments.adapter';
 import { BinancePayAdapter, BinancePayNotification, fromTradeNo } from './adapters/binance-pay.adapter';
-import { ManagedAccountStatus, managedConfig, ManagedPaymentsClient } from './adapters/managed.adapter';
-import { ManagedAccountsService } from './managed.service';
 import { toScaled } from '../ledger/ledger.money';
 
 const OPERATORS = new Set(['mtn_momo', 'airtel_money', 'eversend']);
@@ -43,58 +41,7 @@ export class OperatorWebhooksController {
     private readonly tenantDb: TenantDatabaseService,
     private readonly money: MoneyService,
     private readonly registry: ProviderRegistryService,
-    private readonly managed: ManagedAccountsService,
   ) {}
-
-  /**
-   * Managed payments notifications, signed with this deployment's webhook
-   * secret. A collection notice triggers a status query; an account notice
-   * switches the tenant's managed connection on or off.
-   */
-  @Post('managed/:tenantId/callback')
-  @HttpCode(200)
-  async managedPayments(
-    @Param('tenantId') tenantId: string,
-    @Req() req: RawBodyRequest<Request>,
-    @Body() body: { event?: string; id?: string; collection?: { reference?: string }; account?: { id?: string; status?: ManagedAccountStatus } },
-    @Headers('x-managed-signature') signature?: string,
-  ) {
-    const config = managedConfig();
-    if (!config) throw new NotFoundException();
-    const raw = req.rawBody?.toString('utf8') ?? JSON.stringify(body);
-    if (!new ManagedPaymentsClient(config).verifySignature(raw, signature)) throw new UnauthorizedException('Invalid managed payments signature');
-    const db = await this.tenantDb.getTenantClient(tenantId).catch(() => null);
-    if (!db) return { status: 'ignored' };
-
-    if (body.account?.id && body.account.status) {
-      if ((await this.managed.accountId(db)) !== body.account.id) return { status: 'ignored' };
-      await this.managed.sync(db, { id: body.account.id, status: body.account.status });
-      return { status: 'ok' };
-    }
-    const reference = body.collection?.reference;
-    const intent = reference ? await this.money.findByProviderRef(db, 'managed', { reference }) : null;
-    try {
-      await db.providerEvent.create({
-        data: {
-          provider: 'managed',
-          eventKey: `event:${body.id ?? `${reference}:${body.event}`}`,
-          eventType: body.event ?? 'collection',
-          status: intent ? 'PROCESSED' : 'IGNORED',
-          route: 'tenant',
-          intentId: intent?.id,
-          payload: body as never,
-        },
-      });
-    } catch (error) {
-      if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) throw error;
-    }
-    if (intent) {
-      await this.money.refresh(db, tenantId, intent.id).catch((error) =>
-        this.logger.warn(`Managed collection check failed for ${intent.id}: ${error instanceof Error ? error.message : error}`),
-      );
-    }
-    return { status: 'ok' };
-  }
 
   /**
    * NOWPayments notifications are signed (x-nowpayments-sig), so a verified

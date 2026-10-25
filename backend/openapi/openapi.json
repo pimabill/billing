@@ -4425,6 +4425,44 @@
         ],
         "type": "object"
       },
+      "PlanCheckoutDto": {
+        "properties": {
+          "currency": {
+            "description": "One of the currencies the plan is priced in",
+            "example": "UGX",
+            "type": "string"
+          },
+          "plan": {
+            "enum": [
+              "cloud_growth_monthly",
+              "cloud_growth_yearly"
+            ],
+            "example": "cloud_growth_monthly",
+            "type": "string"
+          },
+          "returnUrl": {
+            "description": "Where checkout returns to; defaults to the plan page in the dashboard",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan",
+          "currency"
+        ],
+        "type": "object"
+      },
+      "PlanCheckoutResponse": {
+        "properties": {
+          "url": {
+            "description": "Send the person here to pay",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "type": "object"
+      },
       "PlanOverrideResponse": {
         "properties": {
           "createdAt": {
@@ -13970,6 +14008,103 @@
         "summary": "Delete an API key",
         "tags": [
           "Tenants"
+        ]
+      }
+    },
+    "/api/tenants/me/plan": {
+      "get": {
+        "operationId": "CloudPlansController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ],
+        "summary": "Your plan, its limits, your usage, and the plans you can move to",
+        "tags": [
+          "Plan"
+        ]
+      }
+    },
+    "/api/tenants/me/plan/cancel": {
+      "post": {
+        "operationId": "CloudPlansController_cancel",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ],
+        "summary": "Stop your paid plan at the end of the period you paid for; you then return to Free",
+        "tags": [
+          "Plan"
+        ]
+      }
+    },
+    "/api/tenants/me/plan/checkout": {
+      "post": {
+        "operationId": "CloudPlansController_checkout",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanCheckoutDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanCheckoutResponse"
+                }
+              }
+            },
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ],
+        "summary": "Start paying for a plan: returns a checkout link for its first invoice",
+        "tags": [
+          "Plan"
+        ]
+      }
+    },
+    "/api/tenants/me/plan/sync": {
+      "post": {
+        "operationId": "CloudPlansController_sync",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "JWT": []
+          }
+        ],
+        "summary": "Check for a payment just made and update your plan now",
+        "tags": [
+          "Plan"
         ]
       }
     },

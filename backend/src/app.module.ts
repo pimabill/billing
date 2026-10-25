@@ -22,6 +22,7 @@ import { CouponsModule } from './modules/coupons/coupons.module';
 import { AddOnsModule } from './modules/add-ons/add-ons.module';
 import { CreditNotesModule } from './modules/credit-notes/credit-notes.module';
 import { PortalModule } from './modules/portal/portal.module';
+import { CloudPlansModule } from './modules/cloud-plans/cloud-plans.module';
 import { BillableMetricsModule } from './modules/billable-metrics/billable-metrics.module';
 import { EventsModule } from './modules/events/events.module';
 import { ChargesModule } from './modules/charges/charges.module';
@@ -73,6 +74,7 @@ import { ServicesModule } from './services/services.module';
     AddOnsModule,
     CreditNotesModule,
     PortalModule,
+    CloudPlansModule,
     BillableMetricsModule,
     EventsModule,
     ChargesModule,

@@ -11,11 +11,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { brand } from "@/lib/brand";
 import { moneyApi, type ManagedAccount, type ManagedPayoutType, type OpenManagedAccount } from "@/lib/api/money";
+import { apiClient } from "@/lib/api/client";
 import { BrandMark } from "@/components/brand-mark";
 
 const statusText: Record<ManagedAccount["status"], { label: string; variant: "success" | "warning" | "error"; hint: string }> = {
   pending_review: { label: "In review", variant: "warning", hint: "We are checking your business and payout details. Checkout links start working once it is approved." },
-  active: { label: "Active", variant: "success", hint: "Checkout links fall back to managed payments whenever none of your own providers can take the payment." },
+  active: { label: "Active", variant: "success", hint: "Checkouts for your invoices and subscriptions use managed payments whenever none of your own providers can take the payment." },
   rejected: { label: "Not approved", variant: "error", hint: "Contact support to find out what is needed." },
   suspended: { label: "Suspended", variant: "error", hint: "New payments are paused. Contact support." },
 };
@@ -41,12 +42,27 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
   const [form, setForm] = useState(empty);
   const [payoutType, setPayoutType] = useState<PayoutChoice>("mobile_money");
   const [editing, setEditing] = useState(false);
+  const [moreDetails, setMoreDetails] = useState(false);
   const [saving, setSaving] = useState(false);
   const canManage = useCan("settings.providers");
 
   const load = useCallback(async () => {
     try {
-      setState(await moneyApi.managedStatus());
+      const status = await moneyApi.managedStatus();
+      setState(status);
+      // Applying: start from what the organisation already told us.
+      if (!status.account && status.available) {
+        const org = await apiClient.tenant.getProfile().catch(() => null);
+        if (org) {
+          setForm((f) => ({
+            ...f,
+            businessName: f.businessName || org.name || "",
+            email: f.email || org.email || "",
+            country: (org.settings?.country as string) || f.country,
+            mobileName: f.mobileName || (org.settings?.ownerName as string) || "",
+          }));
+        }
+      }
     } catch {
       setState({ available: false, account: null });
     }
@@ -63,7 +79,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
         <CardContent className="p-6 text-sm text-muted-foreground">
           {state.available
             ? "Managed payments let you take payments without a provider account of your own. Ask an owner or admin of this organisation to apply."
-            : `Managed payments are not offered on this ${brand.name} deployment.`}
+            : `Managed payments are part of the ${brand.name} cloud plans; they are not available on self-hosted deployments or without a cloud plan.`}
         </CardContent>
       </Card>
     );
@@ -172,8 +188,9 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
           {account && <Badge variant={statusText[account.status].variant}>{statusText[account.status].label}</Badge>}
         </CardTitle>
         <CardDescription>
-          No Flutterwave or other provider account? Take card, mobile money and PayPal payments through {brand.name}. We collect
-          on your behalf, keep the platform fee and the provider&apos;s processing fee, and pay the rest out to your mobile money, bank or PayPal account.
+          No Flutterwave or other provider account? Take every kind of payment (invoices, subscriptions, payment links and one-time
+          collections) by card, mobile money or PayPal through {brand.name}. We collect for you, keep the platform fee and the
+          provider&apos;s processing fee, and pay the rest out to your mobile money, bank or PayPal account. Included with the cloud plans.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -231,13 +248,29 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
           </dl>
         ) : (
           <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-            {field("businessName", "Registered business name", { required: true })}
-            {field("email", "Finance email", { type: "email", required: true })}
-            {field("phone", "Business phone", { placeholder: "+256…", required: true })}
-            <div className="grid grid-cols-2 gap-3">
-              {field("country", "Country", { maxLength: 2, required: true })}
-              {field("currency", "Settlement currency", { maxLength: 3, required: true })}
+            <div className="rounded-md bg-muted/50 p-3 text-sm sm:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  Applying as <strong>{form.businessName || "your organisation"}</strong>
+                  {form.email && <span className="text-muted-foreground"> · {form.email}</span>}
+                  <span className="text-muted-foreground"> · {form.country.toUpperCase()} · paid in {form.currency.toUpperCase()}</span>
+                </span>
+                <button type="button" className="text-xs underline" onClick={() => setMoreDetails((v) => !v)}>
+                  {moreDetails ? "Hide details" : "Edit details"}
+                </button>
+              </div>
             </div>
+            {moreDetails && (
+              <>
+                {field("businessName", "Registered business name", { required: true })}
+                {field("email", "Finance email", { type: "email", required: true })}
+                <div className="grid grid-cols-2 gap-3 sm:col-span-2">
+                  {field("country", "Country (2 letters)", { maxLength: 2, required: true })}
+                  {field("currency", "Payout currency", { maxLength: 3, required: true })}
+                </div>
+              </>
+            )}
+            {field("phone", "Business phone", { placeholder: "+256…", inputMode: "tel", required: true })}
             {payoutFields(false)}
             <div className="flex items-end">
               <Button type="submit" disabled={saving}>
@@ -246,8 +279,8 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
               </Button>
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">
-              Your details are reviewed before payments start. The fee is shown here once approved and is taken from each payment
-              before it is paid out to you.
+              Usually reviewed within a day. Once approved, invoices, subscriptions and payment links can be paid by card, mobile money or
+              PayPal through {brand.name}, and the money is paid out to you, less the fee shown here.
             </p>
           </form>
         )}

@@ -36,10 +36,10 @@ export function PlanPill() {
         pill
       )}
       {plan.manageUrl && (
-        <Button asChild size="sm" variant={plan.limits ? "default" : "outline"}>
+        <Button asChild size="sm" variant={plan.name === "Free" ? "default" : "outline"}>
           <a href={plan.manageUrl}>
-            {plan.limits && <Sparkles className="h-3.5 w-3.5" aria-hidden />}
-            {plan.limits ? "Upgrade" : "Billing"}
+            {plan.name === "Free" && <Sparkles className="h-3.5 w-3.5" aria-hidden />}
+            {plan.name === "Free" ? "Upgrade" : "Plan"}
           </a>
         </Button>
       )}

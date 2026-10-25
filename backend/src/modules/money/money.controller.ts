@@ -251,8 +251,8 @@ export class MoneySettingsController {
   @Get('managed')
   @ApiOperation({ summary: 'Whether managed payments are offered here, and this account\'s managed account if it has one' })
   @ApiResponse({ status: 200, description: 'Availability and account', type: ManagedStatusResponse })
-  managedStatus(@TenantDb() db: PrismaClient) {
-    return this.managed.status(db);
+  managedStatus(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant) {
+    return this.managed.status(db, req.tenant.id);
   }
 
   @Post('managed')

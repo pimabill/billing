@@ -14,6 +14,7 @@ import { EmailService } from '../../services/email.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { isSandbox, sandboxLinkSecret } from '../../config/sandbox';
+import { CLOUD_TIERS, cloudPlansEnabled } from '../cloud-plans/cloud-plans.catalogue';
 
 /** What live vouches for when someone switches to the sandbox. */
 interface SandboxLink {
@@ -107,7 +108,8 @@ export class AuthService {
         apiKeyLast4: lastFour(apiKey),
         webhookSecret: this.encryptionService.generateWebhookSecret(),
         settings: { ownerName: user.name },
-        tenantBilling: { create: { status: 'active' } },
+        // On the hosted cloud every organisation starts on Free; self-hosted ones have no plan.
+        tenantBilling: { create: cloudPlansEnabled() ? { status: 'free', planId: 'cloud_free', planName: CLOUD_TIERS.free.name, limits: CLOUD_TIERS.free.limits as object } : { status: 'active' } },
         memberships: { create: { userId: user.id, role: 'OWNER' } },
       },
     });

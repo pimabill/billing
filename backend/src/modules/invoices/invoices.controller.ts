@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -172,10 +172,11 @@ export class InvoicesController {
   @ApiResponse({ status: 404, description: 'Invoice not found' })
   async checkout(
     @TenantDb() db: PrismaClient,
+    @Req() req: { tenant: { id: string } },
     @Param('id') id: string,
     @Body() body: { callbackUrl?: string; providerName?: string },
   ) {
-    return this.invoicesService.createCheckout(db, id, body.callbackUrl, body.providerName);
+    return this.invoicesService.createCheckout(db, id, body.callbackUrl, body.providerName, req.tenant.id);
   }
 
   @Post(':id/send-email')
