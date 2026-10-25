@@ -17,8 +17,8 @@ export default function Home() {
       <Header />
       <main id="main">
         <Hero />
+        <Proof />
         <Rails />
-        <Product />
         <Steps />
         <Pillars />
         <Money />
@@ -47,7 +47,7 @@ function SectionHeading({ eyebrow, title, lede }: { eyebrow: string; title: stri
   );
 }
 
-/* Hero: the promise, two ways in, and a ledger reading as the picture. */
+/* Hero: the promise, two ways in, a ledger reading, and the product rising out of it. */
 function Hero() {
   const lines = [
     { label: "Collected", value: "1,250,000" },
@@ -55,53 +55,56 @@ function Hero() {
     { label: "Provider fees", value: "−18,750" },
   ];
   return (
-    <section aria-labelledby="hero-title" className="border-b border-line">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 py-16 sm:px-6 md:py-24 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+    <section aria-labelledby="hero-title" className="bg-aurora relative overflow-hidden text-night-ink">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pb-16 pt-16 sm:px-6 md:pt-24 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
         <div>
-          <Eyebrow>Open source · {site.license} · Self-host or cloud</Eyebrow>
-          <h1 id="hero-title" className="mt-4 font-display text-4xl font-semibold leading-[1.08] tracking-tight sm:text-5xl lg:text-6xl">
-            Open-source billing for the way Africa pays
+          <p className="inline-flex items-center gap-2 rounded-full border border-night-line bg-white/5 px-3 py-1 font-mono text-xs uppercase tracking-[0.08em] text-night-ink-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-glow" aria-hidden />
+            Open source · {site.license} · Self-host or cloud
+          </p>
+          <h1 id="hero-title" className="mt-6 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl lg:text-[4.1rem]">
+            Open-source billing for <span className="text-glow">the way Africa pays</span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg text-ink-2">
+          <p className="mt-6 max-w-xl text-lg text-night-ink-2">
             Subscriptions, usage and one-time payments over mobile money, cards, banks and crypto. Every shilling, cent
             and satoshi posts to a double-entry ledger your finance team can reconcile.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-9 flex flex-wrap gap-3">
             <a
               href={register}
-              className="inline-flex h-12 items-center gap-2 rounded-lg bg-teal px-5 font-semibold text-on-teal transition-colors hover:bg-teal-strong"
+              className="inline-flex h-12 items-center gap-2 rounded-xl bg-glow px-6 font-semibold text-night shadow-[0_10px_40px_-10px_rgba(31,196,180,0.8)] transition hover:brightness-110"
             >
               Start free <ArrowRight className="h-4 w-4" aria-hidden />
             </a>
             <a
               href={site.githubUrl}
-              className="inline-flex h-12 items-center rounded-lg border border-line bg-card px-5 font-semibold transition-colors hover:border-teal"
+              className="inline-flex h-12 items-center rounded-xl border border-white/15 bg-white/5 px-6 font-semibold text-white backdrop-blur transition hover:bg-white/10"
             >
               Self-host from GitHub
             </a>
           </div>
-          <p className="mt-4 text-sm text-ink-2">
+          <p className="mt-5 text-sm text-night-ink-2">
             Or read the{" "}
-            <a href={site.docsUrl} className="font-medium text-teal underline-offset-4 hover:underline">
+            <a href={site.docsUrl} className="font-medium text-glow underline-offset-4 hover:underline">
               quickstart
             </a>
             : running locally in about five minutes.
           </p>
         </div>
 
-        <figure className="rounded-2xl border border-line bg-card p-6 shadow-sm">
-          <figcaption className="flex items-center justify-between font-mono text-xs uppercase tracking-[0.08em] text-ink-2">
+        <figure className="rounded-2xl border border-night-line bg-white/[0.04] p-6 shadow-float backdrop-blur-md">
+          <figcaption className="flex items-center justify-between font-mono text-xs uppercase tracking-[0.08em] text-night-ink-2">
             <span>Ledger · this month</span>
             <span>Example</span>
           </figcaption>
           <dl className="mt-5 grid gap-3 font-mono text-[15px] tabular-nums">
             {lines.map((l) => (
-              <div key={l.label} className="flex justify-between gap-4 border-b border-line pb-3">
-                <dt className="text-ink-2">{l.label}</dt>
-                <dd>UGX {l.value}</dd>
+              <div key={l.label} className="flex justify-between gap-4 border-b border-night-line pb-3">
+                <dt className="text-night-ink-2">{l.label}</dt>
+                <dd className="text-white">UGX {l.value}</dd>
               </div>
             ))}
-            <div className="flex justify-between gap-4 pt-1 font-medium text-bark">
+            <div className="flex justify-between gap-4 pt-1 font-medium text-[#f3b38f]">
               <dt>Balance</dt>
               <dd>UGX 391,250</dd>
             </div>
@@ -113,18 +116,63 @@ function Hero() {
               ["Paid", "Posted to the ledger, webhook delivered"],
             ].map(([what, detail], i) => (
               <li key={what} className="flex gap-3">
-                <span
-                  aria-hidden
-                  className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-[3px] ${i === 2 ? "bg-teal" : "bg-teal/50"}`}
-                />
+                <span aria-hidden className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-[3px] ${i === 2 ? "bg-glow" : "bg-glow/40"}`} />
                 <span>
-                  <span className="font-medium">{what}</span>
-                  <span className="block text-ink-2">{detail}</span>
+                  <span className="font-medium text-white">{what}</span>
+                  <span className="block text-night-ink-2">{detail}</span>
                 </span>
               </li>
             ))}
           </ol>
         </figure>
+      </div>
+
+      {/* The product itself, rising out of the hero. */}
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        <figure className="shadow-float overflow-hidden rounded-t-2xl border border-b-0 border-night-line bg-night-2">
+          <div className="flex items-center gap-2 border-b border-night-line px-4 py-3" aria-hidden>
+            <span className="h-3 w-3 rounded-full bg-white/15" />
+            <span className="h-3 w-3 rounded-full bg-white/15" />
+            <span className="h-3 w-3 rounded-full bg-white/15" />
+            <span className="ml-3 truncate rounded-md bg-white/5 px-3 py-1 font-mono text-xs text-night-ink-2">{site.dashboardUrl.replace(/^https?:\/\//, "")}/dashboard</span>
+          </div>
+          <Image
+            src="/product-overview.webp"
+            alt="The dashboard's overview: monthly recurring revenue, active subscriptions, customers, payment success rate, revenue by month and recent payments"
+            width={1920}
+            height={1200}
+            sizes="(min-width: 1152px) 1152px, 100vw"
+            className="h-auto w-full"
+            unoptimized
+          />
+        </figure>
+      </div>
+    </section>
+  );
+}
+
+/* Facts, not claims. */
+function Proof() {
+  const facts = [
+    [String(rails.mobileMoney.length + rails.cardsAndBanks.length + rails.crypto.length), "payment rails: mobile money, cards, banks and crypto"],
+    ["160+", "currencies, with daily exchange rates"],
+    ["AGPL-3.0", "open source, self-host or cloud"],
+    ["1 ledger", "every movement double-entry, checked every run"],
+  ];
+  return (
+    <section aria-label="At a glance" className="border-b border-line bg-card">
+      <div className="mx-auto max-w-6xl sm:px-6">
+      <dl className="grid grid-cols-2 gap-px bg-line md:grid-cols-4">
+        {facts.map(([value, label]) => (
+          <div key={value} className="bg-card px-4 py-7 sm:px-6">
+            <dt className="sr-only">{label}</dt>
+            <dd>
+              <span className="block font-display text-2xl font-semibold tracking-tight text-teal sm:text-3xl">{value}</span>
+              <span className="mt-1 block text-sm text-ink-2">{label}</span>
+            </dd>
+          </div>
+        ))}
+      </dl>
       </div>
     </section>
   );
@@ -186,38 +234,6 @@ function Rails() {
             </div>
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-/* The product itself, before any more words about it. */
-function Product() {
-  return (
-    <section aria-labelledby="product-title" className="border-b border-line">
-      <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <SectionHeading
-          eyebrow="The dashboard"
-          title="Your billing and your money, on one screen"
-          lede="Recurring revenue, subscriptions, invoices and payments as they happen, with every shilling traced to the ledger."
-        />
-        <figure className="mt-12 overflow-hidden rounded-2xl border border-line bg-card shadow-[0_30px_80px_-30px_rgba(15,60,55,0.35)]">
-          <div className="flex items-center gap-2 border-b border-line px-4 py-3" aria-hidden>
-            <span className="h-3 w-3 rounded-full bg-line" />
-            <span className="h-3 w-3 rounded-full bg-line" />
-            <span className="h-3 w-3 rounded-full bg-line" />
-            <span className="ml-3 truncate rounded-md bg-mist px-3 py-1 font-mono text-xs text-ink-2">{site.dashboardUrl.replace(/^https?:\/\//, "")}/dashboard</span>
-          </div>
-          <Image
-            src="/product-overview.webp"
-            alt="The dashboard's overview: monthly recurring revenue, active subscriptions, customers, payment success rate, revenue by month and recent payments"
-            width={1920}
-            height={1200}
-            sizes="(min-width: 1152px) 1152px, 100vw"
-            className="h-auto w-full"
-            unoptimized
-          />
-        </figure>
       </div>
     </section>
   );
@@ -358,7 +374,7 @@ function Developers() {
     "A separate database per organisation",
   ];
   return (
-    <section id="developers" aria-labelledby="dev-title" className="border-b border-line bg-card">
+    <section id="developers" aria-labelledby="dev-title" className="bg-aurora border-b border-night-line text-night-ink [&_h2]:text-white [&_li]:text-night-ink [&_p]:text-night-ink-2 [&_.text-teal]:text-glow">
       <div className="mx-auto grid max-w-6xl items-start gap-12 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
         <div>
           <Eyebrow>Developers</Eyebrow>
@@ -557,7 +573,7 @@ function Pricing() {
           {tiers.map((t) => (
             <div
               key={t.name}
-              className={`flex flex-col rounded-2xl border bg-card p-7 ${t.highlighted ? "border-teal ring-1 ring-teal" : "border-line"}`}
+              className={`flex flex-col rounded-2xl border p-7 transition ${t.highlighted ? "bg-aurora shadow-float border-night-line text-white [&_.text-ink-2]:text-night-ink-2 [&_.text-teal]:text-glow" : "border-line bg-card hover:-translate-y-0.5 hover:shadow-lg"}`}
             >
               <h3 className="text-lg font-semibold">{t.name}</h3>
               <p className="mt-4">
@@ -578,7 +594,7 @@ function Pricing() {
                 <a
                   href={t.href}
                   className={`mt-8 inline-flex h-11 items-center justify-center rounded-lg px-4 font-semibold transition-colors ${
-                    t.highlighted ? "bg-teal text-on-teal hover:bg-teal-strong" : "border border-line hover:border-teal"
+                    t.highlighted ? "bg-glow text-night shadow-[0_10px_40px_-10px_rgba(31,196,180,0.8)] hover:brightness-110" : "border border-line hover:border-teal"
                   }`}
                 >
                   {t.cta}
@@ -647,15 +663,15 @@ function ClosingCta() {
   return (
     <section aria-labelledby="cta-title">
       <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
-        <div className="rounded-3xl bg-teal px-8 py-14 text-on-teal sm:px-14">
+        <div className="bg-aurora shadow-float relative overflow-hidden rounded-3xl px-8 py-16 text-white sm:px-14">
           <h2 id="cta-title" className="max-w-2xl font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             Billing that measures every shilling, cent and satoshi
           </h2>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href={register} className="inline-flex h-12 items-center rounded-lg bg-on-teal px-5 font-semibold text-teal">
+            <a href={register} className="inline-flex h-12 items-center rounded-xl bg-glow px-6 font-semibold text-night shadow-[0_10px_40px_-10px_rgba(31,196,180,0.8)] transition hover:brightness-110">
               Start free
             </a>
-            <a href={site.githubUrl} className="inline-flex h-12 items-center rounded-lg border border-on-teal/40 px-5 font-semibold">
+            <a href={site.githubUrl} className="inline-flex h-12 items-center rounded-xl border border-white/20 bg-white/5 px-6 font-semibold transition hover:bg-white/10">
               Star on GitHub
             </a>
           </div>
