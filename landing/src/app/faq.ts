@@ -18,7 +18,7 @@ export const faq = [
   },
   {
     question: "Do you hold my money?",
-    answer: `Not when you use your own provider accounts or crypto wallet: payments go straight to them, and ${site.name} sends instructions and records what happened in a double-entry ledger. If you choose managed payments on the cloud, we collect through our provider accounts, keep a small fee on top of the provider's, and pay the rest out to your mobile money, bank or PayPal; you can change where it goes at any time.`,
+    answer: `Not when you connect your own payment providers or crypto wallet: payments go straight to your accounts, and ${site.name} records every movement in a double-entry ledger. If you would rather not set up payment providers, managed payments on our cloud takes payments for you and pays them out to your mobile money, bank or PayPal, and you can change where they go at any time.`,
   },
   {
     question: "Can I test without moving real money?",
