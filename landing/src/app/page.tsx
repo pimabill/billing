@@ -372,9 +372,9 @@ const tiers = [
   },
   {
     name: "Cloud Growth",
-    price: "UGX 35,000",
+    price: "$15",
     period: "/mo",
-    secondary: "KES 1,250 · NGN 15,000 · GHS 120 · $10, or your currency · two months free yearly",
+    secondary: "UGX 55,000 · KES 1,900 · NGN 22,000, or your currency · two months free yearly",
     description: "No limits, priced for African businesses.",
     features: [
       "Unlimited customers and subscriptions",

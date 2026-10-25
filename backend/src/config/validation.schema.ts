@@ -81,6 +81,12 @@ export const validationSchema = Joi.object({
   BRAND_SUPPORT_EMAIL: Joi.string().optional().allow(''),
   BRAND_WEBSITE: Joi.string().optional().allow(''),
 
+  // Hosted cloud plans (see src/modules/cloud-plans).
+  CLOUD_SALES_EMAIL: Joi.string().optional().allow(''),
+  CLOUD_PLANS: Joi.string().valid('true', 'false').optional(),
+  CLOUD_BILLING_TENANT_ID: Joi.string().optional().allow(''),
+  CLOUD_BILLING_PROVIDER: Joi.string().optional().allow(''),
+
   // Lets webhook URLs and SMTP hosts point at private addresses (self-hosted, internal receivers only).
   ALLOW_PRIVATE_WEBHOOK_URLS: Joi.string().valid('true', 'false').optional(),
   DASHBOARD_URL: Joi.string().uri().optional(),

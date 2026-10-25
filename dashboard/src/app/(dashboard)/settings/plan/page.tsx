@@ -108,6 +108,7 @@ function PlanPage() {
   const currencies = [...new Set(data.plans.flatMap((p) => p.prices.map((x) => x.currency)))];
   const onGrowth = data.plan.tier === "growth";
   const partner = data.plan.tier === "partner";
+  const enterprise = data.plan.tier === "enterprise";
   const sub = data.subscription;
 
   return (
@@ -127,7 +128,9 @@ function PlanPage() {
           <CardDescription>
             {partner
               ? "A partner organisation: no limits and nothing to pay."
-              : onGrowth && sub?.paidThrough
+              : enterprise
+                ? "Enterprise: no limits, on terms agreed with you and invoiced to you directly."
+                : onGrowth && sub?.paidThrough
                 ? `Paid through ${date(sub.paidThrough)}.`
                 : "Free for as long as you stay within these limits. Upgrade any time."}
           </CardDescription>
@@ -180,7 +183,7 @@ function PlanPage() {
           </Select>
         )}
       </div>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {data.plans.map((p) => {
           const price = p.prices.find((x) => x.currency === currency) ?? p.prices[0];
           const current = data.plan.code === p.code;
@@ -207,7 +210,7 @@ function PlanPage() {
                     </li>
                   ))}
                 </ul>
-                {p.tier === "growth" && !current && !partner && canManage && (
+                {p.tier === "growth" && !current && !partner && !enterprise && canManage && (
                   <Button className="w-full" disabled={busy !== null} onClick={() => upgrade(p)}>
                     {busy === p.code ? <BrandMark animated tight className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" aria-hidden />}
                     Upgrade, pay with card or mobile money
@@ -217,6 +220,31 @@ function PlanPage() {
             </Card>
           );
         })}
+        <Card className={enterprise ? "border-primary" : undefined}>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              Enterprise
+              {enterprise && <Badge variant="success">Current</Badge>}
+            </CardTitle>
+            <div className="text-2xl font-bold">Let&apos;s talk</div>
+            <CardDescription>For large or multi-entity billing, priced for you.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="space-y-1.5 text-sm">
+              {["No limits", "Every feature, including managed payments", "Negotiated managed payments fee", "Service level agreement", "A named account manager"].map((f) => (
+                <li key={f} className="flex gap-2">
+                  <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" aria-hidden />
+                  {f}
+                </li>
+              ))}
+            </ul>
+            {!enterprise && data.enterpriseContact && (
+              <Button asChild variant="outline" className="w-full">
+                <a href={`mailto:${data.enterpriseContact}?subject=${encodeURIComponent("Enterprise plan")}`}>Talk to us</a>
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
       {onGrowth && canManage && !sub?.cancelAt && (

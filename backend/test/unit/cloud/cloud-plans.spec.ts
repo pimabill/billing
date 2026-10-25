@@ -6,15 +6,17 @@ describe('cloud plans', () => {
     expect(tierOf('cloud_growth_monthly')).toBe('growth');
     expect(tierOf('cloud_growth_yearly')).toBe('growth');
     expect(tierOf('cloud_partner')).toBe('partner');
+    expect(tierOf('cloud_enterprise')).toBe('enterprise');
     expect(tierOf('something_else')).toBeNull();
     expect(PAID_CODES).toEqual(['cloud_growth_monthly', 'cloud_growth_yearly']);
   });
 
-  it('limits Free and leaves Growth and Partner unlimited', () => {
+  it('limits Free and leaves Growth, Enterprise and Partner unlimited', () => {
     for (const key of ['customers', 'activeSubscriptions', 'invoicesPerMonth', 'teamMembers'] as const) {
       expect(CLOUD_TIERS.free.limits[key]).toBeGreaterThan(0);
       expect(CLOUD_TIERS.growth.limits[key]).toBeUndefined();
       expect(CLOUD_TIERS.partner.limits[key]).toBeUndefined();
+      expect(CLOUD_TIERS.enterprise.limits[key]).toBeUndefined();
     }
     expect(CLOUD_TIERS.free.limits.customers).toBeGreaterThanOrEqual(1000);
   });
