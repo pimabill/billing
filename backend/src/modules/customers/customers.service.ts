@@ -50,8 +50,9 @@ export class CustomersService {
         take: limit,
         orderBy: { [query.sortBy || 'createdAt']: query.sortOrder || 'desc' },
         include: {
+          // Trials and renewals awaiting payment are still live subscriptions.
           subscriptions: {
-            where: { status: 'ACTIVE' },
+            where: { status: { in: ['ACTIVE', 'TRIALING', 'PAST_DUE'] } },
             select: { id: true },
           },
           invoices: {

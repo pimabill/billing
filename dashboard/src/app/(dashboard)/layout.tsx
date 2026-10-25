@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
@@ -20,6 +20,10 @@ export default function DashboardLayout({
   const { sidebarCollapsed } = useUIStore();
   const { isAuthenticated, checkSession, user } = useAuthStore();
   const router = useRouter();
+  // The session lives in the browser, so the server always renders signed out:
+  // render nothing session-dependent until mounted, or hydration fails.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Refresh role, permissions and organisations from the API on each visit.
   useEffect(() => {
@@ -33,7 +37,7 @@ export default function DashboardLayout({
     }
   }, [isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  if (!mounted || !isAuthenticated) {
     return <BrandLoader className="h-screen" />;
   }
 

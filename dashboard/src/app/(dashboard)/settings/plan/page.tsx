@@ -77,7 +77,11 @@ function PlanPage() {
   if (!data.enabled) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">This is a self-hosted deployment: there are no plans or limits.</CardContent>
+        <CardContent className="p-6 text-sm text-muted-foreground">
+          {data.sandbox
+            ? "The sandbox has no plans or limits, and nothing here is ever charged. Your plan is on live: switch back to see it."
+            : "This is a self-hosted deployment: there are no plans or limits."}
+        </CardContent>
       </Card>
     );
   }

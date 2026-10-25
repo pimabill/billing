@@ -29,27 +29,9 @@ import { toast } from "sonner";
 import { useCan } from "@/lib/permissions";
 import { brand } from "@/lib/brand";
 import { useAuthStore } from "@/lib/stores/auth";
+import { ProviderLogo } from "@/components/provider-logo";
 import { BrandMark } from "@/components/brand-mark";
 
-const providerInfo: Record<string, { logo: string; color: string }> = {
-  stripe: { logo: "💳", color: "bg-indigo-500" },
-  flutterwave: { logo: "🦋", color: "bg-orange-500" },
-  paystack: { logo: "📦", color: "bg-blue-500" },
-  dpo: { logo: "🏦", color: "bg-teal-500" },
-  payu: { logo: "💰", color: "bg-emerald-500" },
-  pesapal: { logo: "📱", color: "bg-green-500" },
-  paypal: { logo: "🅿️", color: "bg-blue-700" },
-  yo: { logo: "📲", color: "bg-yellow-500" },
-  mtn_momo: { logo: "🟡", color: "bg-yellow-400" },
-  airtel_money: { logo: "🔴", color: "bg-red-600" },
-  nowpayments: { logo: "₿", color: "bg-sky-600" },
-  eversend: { logo: "💲", color: "bg-indigo-600" },
-  tron_usdt: { logo: "₮", color: "bg-emerald-600" },
-  eth_usdt: { logo: "Ξ", color: "bg-slate-600" },
-  btc: { logo: "₿", color: "bg-orange-500" },
-  bsc_usdt: { logo: "₮", color: "bg-yellow-500" },
-  binance_pay: { logo: "◆", color: "bg-yellow-400" },
-};
 
 const credentialFields: Record<
   string,
@@ -465,15 +447,13 @@ export default function ProvidersPage() {
       {/* Provider Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {providers.map((provider) => {
-          const info = providerInfo[provider.code] || { logo: "🔌", color: "bg-gray-500" };
 
           return (
             <Card key={provider.id} className="relative overflow-hidden">
-              <div className={`h-2 ${info.color}`} />
               <CardHeader>
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="text-4xl">{info.logo}</div>
+                    <ProviderLogo code={provider.code} name={provider.name} />
                     <div>
                       <CardTitle>{provider.name}</CardTitle>
                       <CardDescription className="mt-1">
@@ -563,7 +543,7 @@ export default function ProvidersPage() {
                           href={webhookDocs[provider.code].url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline"
+                          className="inline-flex items-center gap-1 text-xs text-primary hover:underline"
                         >
                           Set up
                           <ExternalLink className="h-3 w-3" />
@@ -632,7 +612,7 @@ export default function ProvidersPage() {
                 href="https://stripe.com/docs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 View Documentation &rarr;
               </a>
@@ -643,7 +623,7 @@ export default function ProvidersPage() {
                 href="https://developer.flutterwave.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 View Documentation &rarr;
               </a>
@@ -654,7 +634,7 @@ export default function ProvidersPage() {
                 href="https://paystack.com/docs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 View Documentation &rarr;
               </a>
@@ -665,7 +645,7 @@ export default function ProvidersPage() {
                 href="https://dpogroup.com/developers"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 View Documentation &rarr;
               </a>
@@ -676,7 +656,7 @@ export default function ProvidersPage() {
                 href="https://developers.payu.co.za"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 View Documentation &rarr;
               </a>
@@ -687,7 +667,7 @@ export default function ProvidersPage() {
                 href="https://developer.pesapal.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 View Documentation &rarr;
               </a>
@@ -698,7 +678,7 @@ export default function ProvidersPage() {
                 href="https://developer.paypal.com/docs"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm text-blue-600 hover:underline"
+                className="text-sm text-primary hover:underline"
               >
                 View Documentation &rarr;
               </a>
@@ -796,7 +776,7 @@ export default function ProvidersPage() {
                         href={webhookDocs[configProvider.code].url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline"
+                        className="text-primary hover:underline"
                       >
                         {configProvider.name} dashboard
                       </a>

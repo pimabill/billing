@@ -337,12 +337,12 @@ export default function PlansPage() {
         {/* Create Plan Card */}
         {canWrite && (
           <Card
-            className="border-dashed border-2 hover:border-blue-600 transition-colors cursor-pointer"
+            className="border-dashed border-2 hover:border-primary transition-colors cursor-pointer"
             onClick={openCreateDialog}
           >
             <CardContent className="flex flex-col items-center justify-center h-full min-h-[400px] p-6">
               <div className="rounded-full bg-accent p-4">
-                <Plus className="h-8 w-8 text-blue-600" />
+                <Plus className="h-8 w-8 text-primary" />
               </div>
               <h3 className="mt-4 text-lg font-semibold">Create New Plan</h3>
               <p className="mt-2 text-sm text-muted-foreground text-center">
@@ -376,18 +376,19 @@ export default function PlansPage() {
               <CardContent className="space-y-4">
                 {/* Price */}
                 <div>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-4xl font-bold">
-                      {price
-                        ? formatCurrency(price.amount, price.currency, {
-                            showSymbol: true,
-                          })
-                        : "N/A"}
-                    </span>
-                    <span className="text-muted-foreground">
-                      /{plan.interval}
-                    </span>
-                  </div>
+                  {price ? (
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-3xl font-bold tabular-nums">
+                        {formatCurrency(price.amount, price.currency, { showSymbol: true })}
+                      </span>
+                      <span className="text-muted-foreground">/{plan.interval === "yearly" ? "year" : plan.interval === "monthly" ? "month" : plan.interval}</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="text-lg font-semibold text-muted-foreground">Not priced in {selectedCurrency}</p>
+                      <p className="text-sm text-muted-foreground">Priced in {plan.prices.map((p) => p.currency).join(", ") || "no currency yet"}</p>
+                    </div>
+                  )}
                   <div className="flex gap-2 mt-2">
                     <Badge variant="secondary">
                       {plan.interval}

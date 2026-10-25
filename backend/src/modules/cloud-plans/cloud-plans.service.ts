@@ -9,6 +9,7 @@ import { COUNTED, forgetPlan, parseLimits, PlanLimits, usageCounter } from '../.
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { WebhooksController } from '../webhooks/webhooks.controller';
+import { isSandbox } from '../../config/sandbox';
 import { CLOUD_CATALOGUE, CLOUD_TIERS, cloudPlansEnabled, CloudTier, ENTERPRISE_CODE, PAID_CODES, PARTNER_CODE, SUPERSEDED_LIMITS, SUPERSEDED_PRICES, tierOf } from './cloud-plans.catalogue';
 
 const DAY = 86_400_000;
@@ -281,6 +282,8 @@ export class CloudPlansService implements OnApplicationBootstrap {
     const contact = process.env.CLOUD_SALES_EMAIL?.trim() || process.env.BRAND_SUPPORT_EMAIL?.trim() || null;
     return {
       enabled: this.enabled,
+      /** The sandbox has no plans: it never charges. */
+      sandbox: isSandbox(),
       /** Where to ask about Enterprise, which has no public price. */
       enterpriseContact: contact,
       plan: {

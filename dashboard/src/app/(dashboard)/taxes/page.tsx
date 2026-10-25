@@ -220,7 +220,7 @@ export default function TaxesPage() {
       {taxes.length === 0 ? (
         <div className="rounded-md border border-border p-12 text-center">
           <div className="mx-auto mb-4 rounded-full bg-accent p-4 w-fit">
-            <Calculator className="h-8 w-8 text-blue-600" />
+            <Calculator className="h-8 w-8 text-primary" />
           </div>
           <h3 className="text-lg font-semibold">No taxes configured</h3>
           <p className="mt-2 text-sm text-muted-foreground">
