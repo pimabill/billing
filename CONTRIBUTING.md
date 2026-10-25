@@ -160,7 +160,7 @@ PimaBill is in **beta**, so versions stay below 1.0 and every GitHub release is 
 
 A PR that removes or changes anything existing API clients rely on fails CI unless its title is marked breaking with `!`. Mark it only when it really breaks clients: the mark is permanent in the history and shows up in the changelog.
 
-[release-please](https://github.com/googleapis/release-please) keeps a release PR open on `main` with the next version and changelog. Merging that PR tags the release, and the 1.0 release is made deliberately by maintainers, not by a commit title.
+[release-please](https://github.com/googleapis/release-please) keeps a release PR open on `main` with the next version and changelog. Merging that PR tags the release and publishes the SDKs; the 1.0 release is made deliberately by maintainers, not by a commit title. See [RELEASING.md](RELEASING.md) for the whole process and the package registries.
 
 Every PR updates the documentation it affects in the same PR: the guides in `docs/content`, `.env.example` for new settings, and this file for process changes.
 
