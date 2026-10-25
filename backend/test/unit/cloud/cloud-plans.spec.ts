@@ -29,10 +29,16 @@ describe('cloud plans', () => {
     try {
       delete process.env.CLOUD_PLANS;
       delete process.env.MANAGED_PAYMENTS_URL;
+      delete process.env.SANDBOX_MODE;
       expect(cloudPlansEnabled()).toBe(false);
       process.env.MANAGED_PAYMENTS_URL = 'http://managed';
       process.env.MANAGED_PAYMENTS_API_KEY = 'k';
       expect(cloudPlansEnabled()).toBe(true);
+      process.env.SANDBOX_MODE = 'true';
+      expect(cloudPlansEnabled()).toBe(false);
+      process.env.CLOUD_PLANS = 'true';
+      expect(cloudPlansEnabled()).toBe(true);
+      delete process.env.SANDBOX_MODE;
       process.env.CLOUD_PLANS = 'false';
       expect(cloudPlansEnabled()).toBe(false);
     } finally {
