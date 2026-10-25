@@ -102,6 +102,7 @@ export default function MoneyPage() {
           <TabsTrigger value="payouts">Payouts</TabsTrigger>
           <TabsTrigger value="transfers">Transfers</TabsTrigger>
           {watchesChain && <TabsTrigger value="deposits">Crypto deposits</TabsTrigger>}
+          <TabsTrigger value="managed">Managed payments</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -120,10 +121,10 @@ export default function MoneyPage() {
           </TabsContent>
         )}
         <TabsContent value="settings" className="mt-4">
-          <div className="space-y-6">
-            <SettingsPanel settings={settings} providers={providers} onSaved={setSettings} />
-            <ManagedPayments onChanged={loadCapabilities} />
-          </div>
+          <SettingsPanel settings={settings} providers={providers} onSaved={setSettings} />
+        </TabsContent>
+        <TabsContent value="managed" className="mt-4">
+          <ManagedPayments onChanged={loadCapabilities} />
         </TabsContent>
       </Tabs>
     </div>
