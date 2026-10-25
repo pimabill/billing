@@ -65,6 +65,8 @@ export default function AnalyticsPage() {
     trialingCount: number;
     totalSubscriptions: number;
     activePlansCount: number;
+    currency: string;
+    unconverted: string[];
   } | null>(null);
   const [planDistribution, setPlanDistribution] = useState<
     { name: string; value: number; color: string }[]
@@ -175,6 +177,8 @@ export default function AnalyticsPage() {
         trialingCount: Number(subData.trialing) || 0,
         totalSubscriptions: kpis.totalSubscriptions,
         activePlansCount,
+        currency: kpis.currency,
+        unconverted: kpis.unconverted,
       });
     } catch (error) {
       console.error("Failed to load analytics data:", error);
@@ -198,8 +202,9 @@ export default function AnalyticsPage() {
     );
   }
 
-  const usd = (n: number) => formatCurrency(n, "USD");
-  const usdShort = (n: number) => formatCurrency(n, "USD", { abbreviated: true });
+  const reporting = metrics?.currency ?? "USD";
+  const usd = (n: number) => formatCurrency(n, reporting);
+  const usdShort = (n: number) => formatCurrency(n, reporting, { abbreviated: true });
   const signed = (n: number) => `${n >= 0 ? "+" : "−"}${usd(Math.abs(n))}`;
   const exportCsv = () => {
     if (!revenueData.length) return;
@@ -229,7 +234,17 @@ export default function AnalyticsPage() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">Amounts in USD, converted from each currency you bill in.</p>
+          <p className="text-muted-foreground">
+            Amounts in {reporting}, converted at the exchange rate of each payment&apos;s day.{" "}
+            <Link href="/settings?tab=currencies" className="text-primary hover:underline">
+              Change
+            </Link>
+          </p>
+          {metrics && metrics.unconverted.length > 0 && (
+            <p className="mt-1 text-sm text-amber-600">
+              Left out for lack of an exchange rate: {metrics.unconverted.join(", ")}. Give your own currencies a rate in Settings → Currencies.
+            </p>
+          )}
         </div>
         <Button variant="outline" size="sm" onClick={exportCsv}>
           <Download className="mr-2 h-4 w-4" />

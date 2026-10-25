@@ -11,6 +11,7 @@ import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerQueryDto } from './dto/customer-query.dto';
+import { assertKnownCurrency } from '../../common/utils/currency.utils';
 import { WEBHOOK_QUEUE, WebhookJobType } from '../../queues/billing.queue';
 
 @Injectable()
@@ -107,6 +108,7 @@ export class CustomersService {
     if (existing) {
       throw new ConflictException('Customer with this externalId already exists');
     }
+    const currency = await assertKnownCurrency(db, dto.currency);
 
     const customer = await db.customer.create({
       data: {
@@ -114,7 +116,7 @@ export class CustomersService {
         email: dto.email,
         name: dto.name,
         country: dto.country,
-        currency: dto.currency,
+        currency,
         metadata: (dto.metadata ?? undefined) as any,
         ...(dto.netPaymentTerms !== undefined && { netPaymentTerms: dto.netPaymentTerms }),
         ...(dto.createdAt && { createdAt: new Date(dto.createdAt) }),
@@ -147,7 +149,7 @@ export class CustomersService {
         ...(dto.email !== undefined && { email: dto.email }),
         ...(dto.name !== undefined && { name: dto.name }),
         ...(dto.country !== undefined && { country: dto.country }),
-        ...(dto.currency !== undefined && { currency: dto.currency }),
+        ...(dto.currency !== undefined && { currency: await assertKnownCurrency(db, dto.currency) }),
         ...(dto.metadata !== undefined && { metadata: dto.metadata as any }),
         ...(dto.netPaymentTerms !== undefined && { netPaymentTerms: dto.netPaymentTerms }),
       },

@@ -81,6 +81,9 @@ export const validationSchema = Joi.object({
   BRAND_SUPPORT_EMAIL: Joi.string().optional().allow(''),
   BRAND_WEBSITE: Joi.string().optional().allow(''),
 
+  // Daily exchange rates (see src/modules/currencies).
+  EXCHANGE_RATES_URL: Joi.string().optional().allow(''),
+
   // Hosted cloud plans (see src/modules/cloud-plans).
   CLOUD_SALES_EMAIL: Joi.string().optional().allow(''),
   CLOUD_PLANS: Joi.string().valid('true', 'false').optional(),

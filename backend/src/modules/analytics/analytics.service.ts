@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import { CurrenciesService } from '../currencies/currencies.service';
+import { Converter } from '../currencies/converter';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 
 interface DateRange {
@@ -6,38 +8,25 @@ interface DateRange {
   dateTo?: string;
 }
 
-// Approximate USD exchange rates for supported African + global currencies
-const USD_RATES: Record<string, number> = {
-  USD: 1,
-  EUR: 0.92,
-  GBP: 0.79,
-  NGN: 1550,
-  KES: 153,
-  UGX: 3750,
-  GHS: 15.5,
-  ZAR: 18.2,
-  TZS: 2650,
-  RWF: 1350,
-  ETB: 57,
-  EGP: 50,
-  XOF: 605,
-  XAF: 605,
-  MAD: 10,
-  DZD: 135,
-  ZMW: 27,
-};
-
-function toUSD(amount: number, currency: string): number {
-  const rate = USD_RATES[currency.toUpperCase()];
-  if (!rate) return amount;
-  return amount / rate;
-}
-
 @Injectable()
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
 
-  async getRevenueAnalytics(db: PrismaClient, params: DateRange & { currency?: string }) {
+  constructor(@Optional() private readonly currencies?: CurrenciesService) {}
+
+  /**
+   * Converts into the organisation's reporting currency at each amount's own
+   * day. Without an organisation (or the currencies service), amounts are
+   * taken as they are, in USD.
+   */
+  private async converter(db: PrismaClient, tenantId: string | undefined, currencies: Iterable<string>, dates: Date[]): Promise<Converter> {
+    if (!tenantId || !this.currencies) return new Converter('USD', [], new Map());
+    const times = dates.map((d) => d.getTime());
+    const from = new Date(times.length ? Math.min(...times) : Date.now());
+    return this.currencies.converter(db, tenantId, currencies, from, new Date());
+  }
+
+  async getRevenueAnalytics(db: PrismaClient, params: DateRange & { currency?: string }, tenantId?: string) {
     const where: Record<string, unknown> = { status: 'PAID' };
 
     if (params.dateFrom || params.dateTo) {
@@ -54,7 +43,7 @@ export class AnalyticsService {
     const [paidInvoices, invoiceCount, mrrData] = await Promise.all([
       db.invoice.findMany({
         where,
-        select: { amount: true, currency: true },
+        select: { amount: true, currency: true, paidAt: true, createdAt: true },
       }),
       db.invoice.count({ where }),
       db.subscription.findMany({
@@ -63,13 +52,21 @@ export class AnalyticsService {
       }),
     ]);
 
-    // Calculate total revenue converted to USD
-    let totalRevenueUSD = 0;
+    const fx = await this.converter(
+      db,
+      tenantId,
+      [...paidInvoices.map((i) => i.currency), ...mrrData.map((s) => s.currency)],
+      paidInvoices.map((i) => i.paidAt ?? i.createdAt),
+    );
+    // Revenue at the rate of the day each invoice was paid; per currency exactly as collected.
+    let totalRevenue = 0;
+    const byCurrency = new Map<string, number>();
     for (const inv of paidInvoices) {
-      totalRevenueUSD += toUSD(Number(inv.amount), inv.currency);
+      totalRevenue += fx.sum(Number(inv.amount), inv.currency, inv.paidAt ?? inv.createdAt);
+      byCurrency.set(inv.currency, (byCurrency.get(inv.currency) ?? 0) + Number(inv.amount));
     }
 
-    // Calculate MRR from active subscriptions, converted to USD
+    // MRR from active subscriptions, at today's rates.
     let mrr = 0;
     for (const sub of mrrData) {
       const price = sub.plan.prices.find((p: any) => p.currency === sub.currency);
@@ -89,15 +86,17 @@ export class AnalyticsService {
           default:
             monthlyAmount = amount;
         }
-        mrr += toUSD(monthlyAmount, sub.currency);
+        mrr += fx.sum(monthlyAmount, sub.currency);
       }
     }
 
     return {
-      totalRevenue: totalRevenueUSD.toFixed(2),
+      totalRevenue: totalRevenue.toFixed(2),
       invoiceCount,
       mrr: mrr.toFixed(2),
       arr: (mrr * 12).toFixed(2),
+      byCurrency: [...byCurrency.entries()].sort().map(([currency, amount]) => ({ currency, amount: amount.toFixed(4) })),
+      ...fx.describe(),
     };
   }
 
@@ -136,7 +135,7 @@ export class AnalyticsService {
     };
   }
 
-  async getCustomerAnalytics(db: PrismaClient, params: DateRange) {
+  async getCustomerAnalytics(db: PrismaClient, params: DateRange, tenantId?: string) {
     const dateFilter: Record<string, unknown> = {};
     if (params.dateFrom || params.dateTo) {
       dateFilter.createdAt = {
@@ -150,28 +149,30 @@ export class AnalyticsService {
       db.customer.count({ where: dateFilter }),
       db.invoice.findMany({
         where: { status: 'PAID' },
-        select: { amount: true, currency: true },
+        select: { amount: true, currency: true, paidAt: true, createdAt: true },
       }),
     ]);
 
-    let totalRevenueUSD = 0;
+    const fx = await this.converter(db, tenantId, paidInvoices.map((i) => i.currency), paidInvoices.map((i) => i.paidAt ?? i.createdAt));
+    let totalRevenue = 0;
     for (const inv of paidInvoices) {
-      totalRevenueUSD += toUSD(Number(inv.amount), inv.currency);
+      totalRevenue += fx.sum(Number(inv.amount), inv.currency, inv.paidAt ?? inv.createdAt);
     }
-    const arpu = totalCustomers > 0 ? totalRevenueUSD / totalCustomers : 0;
+    const arpu = totalCustomers > 0 ? totalRevenue / totalCustomers : 0;
 
     return {
       totalCustomers,
       newCustomers,
       arpu: arpu.toFixed(2),
-      totalRevenue: totalRevenueUSD.toFixed(2),
+      totalRevenue: totalRevenue.toFixed(2),
+      ...fx.describe(),
     };
   }
 
   /**
    * MRR breakdown: total, new, expansion, contraction, churn, net-new, by plan
    */
-  async getMrrBreakdown(db: PrismaClient, params: DateRange) {
+  async getMrrBreakdown(db: PrismaClient, params: DateRange, tenantId?: string) {
     const now = new Date();
     const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
     const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -182,6 +183,8 @@ export class AnalyticsService {
       where: { status: 'ACTIVE' },
       include: { plan: { include: { prices: true } } },
     });
+
+    const fx = await this.converter(db, tenantId, activeSubs.map((s) => s.currency), []);
 
     // Compute MRR by plan
     const planMap = new Map<string, { planName: string; mrr: number; count: number }>();
@@ -197,7 +200,7 @@ export class AnalyticsService {
         case 'YEARLY': monthly = amount / 12; break;
         default: monthly = amount;
       }
-      const mrrUsd = toUSD(monthly, sub.currency);
+      const mrrUsd = fx.sum(monthly, sub.currency);
       totalMrr += mrrUsd;
 
       const existing = planMap.get(sub.planId);
@@ -222,7 +225,7 @@ export class AnalyticsService {
         case 'YEARLY': monthly = amount / 12; break;
         default: monthly = amount;
       }
-      newMrr += toUSD(monthly, sub.currency);
+      newMrr += fx.sum(monthly, sub.currency);
     }
 
     // Churn MRR = subscriptions canceled this month
@@ -244,7 +247,7 @@ export class AnalyticsService {
         case 'YEARLY': monthly = amount / 12; break;
         default: monthly = amount;
       }
-      churnMrr += toUSD(monthly, sub.currency);
+      churnMrr += fx.sum(monthly, sub.currency);
     }
 
     // Expansion/contraction from plan changes this month
@@ -262,7 +265,7 @@ export class AnalyticsService {
       const oldPrice = prevPlan.prices.find((p: any) => p.currency === sub.currency);
       const newPrice = sub.plan.prices.find((p: any) => p.currency === sub.currency);
       if (!oldPrice || !newPrice) continue;
-      const diff = toUSD(Number(newPrice.amount), sub.currency) - toUSD(Number(oldPrice.amount), sub.currency);
+      const diff = fx.sum(Number(newPrice.amount), sub.currency) - fx.sum(Number(oldPrice.amount), sub.currency);
       if (diff > 0) expansionMrr += diff;
       else contractionMrr += Math.abs(diff);
     }
@@ -284,13 +287,14 @@ export class AnalyticsService {
       churnMrr: Math.round(churnMrr * 100) / 100,
       netNewMrr: Math.round(netNewMrr * 100) / 100,
       byPlan,
+      ...fx.describe(),
     };
   }
 
   /**
    * Net revenue: gross revenue - refunds - credit notes
    */
-  async getNetRevenue(db: PrismaClient, params: DateRange) {
+  async getNetRevenue(db: PrismaClient, params: DateRange, tenantId?: string) {
     const dateFilter: Record<string, unknown> = {};
     if (params.dateFrom || params.dateTo) {
       dateFilter.createdAt = {
@@ -302,31 +306,34 @@ export class AnalyticsService {
     const [paidInvoices, refunds, creditNotes] = await Promise.all([
       db.invoice.findMany({
         where: { status: 'PAID', ...dateFilter },
-        select: { amount: true, currency: true },
+        select: { amount: true, currency: true, paidAt: true, createdAt: true },
       }),
       db.payment.findMany({
         where: { status: 'REFUNDED', ...dateFilter },
-        select: { amount: true, currency: true },
+        select: { amount: true, currency: true, createdAt: true },
       }),
       db.creditNote.findMany({
         where: { status: 'FINALIZED', ...dateFilter },
-        select: { amount: true, currency: true },
+        select: { amount: true, currency: true, createdAt: true },
       }),
     ]);
 
+    const all = [...paidInvoices, ...refunds, ...creditNotes];
+    const fx = await this.converter(db, tenantId, all.map((r) => r.currency), all.map((r) => r.createdAt));
+
     let grossRevenue = 0;
     for (const inv of paidInvoices) {
-      grossRevenue += toUSD(Number(inv.amount), inv.currency);
+      grossRevenue += fx.sum(Number(inv.amount), inv.currency, inv.paidAt ?? inv.createdAt);
     }
 
     let refundTotal = 0;
     for (const r of refunds) {
-      refundTotal += toUSD(Number(r.amount), r.currency);
+      refundTotal += fx.sum(Number(r.amount), r.currency, r.createdAt);
     }
 
     let creditNoteTotal = 0;
     for (const cn of creditNotes) {
-      creditNoteTotal += toUSD(Number(cn.amount), cn.currency);
+      creditNoteTotal += fx.sum(Number(cn.amount), cn.currency, cn.createdAt);
     }
 
     return {
@@ -334,6 +341,7 @@ export class AnalyticsService {
       refunds: Math.round(refundTotal * 100) / 100,
       creditNotes: Math.round(creditNoteTotal * 100) / 100,
       netRevenue: Math.round((grossRevenue - refundTotal - creditNoteTotal) * 100) / 100,
+      ...fx.describe(),
     };
   }
 
@@ -407,17 +415,19 @@ export class AnalyticsService {
   /**
    * Customer LTV: average lifetime value + by plan
    */
-  async getLtv(db: PrismaClient) {
+  async getLtv(db: PrismaClient, tenantId?: string) {
     // Get all subscriptions with their total paid amounts
     const subscriptions = await db.subscription.findMany({
       include: {
         plan: { select: { id: true, name: true } },
         invoices: {
           where: { status: 'PAID' },
-          select: { amount: true, currency: true },
+          select: { amount: true, currency: true, paidAt: true, createdAt: true },
         },
       },
     });
+    const invoices = subscriptions.flatMap((s) => ((s as any).invoices ?? []) as { currency: string; paidAt: Date | null; createdAt: Date }[]);
+    const fx = await this.converter(db, tenantId, invoices.map((i) => i.currency), invoices.map((i) => i.paidAt ?? i.createdAt));
 
     const now = new Date();
     let totalLtv = 0;
@@ -433,7 +443,7 @@ export class AnalyticsService {
 
       let ltv = 0;
       for (const inv of (sub as any).invoices || []) {
-        ltv += toUSD(Number(inv.amount), inv.currency);
+        ltv += fx.sum(Number(inv.amount), inv.currency, inv.paidAt ?? inv.createdAt);
       }
 
       totalLtv += ltv;
@@ -466,6 +476,7 @@ export class AnalyticsService {
       avgLtv: subCount > 0 ? Math.round((totalLtv / subCount) * 100) / 100 : 0,
       avgLifespanDays: subCount > 0 ? Math.round(totalLifespanDays / subCount) : 0,
       byPlan,
+      ...fx.describe(),
     };
   }
 
@@ -501,13 +512,13 @@ export class AnalyticsService {
   /**
    * Aggregated KPIs endpoint – returns all headline metrics in a single call.
    */
-  async getKpis(db: PrismaClient) {
+  async getKpis(db: PrismaClient, tenantId?: string) {
     const [revenueData, subData, custData, payData, ltvData] = await Promise.all([
-      this.getRevenueAnalytics(db, {}),
+      this.getRevenueAnalytics(db, {}, tenantId),
       this.getSubscriptionAnalytics(db, {}),
-      this.getCustomerAnalytics(db, {}),
+      this.getCustomerAnalytics(db, {}, tenantId),
       this.getPaymentAnalytics(db, {}),
-      this.getLtv(db),
+      this.getLtv(db, tenantId),
     ]);
 
     return {
@@ -524,6 +535,48 @@ export class AnalyticsService {
       arpu: Number(custData.arpu),
       avgLtv: ltvData.avgLtv,
       avgLifespanDays: ltvData.avgLifespanDays,
+      currency: revenueData.currency,
+      ratesAsOf: revenueData.ratesAsOf,
+      unconverted: [...new Set([...revenueData.unconverted, ...custData.unconverted, ...ltvData.unconverted])].sort(),
     };
+  }
+
+  /**
+   * Money per currency, exactly as it is (nothing converted), like a
+   * provider's balances: collected this month and last, what is still owed,
+   * and recurring revenue. Each with its value in the reporting currency.
+   */
+  async getByCurrency(db: PrismaClient, tenantId?: string) {
+    const now = new Date();
+    const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const [paid, open, subs] = await Promise.all([
+      db.invoice.findMany({ where: { status: 'PAID', paidAt: { gte: lastMonth } }, select: { amount: true, currency: true, paidAt: true } }),
+      db.invoice.findMany({ where: { status: { in: ['PENDING', 'FAILED'] } }, select: { amount: true, currency: true } }),
+      db.subscription.findMany({ where: { status: 'ACTIVE' }, include: { plan: { include: { prices: true } } } }),
+    ]);
+    const rows = new Map<string, { collectedThisMonth: number; collectedLastMonth: number; outstanding: number; mrr: number }>();
+    const row = (c: string) => rows.get(c) ?? rows.set(c, { collectedThisMonth: 0, collectedLastMonth: 0, outstanding: 0, mrr: 0 }).get(c)!;
+    for (const i of paid) row(i.currency)[i.paidAt && i.paidAt >= thisMonth ? 'collectedThisMonth' : 'collectedLastMonth'] += Number(i.amount);
+    for (const i of open) row(i.currency).outstanding += Number(i.amount);
+    for (const sub of subs) {
+      const price = sub.plan.prices.find((p) => p.currency === sub.currency);
+      if (!price) continue;
+      const amount = Number(price.amount);
+      row(sub.currency).mrr += sub.plan.billingInterval === 'YEARLY' ? amount / 12 : sub.plan.billingInterval === 'QUARTERLY' ? amount / 3 : amount;
+    }
+    const fx = await this.converter(db, tenantId, rows.keys(), []);
+    const currencies = [...rows.entries()]
+      .map(([currency, r]) => ({
+        currency,
+        collectedThisMonth: r.collectedThisMonth.toFixed(4),
+        collectedLastMonth: r.collectedLastMonth.toFixed(4),
+        outstanding: r.outstanding.toFixed(4),
+        mrr: r.mrr.toFixed(4),
+        /** One unit in the reporting currency, at today's rate; null when there is no rate. */
+        rate: fx.convert(1, currency),
+      }))
+      .sort((a, b) => (fx.convert(Number(b.collectedThisMonth) + Number(b.outstanding), b.currency) ?? 0) - (fx.convert(Number(a.collectedThisMonth) + Number(a.outstanding), a.currency) ?? 0));
+    return { currencies, ...fx.describe() };
   }
 }

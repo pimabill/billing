@@ -1,4 +1,5 @@
-import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Req, UseGuards } from '@nestjs/common';
+import { RequestWithTenant } from '../../common/interfaces/request-with-tenant.interface';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { TenantGuard } from '../../common/guards/tenant.guard';
@@ -16,6 +17,7 @@ import {
   ChurnCohortsResponse,
   LtvResponse,
   KpisResponse,
+  ByCurrencyResponse,
 } from './dto/analytics-response.dto';
 
 @ApiTags('Analytics')
@@ -34,12 +36,12 @@ export class AnalyticsController {
       'and revenue breakdown by period. Supports filtering by date range and currency.',
   })
   @ApiResponse({ status: 200, description: 'Revenue metrics and breakdown', type: RevenueAnalyticsResponse })
-  async revenue(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto) {
+  async revenue(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto, @Req() req: RequestWithTenant) {
     return this.analyticsService.getRevenueAnalytics(db, {
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
       currency: query.currency,
-    });
+    }, req.tenant.id);
   }
 
   @Get('subscriptions')
@@ -65,11 +67,11 @@ export class AnalyticsController {
       'and geographic distribution.',
   })
   @ApiResponse({ status: 200, description: 'Customer metrics and distribution', type: CustomerAnalyticsResponse })
-  async customers(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto) {
+  async customers(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto, @Req() req: RequestWithTenant) {
     return this.analyticsService.getCustomerAnalytics(db, {
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
-    });
+    }, req.tenant.id);
   }
 
   @Get('payments')
@@ -99,11 +101,11 @@ export class AnalyticsController {
     description: 'MRR breakdown by movement type (new, expansion, contraction, churn) and by plan.',
   })
   @ApiResponse({ status: 200, description: 'MRR breakdown', type: MrrBreakdownResponse })
-  async mrrBreakdown(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto) {
+  async mrrBreakdown(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto, @Req() req: RequestWithTenant) {
     return this.analyticsService.getMrrBreakdown(db, {
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
-    });
+    }, req.tenant.id);
   }
 
   @Get('net-revenue')
@@ -112,11 +114,11 @@ export class AnalyticsController {
     description: 'Gross revenue minus refunds and credit notes.',
   })
   @ApiResponse({ status: 200, description: 'Net revenue breakdown', type: NetRevenueResponse })
-  async netRevenue(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto) {
+  async netRevenue(@TenantDb() db: PrismaClient, @Query() query: AnalyticsQueryDto, @Req() req: RequestWithTenant) {
     return this.analyticsService.getNetRevenue(db, {
       dateFrom: query.dateFrom,
       dateTo: query.dateTo,
-    });
+    }, req.tenant.id);
   }
 
   @Get('churn-cohorts')
@@ -141,8 +143,8 @@ export class AnalyticsController {
     description: 'Average customer LTV and lifespan, broken down by plan.',
   })
   @ApiResponse({ status: 200, description: 'LTV metrics', type: LtvResponse })
-  async ltv(@TenantDb() db: PrismaClient) {
-    return this.analyticsService.getLtv(db);
+  async ltv(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant) {
+    return this.analyticsService.getLtv(db, req.tenant.id);
   }
 
   @Get('kpis')
@@ -153,7 +155,19 @@ export class AnalyticsController {
       'total customers, churn rate, success rate, ARPU, average LTV, and average customer lifespan.',
   })
   @ApiResponse({ status: 200, description: 'Aggregated KPI metrics', type: KpisResponse })
-  async kpis(@TenantDb() db: PrismaClient) {
-    return this.analyticsService.getKpis(db);
+  async kpis(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant) {
+    return this.analyticsService.getKpis(db, req.tenant.id);
+  }
+
+  @Get('by-currency')
+  @ApiOperation({
+    summary: 'Money per currency',
+    description:
+      'Collected this month and last, outstanding, and recurring revenue in each currency, exactly as they are ' +
+      '(nothing converted), with each currency\'s rate into your reporting currency.',
+  })
+  @ApiResponse({ status: 200, description: 'Totals per currency', type: ByCurrencyResponse })
+  async byCurrency(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant) {
+    return this.analyticsService.getByCurrency(db, req.tenant.id);
   }
 }

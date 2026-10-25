@@ -995,6 +995,7 @@ export const apiClient = {
             revenue: Number(data.totalRevenue) || 0,
             mrr: Number(data.mrr) || 0,
             oneTime: 0,
+            currency: data.currency || "USD",
           })),
         );
       }
@@ -1076,6 +1077,10 @@ export const apiClient = {
       avgLifespanDays: number;
       churnRate: string;
       retentionRate: string;
+      /** The reporting currency every amount is in. */
+      currency: string;
+      ratesAsOf: string | null;
+      unconverted: string[];
     }> {
       const now = new Date();
       const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -1137,6 +1142,9 @@ export const apiClient = {
         avgLifespanDays: Number(kpis.avgLifespanDays) || 0,
         churnRate: kpis.churnRate || "0.00%",
         retentionRate: kpis.retentionRate || "100.00%",
+        currency: kpis.currency || "USD",
+        ratesAsOf: kpis.ratesAsOf ?? null,
+        unconverted: kpis.unconverted ?? [],
       };
     },
   },
