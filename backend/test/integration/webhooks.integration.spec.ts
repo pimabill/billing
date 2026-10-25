@@ -42,6 +42,7 @@ describeDb('provider webhooks (postgres)', () => {
       webhookQueue as never,
       emailQueue as never,
       { handleCheckoutNotification: jest.fn().mockResolvedValue(false) } as never,
+      {} as never,
     );
   });
 
