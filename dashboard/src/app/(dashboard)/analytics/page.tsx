@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
+import { MonthlyRevenueChart } from "@/components/charts/monthly-revenue-chart";
 import {
   BarChart,
   Bar,
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -277,22 +277,9 @@ export default function AnalyticsPage() {
             ]}
           />
           <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="lg:col-span-2">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base">Revenue, last six months</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="month" {...axis} />
-                    <YAxis {...axis} width={60} tickFormatter={usdShort} />
-                    <Tooltip content={moneyTooltip((p) => p.month)} />
-                    <Line type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+            <div className="lg:col-span-2">
+              <MonthlyRevenueChart data={revenueData} />
+            </div>
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base">MRR movement this month</CardTitle>
@@ -499,18 +486,18 @@ export default function AnalyticsPage() {
             </Card>
             <Card className="lg:col-span-2">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base">Collected per month</CardTitle>
+                <CardTitle className="text-base">Keeping payments healthy</CardTitle>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={240}>
-                  <BarChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
-                    <XAxis dataKey="month" {...axis} />
-                    <YAxis {...axis} width={60} tickFormatter={usdShort} />
-                    <Tooltip content={moneyTooltip((p) => p.month)} />
-                    <Bar dataKey="revenue" fill="var(--primary)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <CardContent className="space-y-3 text-sm text-muted-foreground">
+                <p>Failed renewals are retried automatically and the customer gets a link to pay. A rate under 90% usually means a provider key has expired or a payment method is not set up for a currency.</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/payments">See payments</Link>
+                  </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/providers">Check providers</Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

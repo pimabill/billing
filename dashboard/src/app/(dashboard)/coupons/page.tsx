@@ -315,7 +315,7 @@ export default function CouponsPage() {
       {coupons.length === 0 ? (
         <div className="rounded-md border border-border p-12 text-center">
           <div className="mx-auto mb-4 rounded-full bg-accent p-4 w-fit">
-            <Tag className="h-8 w-8 text-blue-600" />
+            <Tag className="h-8 w-8 text-primary" />
           </div>
           <h3 className="text-lg font-semibold">No coupons yet</h3>
           <p className="mt-2 text-sm text-muted-foreground">

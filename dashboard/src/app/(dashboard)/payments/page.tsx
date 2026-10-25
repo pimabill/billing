@@ -34,6 +34,7 @@ import { formatDateTime } from "@/lib/utils/date";
 import type { Payment } from "@/types";
 import { toast } from "sonner";
 import { useCan } from "@/lib/permissions";
+import { ProviderLogo } from "@/components/provider-logo";
 import { BrandMark } from "@/components/brand-mark";
 
 const statusColors = {
@@ -43,15 +44,6 @@ const statusColors = {
   refunded: "outline",
 } as const;
 
-const providerLogos: Record<string, string> = {
-  stripe: "💳",
-  flutterwave: "🦋",
-  paystack: "📦",
-  dpo: "🏦",
-  payu: "💰",
-  pesapal: "📱",
-  paypal: "🅿️",
-};
 
 export default function PaymentsPage() {
   const canWrite = useCan("billing.write");
@@ -227,9 +219,7 @@ export default function PaymentsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <span className="text-lg">
-                            {providerLogos[payment.provider]}
-                          </span>
+                          <ProviderLogo code={payment.provider} size="sm" />
                           <span className="text-sm capitalize">
                             {payment.provider}
                           </span>

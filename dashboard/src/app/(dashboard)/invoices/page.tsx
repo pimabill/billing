@@ -334,7 +334,7 @@ export default function InvoicesPage() {
             onClick={() => setStatusFilter(status)}
             className={`px-4 py-2 text-sm font-medium capitalize ${
               statusFilter === status
-                ? "border-b-2 border-blue-600 text-blue-600"
+                ? "border-b-2 border-primary text-primary"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >

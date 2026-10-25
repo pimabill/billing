@@ -12,6 +12,7 @@ export interface CloudPlanOption {
 
 export interface PlanStatus {
   enabled: boolean;
+  sandbox?: boolean;
   enterpriseContact?: string | null;
   plan: { code: string | null; name: string | null; tier: "free" | "growth" | "enterprise" | "partner" | null; status: string | null; limits: Record<string, unknown> | null };
   usage: Record<"customers" | "activeSubscriptions" | "invoicesPerMonth" | "teamMembers", number>;

@@ -404,12 +404,8 @@ export default function CustomersPage() {
                   className="flex items-center justify-between rounded-lg border border-border p-3"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted text-lg">
-                      {method.brand?.toLowerCase().includes("visa")
-                        ? "💳"
-                        : method.brand?.toLowerCase().includes("master")
-                          ? "💳"
-                          : "💳"}
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-muted">
+                      <CreditCard className="h-5 w-5 text-muted-foreground" aria-hidden />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">

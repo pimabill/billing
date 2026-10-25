@@ -292,7 +292,7 @@ export default function AddOnsPage() {
                       <td className="py-4 pr-4">
                         <div className="flex items-center gap-3">
                           <div className="rounded-md bg-accent p-2">
-                            <PuzzleIcon className="h-4 w-4 text-blue-600" />
+                            <PuzzleIcon className="h-4 w-4 text-primary" />
                           </div>
                           <div>
                             <p className="font-medium">{addOn.name}</p>

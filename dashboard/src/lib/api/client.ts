@@ -990,7 +990,8 @@ export const apiClient = {
           apiFetch<any>(
             `/analytics/revenue?dateFrom=${start.toISOString()}&dateTo=${end.toISOString()}`,
           ).then((data) => ({
-            date: start.toISOString().slice(0, 7),
+            // The local month, not toISOString's UTC one: east of UTC that is the month before.
+            date: `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, "0")}`,
             revenue: Number(data.totalRevenue) || 0,
             mrr: Number(data.mrr) || 0,
             oneTime: 0,

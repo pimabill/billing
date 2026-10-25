@@ -19,7 +19,7 @@ import {
   Webhook,
 } from "lucide-react";
 import { KPICard } from "@/components/dashboard/kpi-card";
-import { RevenueChart } from "@/components/charts/revenue-chart";
+import { MonthlyRevenueChart } from "@/components/charts/monthly-revenue-chart";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -187,30 +187,33 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
-          title="Monthly recurring revenue (USD)"
+          title="Monthly recurring revenue"
           value={kpis ? formatCurrency(kpis.mrr, "USD", { abbreviated: true }) : "$0"}
-          change={kpis?.mrrChange || 0}
+          change={kpis?.mrrChange}
+          hint="in USD, from active subscriptions"
           icon={<DollarSign className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
         <KPICard
           title="Active subscriptions"
           value={kpis?.activeSubscriptions?.toString() || "0"}
-          change={kpis?.subscriptionChange || 0}
+          change={kpis?.subscriptionChange}
+          hint="paying or on trial"
           icon={<Receipt className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
         <KPICard
           title="Customers"
           value={kpis?.totalCustomers?.toString() || "0"}
-          change={kpis?.customerChange || 0}
+          change={kpis?.customerChange}
+          hint="in total"
           icon={<Users className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
         <KPICard
           title="Payment success rate"
           value={kpis ? `${Number(kpis.successRate || 0).toFixed(1)}%` : "0%"}
-          change={kpis?.successRateChange || 0}
+          hint="of payments succeed"
           icon={<TrendingUp className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
@@ -218,7 +221,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <RevenueChart data={data?.revenue ?? []} />
+          <MonthlyRevenueChart data={data?.revenue ?? []} />
         </div>
 
         <div className="space-y-4">

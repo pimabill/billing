@@ -203,7 +203,7 @@ export default function CreditNotesPage() {
             }}
             className={`px-4 py-2 text-sm font-medium ${
               statusFilter === status
-                ? "border-b-2 border-blue-600 text-blue-600"
+                ? "border-b-2 border-primary text-primary"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
