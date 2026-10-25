@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { apiKeyPrefix } from '../../config/sandbox';
 
 /**
  * API keys are shown once and stored only as a SHA-256 hash plus their last
@@ -13,7 +14,7 @@ export function lastFour(key: string): string {
 }
 
 export function maskedKey(last4: string | null | undefined): string | null {
-  return last4 ? `sk_live_****${last4}` : null;
+  return last4 ? `${apiKeyPrefix()}****${last4}` : null;
 }
 
 /**

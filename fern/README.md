@@ -39,6 +39,10 @@ npx fern-api generate --local --group tier1 --force   # output in ../sdks/ (not 
 cd ../docs && npm ci && node scripts/check-sdk-snippets.mjs
 ```
 
+## Packages and publishing
+
+`fern/packaging/package.sh <version>` turns the generated SDKs into an npm package (`pimabill`), a Python wheel (`pimabill`) and the Composer package (`pimabill/pimabill-php`). The **SDKs** workflow runs it on every release and publishes to npm, PyPI and Packagist; see [RELEASING.md](../RELEASING.md) for the one-time registry setup.
+
 ## Known generator limits
 
 - TypeScript keeps the header's wire name for the idempotency key:

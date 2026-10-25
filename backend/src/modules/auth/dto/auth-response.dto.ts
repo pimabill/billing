@@ -112,6 +112,11 @@ export class InvitationInfoResponse {
   existingUser: boolean;
 }
 
+export class SandboxLinkResponse {
+  @ApiProperty({ description: 'Pass to POST /auth/sandbox/accept on the sandbox within two minutes' })
+  token: string;
+}
+
 export class MessageResponse {
   @ApiProperty({ example: 'Operation completed successfully' })
   message: string;

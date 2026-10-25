@@ -257,7 +257,10 @@ export class MoneySettingsController {
   @Post('managed')
   @ApiOperation({
     summary: 'Open a managed payments account (no provider account of your own needed)',
-    description: 'Payments settle to the bank account given here. The account takes payments once it has been reviewed.',
+    description:
+      'The platform collects through its own provider accounts, keeps its fee (on top of the provider\'s) and pays the rest ' +
+      'to your payout destination: mobile money, bank or PayPal. Bank details also allow direct settlement where the ' +
+      'provider supports it. The account takes payments once it has been reviewed.',
   })
   @ApiResponse({ status: 201, description: 'The new account', type: ManagedAccountResponse })
   openManaged(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant, @Body() dto: OpenManagedAccountDto) {

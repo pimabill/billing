@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pimabill"
+version = "0.0.0"
+description = "Official Python SDK for the PimaBill API"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.8"
+dependencies = [
+  "httpx>=0.21.2",
+  "pydantic>=1.9.2",
+  "typing_extensions>=4.0.0",
+]
+keywords = ["pimabill", "billing", "subscriptions", "invoices", "mobile money", "sdk"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Typing :: Typed",
+]
+
+[project.urls]
+Homepage = "https://github.com/pimabill/billing"
+Documentation = "https://github.com/pimabill/billing/tree/main/docs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pimabill"]

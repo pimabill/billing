@@ -3,6 +3,8 @@
 servers:
   - url: https://api.novabilling.one
     x-fern-server-name: Production
+  - url: https://sandbox.novabilling.one
+    x-fern-server-name: Sandbox
   - url: http://localhost:4000
     x-fern-server-name: Local
 
@@ -40,6 +42,14 @@ paths:
     post:
       x-fern-sdk-group-name: auth
       x-fern-sdk-method-name: createOrganisation
+  /api/auth/sandbox/link:
+    post:
+      x-fern-sdk-group-name: auth
+      x-fern-sdk-method-name: createSandboxLink
+  /api/auth/sandbox/accept:
+    post:
+      x-fern-sdk-group-name: auth
+      x-fern-sdk-method-name: acceptSandboxLink
   /api/auth/invitations/{token}:
     get:
       x-fern-sdk-group-name: auth

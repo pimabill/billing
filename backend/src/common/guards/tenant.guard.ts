@@ -16,6 +16,7 @@ import { CentralPrismaService } from '../../database/central-prisma.service';
 import { TenantDatabaseService } from '../../database/tenant-database.service';
 import { isPlatformOperator } from '../platform-operator';
 import { assertTenantAccess } from './tenant-access';
+import { wrongEnvironmentKey } from '../../config/sandbox';
 import { assertPlanAllows, loadPlan, mayBeLimited, routeOf, usageCounter } from './plan-limits';
 
 @Injectable()
@@ -137,6 +138,8 @@ export class TenantGuard implements CanActivate {
 
   /** An API key, by its hash: an organisation key, or the organisation's own key (full access). */
   private async resolveFromApiKey(apiKey: string) {
+    const otherEnvironment = wrongEnvironmentKey(apiKey);
+    if (otherEnvironment) throw new UnauthorizedException(otherEnvironment);
     const keyHash = hashApiKey(apiKey);
     const apiKeyRecord = await this.centralPrisma.client.apiKey.findUnique({
       where: { keyHash },

@@ -47,3 +47,4 @@ CLAUDE.md
 
 # Local Redis snapshots
 dump.rdb
+dist-sdks/

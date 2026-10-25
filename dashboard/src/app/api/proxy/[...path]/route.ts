@@ -1,47 +1,5 @@
-import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
-
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000";
-
-async function refreshAccessToken(
-  cookieStore: Awaited<ReturnType<typeof cookies>>,
-): Promise<string | null> {
-  const refreshToken = cookieStore.get("nb_refresh_token")?.value;
-  if (!refreshToken) return null;
-
-  try {
-    const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken }),
-    });
-
-    if (!res.ok) return null;
-
-    const json = await res.json();
-    const data = json;
-
-    cookieStore.set("nb_token", data.accessToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60,
-    });
-
-    cookieStore.set("nb_refresh_token", data.refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    });
-
-    return data.accessToken;
-  } catch {
-    return null;
-  }
-}
+import { backendFor, currentEnvironment, refreshAccessToken, sessionToken } from "@/lib/server/session";
 
 async function makeBackendRequest(
   url: string,
@@ -75,16 +33,16 @@ async function proxyRequest(
 ) {
   const { path } = await params;
   const apiPath = `/api/${path.join("/")}`;
-  const cookieStore = await cookies();
-
-  const token = cookieStore.get("nb_token")?.value;
+  // Live or sandbox: the same dashboard talks to whichever this browser switched to.
+  const env = await currentEnvironment();
+  const token = (await sessionToken(env)) ?? (await refreshAccessToken(env));
 
   if (!token) {
     return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
   }
 
   // Build target URL with query params
-  const url = new URL(apiPath, BACKEND_URL);
+  const url = new URL(apiPath, backendFor(env));
   const searchParams = req.nextUrl.searchParams;
   searchParams.forEach((value, key) => url.searchParams.set(key, value));
 
@@ -101,7 +59,7 @@ async function proxyRequest(
 
     // If 401, attempt token refresh and retry
     if (res.status === 401) {
-      const newToken = await refreshAccessToken(cookieStore);
+      const newToken = await refreshAccessToken(env);
       if (newToken) {
         res = await makeBackendRequest(
           url.toString(),

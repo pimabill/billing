@@ -21,6 +21,18 @@
         ],
         "type": "object"
       },
+      "AcceptSandboxLinkDto": {
+        "properties": {
+          "token": {
+            "description": "The link token from POST /auth/sandbox/link on live",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
       "AddOnPriceDto": {
         "properties": {
           "amount": {
@@ -5134,6 +5146,18 @@
         ],
         "type": "object"
       },
+      "SandboxLinkResponse": {
+        "properties": {
+          "token": {
+            "description": "Pass to POST /auth/sandbox/accept on the sandbox within two minutes",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "type": "object"
+      },
       "SentInvitationResponse": {
         "properties": {
           "acceptUrl": {
@@ -7620,6 +7644,63 @@
           }
         },
         "summary": "Reset password with token",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/sandbox/accept": {
+      "post": {
+        "operationId": "AuthController_acceptSandboxLink",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AcceptSandboxLinkDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Signed in to the sandbox"
+          },
+          "401": {
+            "description": "The link is invalid or has expired"
+          }
+        },
+        "summary": "Sandbox only: open the account a live link vouches for; returns sandbox tokens",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/sandbox/link": {
+      "post": {
+        "operationId": "AuthController_sandboxLink",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxLinkResponse"
+                }
+              }
+            },
+            "description": "The link token, valid for two minutes"
+          }
+        },
+        "summary": "Live only: a short-lived link that opens your account, in this organisation, on the sandbox",
         "tags": [
           "Auth"
         ]
@@ -10478,7 +10559,7 @@
         ]
       },
       "post": {
-        "description": "Payments settle to the bank account given here. The account takes payments once it has been reviewed.",
+        "description": "The platform collects through its own provider accounts, keeps its fee (on top of the provider's) and pays the rest to your payout destination: mobile money, bank or PayPal. Bank details also allow direct settlement where the provider supports it. The account takes payments once it has been reviewed.",
         "operationId": "MoneySettingsController_openManaged",
         "parameters": [],
         "requestBody": {
