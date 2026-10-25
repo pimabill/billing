@@ -18,7 +18,11 @@ export const faq = [
   },
   {
     question: "Do you hold my money?",
-    answer: `No. Payments go to your own provider accounts or your own crypto wallet. ${site.name} sends instructions and records what happened in a double-entry ledger; it never holds funds.`,
+    answer: `Not when you use your own provider accounts or crypto wallet: payments go straight to them, and ${site.name} sends instructions and records what happened in a double-entry ledger. If you choose managed payments on the cloud, we collect through our provider accounts, keep a small fee on top of the provider's, and pay the rest out to your mobile money, bank or PayPal; you can change where it goes at any time.`,
+  },
+  {
+    question: "Can I test without moving real money?",
+    answer: `Yes. A sandbox runs the same ${site.name} against the payment providers' test accounts. Switch to it from the dashboard to get sk_test_ API keys and separate test data; your live account keeps working as it is.`,
   },
   {
     question: "Can I accept crypto?",
