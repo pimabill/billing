@@ -3024,6 +3024,9 @@
             "example": "eyJhbGciOiJIUzI1NiIs...",
             "type": "string"
           },
+          "mfa": {
+            "$ref": "#/components/schemas/MfaStateResponse"
+          },
           "organisations": {
             "description": "Every organisation you can switch to",
             "items": {
@@ -3067,6 +3070,7 @@
           "user",
           "role",
           "permissions",
+          "mfa",
           "accessToken",
           "refreshToken"
         ],
@@ -3370,6 +3374,23 @@
         "required": [
           "mfaToken",
           "code"
+        ],
+        "type": "object"
+      },
+      "MfaStateResponse": {
+        "properties": {
+          "enabled": {
+            "description": "Whether you use two-step sign-in",
+            "type": "boolean"
+          },
+          "required": {
+            "description": "Whether this organisation requires it of everyone",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "required"
         ],
         "type": "object"
       },
@@ -5164,6 +5185,9 @@
             "example": "sk_live_abc123...",
             "type": "string"
           },
+          "mfa": {
+            "$ref": "#/components/schemas/MfaStateResponse"
+          },
           "organisations": {
             "description": "Every organisation you can switch to",
             "items": {
@@ -5207,6 +5231,7 @@
           "user",
           "role",
           "permissions",
+          "mfa",
           "accessToken",
           "refreshToken",
           "apiKey"
@@ -5330,6 +5355,9 @@
       },
       "SessionResponse": {
         "properties": {
+          "mfa": {
+            "$ref": "#/components/schemas/MfaStateResponse"
+          },
           "organisations": {
             "description": "Every organisation you can switch to",
             "items": {
@@ -5368,7 +5396,8 @@
           "tenant",
           "user",
           "role",
-          "permissions"
+          "permissions",
+          "mfa"
         ],
         "type": "object"
       },
@@ -7619,7 +7648,7 @@
     },
     "/api/auth/login": {
       "post": {
-        "description": "Authenticate with email and password. Returns an access token and refresh token.",
+        "description": "Authenticate with email and password. Returns an access token and refresh token, or, for an account with two-step sign-in, `{ \"mfaRequired\": true, \"mfaToken\": \"...\" }` to finish with POST /auth/mfa/verify.",
         "operationId": "AuthController_login",
         "parameters": [],
         "requestBody": {

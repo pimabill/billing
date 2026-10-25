@@ -40,6 +40,8 @@ describeDb('team access (postgres)', () => {
   const tenantDb = { createTenantDatabase: jest.fn(), getTenantClient: jest.fn(async () => ({})) };
   const encryption = { generateApiKey: () => `sk_live_${Math.random().toString(36).slice(2)}`, generateWebhookSecret: () => 'whsec' };
   const auth = new AuthService(central, tenantDb as never, new JwtService(), config as never, encryption as never, { sendHtml: jest.fn().mockResolvedValue(true) } as never, {} as never);
+  // These people have no two-step sign-in, so sign-in returns a session.
+  const signIn = async (dto: Parameters<AuthService['login']>[0]) => (await auth.login(dto)) as Exclude<Awaited<ReturnType<AuthService['login']>>, { mfaRequired: true }>;
   const email = { sendHtml: jest.fn(async () => false) };
   const team = new TeamService(central, email as never);
   const guard = new TenantGuard(central, tenantDb as never, config as never, new Reflector());
@@ -143,8 +145,8 @@ describeDb('team access (postgres)', () => {
     await expect(auth.switchOrganisation(bob.userId, second.tenant.id)).rejects.toBeInstanceOf(ForbiddenException);
 
     // Sign-in returns to the organisation used last, or the one asked for.
-    expect((await auth.login({ email: 'alice@example.com', password: 'alice-pass-1' })).tenant.id).toBe(alice.tenant.id);
-    expect((await auth.login({ email: 'alice@example.com', password: 'alice-pass-1', tenantId: second.tenant.id })).tenant.id).toBe(second.tenant.id);
+    expect((await signIn({ email: 'alice@example.com', password: 'alice-pass-1' })).tenant.id).toBe(alice.tenant.id);
+    expect((await signIn({ email: 'alice@example.com', password: 'alice-pass-1', tenantId: second.tenant.id })).tenant.id).toBe(second.tenant.id);
     const session = await auth.currentSession(second.tenant.id, alice.user.id);
     expect(session.organisations).toHaveLength(2);
   });
