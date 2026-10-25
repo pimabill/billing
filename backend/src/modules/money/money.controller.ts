@@ -30,6 +30,7 @@ import {
   RequestOtpDto,
   AssignDepositDto,
   OpenManagedAccountDto,
+  UpdateManagedAccountDto,
 } from './dto/money.dto';
 import {
   ManagedAccountResponse,
@@ -265,6 +266,16 @@ export class MoneySettingsController {
   @ApiResponse({ status: 201, description: 'The new account', type: ManagedAccountResponse })
   openManaged(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant, @Body() dto: OpenManagedAccountDto) {
     return this.managed.open(db, req.tenant.id, dto);
+  }
+
+  @Patch('managed')
+  @ApiOperation({
+    summary: 'Change your managed account\'s contact details or payout destination',
+    description: 'Anything left out stays as it is. Every change is recorded by the platform.',
+  })
+  @ApiResponse({ status: 200, description: 'The account after the change', type: ManagedAccountResponse })
+  updateManaged(@TenantDb() db: PrismaClient, @Body() dto: UpdateManagedAccountDto) {
+    return this.managed.update(db, dto);
   }
 
   @Get('capabilities')

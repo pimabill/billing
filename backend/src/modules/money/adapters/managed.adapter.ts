@@ -46,7 +46,27 @@ export interface ManagedAccount {
   settlement?: 'direct' | 'balance';
   /** Masked, e.g. "Mobile money ****4567". */
   payoutDestination?: string;
+  email?: string;
+  phone?: string;
   reason?: string;
+}
+
+export interface ManagedPayoutDestination {
+  type: 'mobile_money' | 'bank' | 'paypal';
+  msisdn?: string;
+  /** Name on the mobile money or PayPal account. */
+  name?: string;
+  email?: string;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+}
+
+/** Contact details and payout destination, changeable after applying. */
+export interface UpdateManagedAccount {
+  email?: string;
+  phone?: string;
+  payoutDestination?: ManagedPayoutDestination;
 }
 
 export interface OpenManagedAccount {
@@ -59,7 +79,7 @@ export interface OpenManagedAccount {
   /** For direct settlement where the provider supports it. */
   bank?: { code: string; accountNumber: string; accountName?: string };
   /** Where pooled balances are paid out. Bank details, a payout destination, or both. */
-  payoutDestination?: { type: 'mobile_money' | 'bank' | 'paypal'; msisdn?: string; email?: string; bankCode?: string; accountNumber?: string; accountName?: string };
+  payoutDestination?: ManagedPayoutDestination;
   /** Where the service reports account status changes for this tenant. */
   notificationUrl?: string;
 }
@@ -83,6 +103,10 @@ export class ManagedPaymentsClient {
 
   openAccount(input: OpenManagedAccount) {
     return this.request<ManagedAccount>('POST', '/v1/accounts', input, input.externalId);
+  }
+
+  updateAccount(id: string, changes: UpdateManagedAccount) {
+    return this.request<ManagedAccount>('POST', `/v1/accounts/${encodeURIComponent(id)}`, changes);
   }
 
   getAccount(id: string) {

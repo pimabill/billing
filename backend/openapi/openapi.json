@@ -3133,19 +3133,40 @@
             "example": "UGX",
             "type": "string"
           },
+          "email": {
+            "example": "finance@rapcio.com",
+            "type": "string"
+          },
           "fee": {
             "allOf": [
               {
                 "$ref": "#/components/schemas/ManagedFeeResponse"
               }
             ],
-            "description": "Platform fee on each payment"
+            "description": "Platform fee on each payment, on top of the provider's fee"
           },
           "id": {
             "type": "string"
           },
+          "payoutDestination": {
+            "description": "Where payouts go, masked",
+            "example": "Mobile money ****6464",
+            "type": "string"
+          },
+          "phone": {
+            "example": "+256700000001",
+            "type": "string"
+          },
           "reason": {
             "description": "Why the account was not approved",
+            "type": "string"
+          },
+          "settlement": {
+            "description": "direct: each payment settles to the bank account; balance: held by the platform and paid out",
+            "enum": [
+              "direct",
+              "balance"
+            ],
             "type": "string"
           },
           "status": {
@@ -3233,6 +3254,11 @@
           "msisdn": {
             "description": "Mobile money number in international format (mobile_money)",
             "example": "256771234567",
+            "type": "string"
+          },
+          "name": {
+            "description": "Name on the mobile money or PayPal account",
+            "example": "Rapcio Ltd",
             "type": "string"
           },
           "type": {
@@ -5930,6 +5956,22 @@
             "description": "Net payment terms in days (overrides org and plan defaults)",
             "example": 30,
             "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "UpdateManagedAccountDto": {
+        "properties": {
+          "email": {
+            "example": "finance@rapcio.com",
+            "type": "string"
+          },
+          "payoutDestination": {
+            "$ref": "#/components/schemas/ManagedPayoutDestinationDto"
+          },
+          "phone": {
+            "example": "+256700000001",
+            "type": "string"
           }
         },
         "type": "object"
@@ -10554,6 +10596,42 @@
           }
         ],
         "summary": "Whether managed payments are offered here, and this account's managed account if it has one",
+        "tags": [
+          "Money movement"
+        ]
+      },
+      "patch": {
+        "description": "Anything left out stays as it is. Every change is recorded by the platform.",
+        "operationId": "MoneySettingsController_updateManaged",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateManagedAccountDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManagedAccountResponse"
+                }
+              }
+            },
+            "description": "The account after the change"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Change your managed account's contact details or payout destination",
         "tags": [
           "Money movement"
         ]

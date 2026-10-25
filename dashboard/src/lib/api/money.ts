@@ -114,6 +114,8 @@ export interface ManagedAccount {
   settlement?: "direct" | "balance";
   /** Masked, e.g. "Mobile money ****4567". */
   payoutDestination?: string;
+  email?: string;
+  phone?: string;
   reason?: string;
 }
 
@@ -126,7 +128,23 @@ export interface OpenManagedAccount {
   country: string;
   currency: string;
   bank?: { code: string; accountNumber: string; accountName?: string };
-  payoutDestination?: { type: ManagedPayoutType; msisdn?: string; email?: string; bankCode?: string; accountNumber?: string; accountName?: string };
+  payoutDestination?: ManagedPayoutDestination;
+}
+
+export interface ManagedPayoutDestination {
+  type: ManagedPayoutType;
+  msisdn?: string;
+  name?: string;
+  email?: string;
+  bankCode?: string;
+  accountNumber?: string;
+  accountName?: string;
+}
+
+export interface UpdateManagedAccount {
+  email?: string;
+  phone?: string;
+  payoutDestination?: ManagedPayoutDestination;
 }
 
 export interface ProviderCapabilities {
@@ -179,6 +197,8 @@ export const moneyApi = {
   managedStatus: () => apiFetch<{ available: boolean; account: ManagedAccount | null }>("/money/managed"),
   openManaged: (body: OpenManagedAccount) =>
     apiFetch<ManagedAccount>("/money/managed", { method: "POST", body: JSON.stringify(body) }),
+  updateManaged: (body: UpdateManagedAccount) =>
+    apiFetch<ManagedAccount>("/money/managed", { method: "PATCH", body: JSON.stringify(body) }),
   requestOtp: (provider: string, phone: string) =>
     apiFetch<{ pinId: string }>(`/money/providers/${provider}/otp`, { method: "POST", body: JSON.stringify({ phone }) }),
   balance: (provider: string) =>

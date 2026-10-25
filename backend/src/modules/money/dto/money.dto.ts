@@ -206,6 +206,12 @@ export class ManagedPayoutDestinationDto {
   @Length(9, 16)
   msisdn?: string;
 
+  @ApiPropertyOptional({ example: 'Rapcio Ltd', description: 'Name on the mobile money or PayPal account' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  name?: string;
+
   @ApiPropertyOptional({ example: 'finance@rapcio.com', description: 'PayPal account email (paypal)' })
   @ValidateIf((d: ManagedPayoutDestinationDto) => d.type === 'paypal')
   @IsEmail()
@@ -228,6 +234,26 @@ export class ManagedPayoutDestinationDto {
   @IsString()
   @Length(2, 120)
   accountName?: string;
+}
+
+/** Contact details and where payouts go; anything left out stays as it is. */
+export class UpdateManagedAccountDto {
+  @ApiPropertyOptional({ example: 'finance@rapcio.com' })
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  @ApiPropertyOptional({ example: '+256700000001' })
+  @IsOptional()
+  @IsString()
+  @Length(9, 16)
+  phone?: string;
+
+  @ApiPropertyOptional({ type: ManagedPayoutDestinationDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ManagedPayoutDestinationDto)
+  payoutDestination?: ManagedPayoutDestinationDto;
 }
 
 export class OpenManagedAccountDto {

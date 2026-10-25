@@ -371,8 +371,23 @@ export class ManagedAccountResponse {
   @ApiPropertyOptional({ example: '4321' })
   accountNumberLast4?: string;
 
-  @ApiPropertyOptional({ type: ManagedFeeResponse, description: 'Platform fee on each payment' })
+  @ApiPropertyOptional({ type: ManagedFeeResponse, description: "Platform fee on each payment, on top of the provider's fee" })
   fee?: ManagedFeeResponse;
+
+  @ApiPropertyOptional({
+    enum: ['direct', 'balance'],
+    description: 'direct: each payment settles to the bank account; balance: held by the platform and paid out',
+  })
+  settlement?: string;
+
+  @ApiPropertyOptional({ example: 'Mobile money ****6464', description: 'Where payouts go, masked' })
+  payoutDestination?: string;
+
+  @ApiPropertyOptional({ example: 'finance@rapcio.com' })
+  email?: string;
+
+  @ApiPropertyOptional({ example: '+256700000001' })
+  phone?: string;
 
   @ApiPropertyOptional({ description: 'Why the account was not approved' })
   reason?: string;
