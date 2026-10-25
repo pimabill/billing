@@ -86,19 +86,19 @@ export class FxRatesService implements OnApplicationBootstrap {
   }
 
   /**
-   * Rates for these currencies from a week before `from` to `to`, plus the
-   * earliest we have of each (for amounts older than our history).
+   * Rates for these currencies between `from` and `to`, plus each one's last
+   * rate on or before `from` (the rate in force when the period starts) and its
+   * earliest (for amounts older than our history).
    */
   async ratesFor(currencies: string[], from: Date, to: Date): Promise<RateRow[]> {
     const codes = [...new Set(currencies.map((c) => c.toUpperCase()))].filter((c) => c !== 'USD');
     if (!codes.length) return [];
-    const [window, earliest] = await Promise.all([
-      this.central.client.exchangeRate.findMany({
-        where: { currency: { in: codes }, date: { gte: new Date(utcDay(from).getTime() - 7 * DAY), lte: utcDay(to) } },
-        orderBy: { date: 'asc' },
-      }),
+    const start = utcDay(from);
+    const [window, before, earliest] = await Promise.all([
+      this.central.client.exchangeRate.findMany({ where: { currency: { in: codes }, date: { gte: start, lte: utcDay(to) } }, orderBy: { date: 'asc' } }),
+      this.central.client.exchangeRate.findMany({ where: { currency: { in: codes }, date: { lte: start } }, orderBy: { date: 'desc' }, distinct: ['currency'] }),
       this.central.client.exchangeRate.findMany({ where: { currency: { in: codes } }, orderBy: { date: 'asc' }, distinct: ['currency'] }),
     ]);
-    return [...earliest, ...window].map((r) => ({ date: r.date, currency: r.currency, perUsd: Number(r.perUsd) }));
+    return [...earliest, ...before, ...window].map((r) => ({ date: r.date, currency: r.currency, perUsd: Number(r.perUsd) }));
   }
 }
