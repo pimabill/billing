@@ -8,7 +8,6 @@ import { useUIStore } from "@/lib/stores/ui";
 import { useEffect, useState } from "react";
 import { NotificationsDropdown } from "./notifications-dropdown";
 import { PlanPill } from "./plan-pill";
-import { EnvironmentSwitch } from "./environment-switch";
 
 export function Topbar() {
   const { setTheme, theme } = useTheme();
@@ -47,7 +46,6 @@ export function Topbar() {
       </div>
 
       <div className="flex items-center gap-2">
-        <EnvironmentSwitch />
         <PlanPill />
         <NotificationsDropdown />
 
