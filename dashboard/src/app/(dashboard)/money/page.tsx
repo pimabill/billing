@@ -85,6 +85,8 @@ export default function MoneyPage() {
     );
   }
   if (!settings) return <div className="animate-shimmer h-96 rounded-lg" />;
+  // Links can open a tab directly, e.g. /money?tab=managed.
+  const initialTab = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab")) || "collections";
   const watchesChain = providers.some((p) => ["tron_usdt", "eth_usdt", "bsc_usdt", "btc"].includes(p.provider));
 
   return (
@@ -96,7 +98,7 @@ export default function MoneyPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="collections">
+      <Tabs defaultValue={initialTab}>
         <TabsList>
           <TabsTrigger value="collections">Collections</TabsTrigger>
           <TabsTrigger value="payouts">Payouts</TabsTrigger>
