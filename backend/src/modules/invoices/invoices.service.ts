@@ -11,6 +11,7 @@ import { CHECKOUT_PROVIDER_NAMES, ProviderFactory } from '../../providers/provid
 import { WalletsService } from '../wallets/wallets.service';
 import { nextInvoiceNumber } from '../billing/invoice-number';
 import { dec, Dec, roundMoney } from '../billing/pricing';
+import { isSandbox } from '../../config/sandbox';
 import {
   EMAIL_QUEUE,
   WEBHOOK_QUEUE,
@@ -500,6 +501,11 @@ export class InvoicesService {
     let lastError = 'Failed to create checkout session';
     for (const providerConfig of candidates) {
       const credentials = JSON.parse(this.encryptionService.decrypt(providerConfig.credentials));
+      // A live deployment never sends a payer to a provider's test environment unless asked to by name.
+      if (!providerName && !isSandbox() && ['sandbox', 'test', 'staging'].includes(String(credentials.environment ?? '').toLowerCase())) {
+        this.logger.warn(`Skipped ${providerConfig.providerName} for invoice ${id}: its credentials are for its test environment`);
+        continue;
+      }
       if (providerConfig.providerName === 'managed' && tenantId) credentials.tenantId = tenantId;
       const provider = ProviderFactory.create(providerConfig.providerName, credentials);
 
