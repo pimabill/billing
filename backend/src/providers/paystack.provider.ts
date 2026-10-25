@@ -107,7 +107,7 @@ export class PaystackProvider extends BasePaymentProvider {
   }
 
   async getPaymentStatus(transactionId: string): Promise<PaymentStatusResult> {
-    const response = await fetch(`${this.baseUrl}/transaction/verify/${transactionId}`, {
+    const response = await fetch(`${this.baseUrl}/transaction/verify/${encodeURIComponent(transactionId)}`, {
       headers: {
         Authorization: `Bearer ${this.credentials.secretKey}`,
       },

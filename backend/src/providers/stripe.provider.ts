@@ -141,7 +141,7 @@ export class StripeProvider extends BasePaymentProvider {
   }
 
   async getPaymentStatus(transactionId: string): Promise<PaymentStatusResult> {
-    const response = await fetch(`${this.baseUrl}/checkout/sessions/${transactionId}`, {
+    const response = await fetch(`${this.baseUrl}/checkout/sessions/${encodeURIComponent(transactionId)}`, {
       headers: this.authHeaders,
     });
 
