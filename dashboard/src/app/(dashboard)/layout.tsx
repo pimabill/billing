@@ -10,6 +10,7 @@ import { useUIStore } from "@/lib/stores/ui";
 import { useAuthStore } from "@/lib/stores/auth";
 import { cn } from "@/lib/utils/cn";
 import { BrandLoader } from "@/components/brand-mark";
+import { SecurityPanel } from "@/components/settings/security-panel";
 
 export default function DashboardLayout({
   children,
@@ -17,7 +18,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { sidebarCollapsed } = useUIStore();
-  const { isAuthenticated, checkSession } = useAuthStore();
+  const { isAuthenticated, checkSession, user } = useAuthStore();
   const router = useRouter();
 
   // Refresh role, permissions and organisations from the API on each visit.
@@ -50,7 +51,20 @@ export default function DashboardLayout({
               "transition-all duration-300",
             )}
           >
-            <div className="container mx-auto p-6">{children}</div>
+            <div className="container mx-auto p-6">
+              {user?.mfa?.required && !user.mfa.enabled ? (
+                // The organisation requires two-step sign-in: nothing else opens until it is on.
+                <div className="mx-auto max-w-3xl space-y-4">
+                  <div>
+                    <h1 className="text-2xl font-bold">Turn on two-step sign-in</h1>
+                    <p className="text-sm text-muted-foreground">{user.tenantName ?? "Your organisation"} requires it for everyone. It takes a minute with an authenticator app on your phone.</p>
+                  </div>
+                  <SecurityPanel />
+                </div>
+              ) : (
+                children
+              )}
+            </div>
           </main>
         </div>
       </div>

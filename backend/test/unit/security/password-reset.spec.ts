@@ -31,6 +31,7 @@ describe('password reset', () => {
       { get: (k: string) => (k === 'JWT_SECRET' ? SECRET : undefined) } as any,
       {} as any,
       { sendHtml } as any,
+      {} as any,
     );
     logged = [];
     jest.spyOn((auth as any).logger, 'log').mockImplementation((m: unknown) => logged.push(String(m)));

@@ -18,6 +18,7 @@ import { isPlatformOperator } from '../platform-operator';
 import { assertTenantAccess } from './tenant-access';
 import { wrongEnvironmentKey } from '../../config/sandbox';
 import { assertPlanAllows, loadPlan, mayBeLimited, routeOf, usageCounter } from './plan-limits';
+import { mfaSetupAllows, requiresMfa } from '../auth/mfa-policy';
 
 @Injectable()
 export class TenantGuard implements CanActivate {
@@ -86,6 +87,10 @@ export class TenantGuard implements CanActivate {
     request.authMethod = sessionTenant ? 'session' : 'api_key';
     request.apiKeyScopes = keyed?.scopes;
     if (session) {
+      // An organisation that requires two-step sign-in: set it up before anything else.
+      if (requiresMfa(tenant.settings) && !session.mfaEnabled && !mfaSetupAllows(request.method, route)) {
+        throw new ForbiddenException({ message: `${tenant.name} requires two-step sign-in. Turn it on to continue.`, code: 'MFA_SETUP_REQUIRED' });
+      }
       request.member = session.member;
       this.authorize(context, request.method, session.member.role);
     }
@@ -133,6 +138,7 @@ export class TenantGuard implements CanActivate {
     return {
       tenant,
       member: { userId: membership.userId, email: membership.user.email, name: membership.user.name, role: membership.role },
+      mfaEnabled: Boolean(membership.user.mfaEnabledAt),
     };
   }
 

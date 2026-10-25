@@ -39,7 +39,7 @@ describeDb('team access (postgres)', () => {
   const central = new CentralPrismaService(config as never);
   const tenantDb = { createTenantDatabase: jest.fn(), getTenantClient: jest.fn(async () => ({})) };
   const encryption = { generateApiKey: () => `sk_live_${Math.random().toString(36).slice(2)}`, generateWebhookSecret: () => 'whsec' };
-  const auth = new AuthService(central, tenantDb as never, new JwtService(), config as never, encryption as never, { sendHtml: jest.fn().mockResolvedValue(true) } as never);
+  const auth = new AuthService(central, tenantDb as never, new JwtService(), config as never, encryption as never, { sendHtml: jest.fn().mockResolvedValue(true) } as never, {} as never);
   const email = { sendHtml: jest.fn(async () => false) };
   const team = new TeamService(central, email as never);
   const guard = new TenantGuard(central, tenantDb as never, config as never, new Reflector());

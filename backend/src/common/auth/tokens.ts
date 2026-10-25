@@ -6,7 +6,7 @@ import { JwtPayload, sign, verify } from 'jsonwebtoken';
  * a token issued for one purpose (a password reset, a customer portal link)
  * can never be presented as another (a dashboard session).
  */
-export type TokenPurpose = 'password-reset' | 'portal';
+export type TokenPurpose = 'password-reset' | 'portal' | 'mfa';
 
 export function derivedSecret(jwtSecret: string, purpose: TokenPurpose): string {
   return createHmac('sha256', jwtSecret).update(`pimabill:${purpose}`).digest('hex');

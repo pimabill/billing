@@ -115,7 +115,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Accept an invitation; returns tokens for that organisation' })
   @ApiResponse({ status: 200, description: 'Joined and signed in', type: LoginResponse })
   acceptInvitation(@Body() dto: AcceptInvitationDto) {
-    return this.authService.acceptInvitation(dto.token, dto.password, dto.name);
+    return this.authService.acceptInvitation(dto.token, dto.password, dto.name, dto.mfaCode);
   }
 
   /** Only dashboard sessions belong to a person. */

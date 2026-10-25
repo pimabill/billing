@@ -25,6 +25,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
     let errors: ValidationError[] | null = null;
+    // Machine-readable details an exception carries, e.g. code: PLAN_LIMIT or MFA_REQUIRED.
+    let details: Record<string, unknown> = {};
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
@@ -35,6 +37,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       } else if (typeof exceptionResponse === 'object' && exceptionResponse !== null) {
         const resp = exceptionResponse as Record<string, unknown>;
         message = (resp.message as string) || exception.message;
+        const { message: _m, statusCode: _s, error: _e, ...rest } = resp;
+        details = rest;
 
         // Handle class-validator errors
         if (Array.isArray(resp.message)) {
@@ -62,6 +66,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
     }
 
     response.status(status).json({
+      ...details,
       statusCode: status,
       message,
       errors,

@@ -149,6 +149,8 @@ export interface User {
   /** The organisation signed in to. */
   tenantName?: string;
   permissions?: string[];
+  /** Two-step sign-in: whether this person uses it, and whether the organisation requires it. */
+  mfa?: { enabled: boolean; required: boolean };
 }
 
 export type MemberRole = "owner" | "admin" | "finance" | "developer" | "viewer";

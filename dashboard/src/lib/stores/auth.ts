@@ -12,7 +12,9 @@ interface AuthState {
   user: User | null;
   organisations: Organisation[];
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Signs in, or returns the token for the second step when the account uses two-step sign-in. */
+  login: (email: string, password: string) => Promise<{ mfaToken: string } | void>;
+  completeMfa: (mfaToken: string, code: string) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
   /** Apply a session returned by sign-in, registration, switching or accepting an invitation. */
@@ -48,7 +50,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   login: async (email: string, password: string) => {
-    get().applySession(await apiClient.auth.login(email, password));
+    const result = await apiClient.auth.login(email, password);
+    if ("mfaRequired" in result) return { mfaToken: result.mfaToken };
+    get().applySession(result);
+    await get().checkSession();
+  },
+
+  completeMfa: async (mfaToken: string, code: string) => {
+    get().applySession(await apiClient.auth.verifyMfa(mfaToken, code));
     await get().checkSession();
   },
 

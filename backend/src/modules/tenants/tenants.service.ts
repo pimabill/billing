@@ -99,7 +99,8 @@ export class TenantsService {
       const currentSettings = (existing?.settings || {}) as Record<string, unknown>;
       // Money-movement settings change only through /money/settings and the
       // platform console (payouts need operator approval), never here.
-      const { money: _ignored, ...incoming } = (dto.settings ?? {}) as Record<string, unknown>;
+      // Requiring two-step sign-in goes through /auth/mfa/organisation, which checks the caller uses it.
+      const { money: _ignored, requireMfa: _mfa, ...incoming } = (dto.settings ?? {}) as Record<string, unknown>;
       if (incoming.smtp !== undefined && incoming.smtp !== null) {
         incoming.smtp = await this.prepareSmtp(incoming.smtp as SmtpSettings, currentSettings.smtp as SmtpSettings | undefined);
       }
