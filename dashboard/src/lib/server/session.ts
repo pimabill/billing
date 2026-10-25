@@ -38,6 +38,8 @@ export interface BackendSession {
   role: string;
   permissions: string[];
   organisations?: { id: string; name: string; slug: string; role: string }[];
+  /** Whether this person uses two-step sign-in, and whether the organisation requires it. */
+  mfa?: { enabled: boolean; required: boolean };
 }
 
 export async function setSessionCookies(accessToken: string, refreshToken: string, env: Environment = "live") {
@@ -67,6 +69,7 @@ export function browserSession(data: BackendSession) {
       tenantName: data.tenant.name,
       role: data.role.toLowerCase(),
       permissions: data.permissions,
+      ...(data.mfa && { mfa: data.mfa }),
     },
     ...(data.organisations && {
       organisations: data.organisations.map((o) => ({ ...o, role: o.role.toLowerCase() })),
@@ -89,7 +92,9 @@ async function post(env: Environment, path: string, body: unknown, token?: strin
 export async function forwardSession(path: string, body: unknown, token?: string, env: Environment = "live") {
   try {
     const { ok, status, data } = await post(env, path, body, token);
-    if (!ok) return NextResponse.json({ message: data.message || "Request failed" }, { status });
+    if (!ok) return NextResponse.json({ message: data.message || "Request failed", ...(data.code && { code: data.code }) }, { status });
+    // The password was right; the second step (a code from the app) comes next. No session yet.
+    if (data.mfaRequired) return NextResponse.json({ mfaRequired: true, mfaToken: data.mfaToken });
     await setSessionCookies(data.accessToken, data.refreshToken, env);
     return NextResponse.json(browserSession(data));
   } catch {

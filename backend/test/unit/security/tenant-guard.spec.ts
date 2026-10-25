@@ -127,6 +127,19 @@ describe('TenantGuard', () => {
         await expect(guard.canActivate(ctx(token).context)).rejects.toThrow(UnauthorizedException);
       }
     });
+  
+    it('in an organisation that requires two-step sign-in, lets someone without it only set it up', async () => {
+      const { central, guard, ctx } = setup();
+      central.client.tenant.findUnique.mockResolvedValue({ ...tenant, name: 'Acme', settings: { requireMfa: true } });
+      central.client.membership.findFirst.mockResolvedValue(member());
+      const token = sign({ sub: 'tenant_1', uid: 'u1', typ: 'access' }, SECRET);
+      await expect(guard.canActivate(ctx(token, 'GET', '/api/customers').context)).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(ctx(token, 'POST', '/api/auth/mfa/setup').context)).resolves.toBe(true);
+      await expect(guard.canActivate(ctx(token, 'GET', '/api/auth/session').context)).resolves.toBe(true);
+
+      central.client.membership.findFirst.mockResolvedValue({ ...member(), user: { ...member().user, mfaEnabledAt: new Date() } });
+      await expect(guard.canActivate(ctx(token, 'GET', '/api/customers').context)).resolves.toBe(true);
+    });
   });
 });
 

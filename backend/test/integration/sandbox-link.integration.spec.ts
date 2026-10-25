@@ -24,7 +24,7 @@ describeDb('switching to the sandbox (postgres)', () => {
   const central = new CentralPrismaService(config as never);
   const tenantDb = { createTenantDatabase: jest.fn(), getTenantClient: jest.fn(async () => ({})) };
   const encryption = { generateApiKey: () => `sk_live_${Math.random().toString(36).slice(2)}`, generateWebhookSecret: () => 'whsec' };
-  const auth = new AuthService(central, tenantDb as never, new JwtService(), config as never, encryption as never, { sendHtml: jest.fn() } as never);
+  const auth = new AuthService(central, tenantDb as never, new JwtService(), config as never, encryption as never, { sendHtml: jest.fn() } as never, {} as never);
   const env = { mode: process.env.SANDBOX_MODE, secret: process.env.SANDBOX_LINK_SECRET };
   const stamp = Date.now().toString(36);
 

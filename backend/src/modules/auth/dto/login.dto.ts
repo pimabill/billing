@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEmail, IsOptional } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, IsOptional, IsBoolean, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class LoginDto {
@@ -49,4 +49,44 @@ export class AcceptInvitationDto {
   @IsOptional()
   @IsString()
   name?: string;
+
+  @ApiProperty({ required: false, description: 'A code from your authenticator app, if your account uses two-step sign-in' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  mfaCode?: string;
+}
+
+export class MfaSignInDto {
+  @ApiProperty({ description: 'The mfaToken from the sign-in response' })
+  @IsString()
+  @IsNotEmpty()
+  mfaToken: string;
+
+  @ApiProperty({ example: '123456', description: 'The six-digit code from your authenticator app, or a recovery code' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  code: string;
+}
+
+export class MfaCodeDto {
+  @ApiProperty({ example: '123456', description: 'A code from your authenticator app, or a recovery code' })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(32)
+  code: string;
+}
+
+export class MfaDisableDto extends MfaCodeDto {
+  @ApiProperty()
+  @IsString()
+  @IsNotEmpty()
+  password: string;
+}
+
+export class MfaRequirementDto {
+  @ApiProperty({ description: 'Whether everyone in the organisation must use two-step sign-in' })
+  @IsBoolean()
+  required: boolean;
 }

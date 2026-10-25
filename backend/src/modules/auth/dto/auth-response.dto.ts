@@ -66,6 +66,14 @@ export class OrganisationResponse {
   role: string;
 }
 
+export class MfaStateResponse {
+  @ApiProperty({ description: 'Whether you use two-step sign-in' })
+  enabled: boolean;
+
+  @ApiProperty({ description: 'Whether this organisation requires it of everyone' })
+  required: boolean;
+}
+
 /** The signed-in person in one organisation. */
 export class SessionResponse {
   /** The organisation. */
@@ -80,6 +88,9 @@ export class SessionResponse {
 
   @ApiProperty({ type: [String], example: ['read', 'billing.write'] })
   permissions: string[];
+
+  @ApiProperty({ type: MfaStateResponse })
+  mfa: MfaStateResponse;
 
   @ApiPropertyOptional({ type: [OrganisationResponse], description: 'Every organisation you can switch to' })
   organisations?: OrganisationResponse[];

@@ -72,6 +72,14 @@ model User {
   lastLoginAt DateTime?
   // Sessions issued before this are rejected (password reset or change).
   passwordChangedAt DateTime?
+  // Two-step sign-in with an authenticator app (TOTP). Secrets are encrypted;
+  // recovery codes are stored as hashes and each works once.
+  mfaSecret         String?
+  mfaPendingSecret  String?
+  mfaEnabledAt      DateTime?
+  mfaRecoveryCodes  String[]  @default([])
+  // The last time step accepted, so a code cannot be used twice.
+  mfaLastStep       Int?
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   memberships Membership[]

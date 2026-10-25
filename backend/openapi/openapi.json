@@ -3,6 +3,10 @@
     "schemas": {
       "AcceptInvitationDto": {
         "properties": {
+          "mfaCode": {
+            "description": "A code from your authenticator app, if your account uses two-step sign-in",
+            "type": "string"
+          },
           "name": {
             "description": "Required when you do not have an account yet",
             "type": "string"
@@ -3020,6 +3024,9 @@
             "example": "eyJhbGciOiJIUzI1NiIs...",
             "type": "string"
           },
+          "mfa": {
+            "$ref": "#/components/schemas/MfaStateResponse"
+          },
           "organisations": {
             "description": "Every organisation you can switch to",
             "items": {
@@ -3063,6 +3070,7 @@
           "user",
           "role",
           "permissions",
+          "mfa",
           "accessToken",
           "refreshToken"
         ],
@@ -3306,6 +3314,83 @@
         },
         "required": [
           "message"
+        ],
+        "type": "object"
+      },
+      "MfaCodeDto": {
+        "properties": {
+          "code": {
+            "description": "A code from your authenticator app, or a recovery code",
+            "example": "123456",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "type": "object"
+      },
+      "MfaDisableDto": {
+        "properties": {
+          "code": {
+            "description": "A code from your authenticator app, or a recovery code",
+            "example": "123456",
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "password"
+        ],
+        "type": "object"
+      },
+      "MfaRequirementDto": {
+        "properties": {
+          "required": {
+            "description": "Whether everyone in the organisation must use two-step sign-in",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "required"
+        ],
+        "type": "object"
+      },
+      "MfaSignInDto": {
+        "properties": {
+          "code": {
+            "description": "The six-digit code from your authenticator app, or a recovery code",
+            "example": "123456",
+            "type": "string"
+          },
+          "mfaToken": {
+            "description": "The mfaToken from the sign-in response",
+            "type": "string"
+          }
+        },
+        "required": [
+          "mfaToken",
+          "code"
+        ],
+        "type": "object"
+      },
+      "MfaStateResponse": {
+        "properties": {
+          "enabled": {
+            "description": "Whether you use two-step sign-in",
+            "type": "boolean"
+          },
+          "required": {
+            "description": "Whether this organisation requires it of everyone",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "required"
         ],
         "type": "object"
       },
@@ -5100,6 +5185,9 @@
             "example": "sk_live_abc123...",
             "type": "string"
           },
+          "mfa": {
+            "$ref": "#/components/schemas/MfaStateResponse"
+          },
           "organisations": {
             "description": "Every organisation you can switch to",
             "items": {
@@ -5143,6 +5231,7 @@
           "user",
           "role",
           "permissions",
+          "mfa",
           "accessToken",
           "refreshToken",
           "apiKey"
@@ -5266,6 +5355,9 @@
       },
       "SessionResponse": {
         "properties": {
+          "mfa": {
+            "$ref": "#/components/schemas/MfaStateResponse"
+          },
           "organisations": {
             "description": "Every organisation you can switch to",
             "items": {
@@ -5304,7 +5396,8 @@
           "tenant",
           "user",
           "role",
-          "permissions"
+          "permissions",
+          "mfa"
         ],
         "type": "object"
       },
@@ -7555,7 +7648,7 @@
     },
     "/api/auth/login": {
       "post": {
-        "description": "Authenticate with email and password. Returns an access token and refresh token.",
+        "description": "Authenticate with email and password. Returns an access token and refresh token, or, for an account with two-step sign-in, `{ \"mfaRequired\": true, \"mfaToken\": \"...\" }` to finish with POST /auth/mfa/verify.",
         "operationId": "AuthController_login",
         "parameters": [],
         "requestBody": {
@@ -7584,6 +7677,171 @@
           }
         },
         "summary": "Login as tenant",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/mfa": {
+      "get": {
+        "operationId": "MfaController_status",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Whether you use two-step sign-in, and how many recovery codes are left",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/disable": {
+      "post": {
+        "operationId": "MfaController_disable",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaDisableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "summary": "Turn it off, with your password and a code",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/enable": {
+      "post": {
+        "operationId": "MfaController_enable",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Turn it on with a code from the app; returns recovery codes, shown once",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/organisation": {
+      "put": {
+        "operationId": "MfaController_require",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaRequirementDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Require two-step sign-in for everyone in this organisation",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/recovery-codes": {
+      "post": {
+        "operationId": "MfaController_recoveryCodes",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaCodeDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "New recovery codes, replacing the old ones",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/setup": {
+      "post": {
+        "operationId": "MfaController_setup",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "Start: a secret and an otpauth:// link (for a QR code) to add to your authenticator app",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/mfa/verify": {
+      "post": {
+        "operationId": "MfaController_verify",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaSignInDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            },
+            "description": "Signed in"
+          },
+          "401": {
+            "description": "Wrong code, or the sign-in took more than five minutes"
+          }
+        },
+        "summary": "Finish signing in with a code from your authenticator app, or a recovery code",
         "tags": [
           "Auth"
         ]

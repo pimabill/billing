@@ -42,6 +42,34 @@ paths:
     post:
       x-fern-sdk-group-name: auth
       x-fern-sdk-method-name: createOrganisation
+  /api/auth/mfa/verify:
+    post:
+      x-fern-sdk-group-name: mfa
+      x-fern-sdk-method-name: verify
+  /api/auth/mfa:
+    get:
+      x-fern-sdk-group-name: mfa
+      x-fern-sdk-method-name: get
+  /api/auth/mfa/setup:
+    post:
+      x-fern-sdk-group-name: mfa
+      x-fern-sdk-method-name: setup
+  /api/auth/mfa/enable:
+    post:
+      x-fern-sdk-group-name: mfa
+      x-fern-sdk-method-name: enable
+  /api/auth/mfa/disable:
+    post:
+      x-fern-sdk-group-name: mfa
+      x-fern-sdk-method-name: disable
+  /api/auth/mfa/recovery-codes:
+    post:
+      x-fern-sdk-group-name: mfa
+      x-fern-sdk-method-name: regenerateRecoveryCodes
+  /api/auth/mfa/organisation:
+    put:
+      x-fern-sdk-group-name: mfa
+      x-fern-sdk-method-name: setOrganisationRequirement
   /api/tenants/me/plan:
     get:
       x-fern-sdk-group-name: plan

@@ -15,6 +15,8 @@ import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { isSandbox, sandboxLinkSecret } from '../../config/sandbox';
 import { CLOUD_TIERS, cloudPlansEnabled } from '../cloud-plans/cloud-plans.catalogue';
+import { MfaService } from './mfa.service';
+import { requiresMfa } from '../../common/auth/mfa-policy';
 
 /** What live vouches for when someone switches to the sandbox. */
 interface SandboxLink {
@@ -59,6 +61,7 @@ export class AuthService {
     private readonly configService: ConfigService,
     private readonly encryptionService: EncryptionService,
     private readonly emailService: EmailService,
+    private readonly mfa: MfaService,
   ) {}
 
   private get db() {
@@ -137,6 +140,24 @@ export class AuthService {
     const membership = (dto.tenantId && usable.find((m) => m.tenantId === dto.tenantId)) || usable[0];
     if (!membership) throw new UnauthorizedException('You are not a member of any active organisation');
 
+    // Two-step sign-in: the password is right; a code from the app finishes it.
+    if (user.mfaEnabledAt) return { mfaRequired: true as const, mfaToken: this.mfa.challenge(user.id, membership.tenantId) };
+
+    await this.db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+    await this.touch(membership.id);
+    return { ...this.session(user, membership.tenant, membership.role), ...this.generateTokens(membership.tenantId, user) };
+  }
+
+  /** The second step of signing in: the code from the app, or a recovery code. */
+  async completeMfaSignIn(mfaToken: string, code: string) {
+    const challenge = this.mfa.readChallenge(mfaToken);
+    const user = await this.activeUser(challenge.uid);
+    await this.mfa.check(user, code);
+    const membership = await this.db.membership.findUnique({
+      where: { userId_tenantId: { userId: user.id, tenantId: challenge.tid } },
+      include: { tenant: true },
+    });
+    if (!membership?.tenant.isActive) throw new UnauthorizedException('You are not a member of any active organisation');
     await this.db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
     await this.touch(membership.id);
     return { ...this.session(user, membership.tenant, membership.role), ...this.generateTokens(membership.tenantId, user) };
@@ -284,7 +305,7 @@ export class AuthService {
   // --- Invitations ---
 
   /** Join with an invitation: an existing person proves who they are with their password; a new one sets theirs. */
-  async acceptInvitation(token: string, password: string, name?: string) {
+  async acceptInvitation(token: string, password: string, name?: string, mfaCode?: string) {
     const invitation = await this.db.invitation.findUnique({ where: { tokenHash: hashToken(token) }, include: { tenant: true } });
     if (!invitation || invitation.acceptedAt || invitation.expiresAt < new Date() || !invitation.tenant.isActive) {
       throw new BadRequestException('This invitation is invalid or has expired');
@@ -292,6 +313,7 @@ export class AuthService {
     let user = await this.db.user.findUnique({ where: { email: invitation.email } });
     if (user) {
       if (!(await argon2.verify(user.password, password))) throw new UnauthorizedException('Wrong password for this email');
+      if (user.mfaEnabledAt) await this.mfa.check(user, mfaCode);
     } else {
       if (!name?.trim()) throw new BadRequestException('Your name is required');
       if (password.length < 8) throw new BadRequestException('Password must be at least 8 characters');
@@ -393,6 +415,7 @@ export class AuthService {
       user: { id: user.id, name: user.name, email: user.email },
       role,
       permissions: permissionsOf(role),
+      mfa: { enabled: Boolean(user.mfaEnabledAt), required: requiresMfa(tenant.settings) },
       ...(organisations && { organisations }),
     };
   }

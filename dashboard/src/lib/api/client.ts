@@ -55,7 +55,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.message || `API error ${res.status}`);
+    throw new ApiError(body.message || `API error ${res.status}`, body.code);
   }
 
   // DELETEs answer 204 with no body.
@@ -268,8 +268,21 @@ export interface SessionResult {
   apiKey?: string;
 }
 
+/** The password was right and the account uses two-step sign-in: finish with a code. */
+export interface MfaChallenge {
+  mfaRequired: true;
+  mfaToken: string;
+}
+
+/** An error from the API, with its machine-readable code when it has one (e.g. MFA_REQUIRED). */
+export class ApiError extends Error {
+  constructor(message: string, readonly code?: string) {
+    super(message);
+  }
+}
+
 /** Auth calls go to the Next.js route handlers, which keep the tokens in http-only cookies. */
-async function sessionCall(path: string, body: unknown): Promise<SessionResult> {
+async function sessionCall<T = SessionResult>(path: string, body: unknown): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -277,20 +290,22 @@ async function sessionCall(path: string, body: unknown): Promise<SessionResult> 
     credentials: "include",
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json.message || "Request failed");
+  if (!res.ok) throw new ApiError(json.message || "Request failed", json.code);
   return json;
 }
 
 export const apiClient = {
   // Auth (calls Next.js API routes directly, not the proxy)
   auth: {
-    login: (email: string, password: string, tenantId?: string) => sessionCall("/api/auth/login", { email, password, tenantId }),
+    login: (email: string, password: string, tenantId?: string) =>
+      sessionCall<SessionResult | MfaChallenge>("/api/auth/login", { email, password, tenantId }),
+    verifyMfa: (mfaToken: string, code: string) => sessionCall("/api/auth/mfa/verify", { mfaToken, code }),
     register: (data: { name: string; email: string; password: string; companyName: string }) =>
       sessionCall("/api/auth/register", data),
     switchOrganisation: (tenantId: string) => sessionCall("/api/auth/switch", { tenantId }),
     createOrganisation: (companyName: string) => sessionCall("/api/auth/organisations", { companyName }),
-    acceptInvitation: (token: string, password: string, name?: string) =>
-      sessionCall("/api/auth/invitations/accept", { token, password, name }),
+    acceptInvitation: (token: string, password: string, name?: string, mfaCode?: string) =>
+      sessionCall("/api/auth/invitations/accept", { token, password, name, mfaCode }),
 
     async describeInvitation(token: string): Promise<{ organisation: string; email: string; role: string; existingUser: boolean }> {
       const res = await fetch(`/api/auth/invitations/${encodeURIComponent(token)}`);

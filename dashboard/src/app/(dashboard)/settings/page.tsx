@@ -20,6 +20,7 @@ import { apiClient } from "@/lib/api/client";
 import { brand } from "@/lib/brand";
 import { BrandMark } from "@/components/brand-mark";
 import { ApiKeysPanel } from "@/components/settings/api-keys-panel";
+import { SecurityPanel } from "@/components/settings/security-panel";
 
 function maskApiKey(key: string): string {
   if (!key || key.length < 12) return key;
@@ -275,13 +276,18 @@ export default function SettingsPage() {
         )}
       </div>
 
-      <Tabs defaultValue="general" className="space-y-6">
+      <Tabs defaultValue={(typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab")) || "general"} className="space-y-6">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="webhooks">Webhooks</TabsTrigger>
           <TabsTrigger value="api">API Keys</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="security" className="space-y-4">
+          <SecurityPanel />
+        </TabsContent>
 
         {/* General Settings */}
         <TabsContent value="general" className="space-y-4">

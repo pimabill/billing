@@ -42,7 +42,9 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Login as tenant',
-    description: 'Authenticate with email and password. Returns an access token and refresh token.',
+    description:
+      'Authenticate with email and password. Returns an access token and refresh token, or, for an account ' +
+      'with two-step sign-in, `{ "mfaRequired": true, "mfaToken": "..." }` to finish with POST /auth/mfa/verify.',
   })
   @ApiResponse({ status: 200, description: 'Login successful.', type: LoginResponse })
   @ApiResponse({ status: 401, description: 'Invalid email or password' })
@@ -115,7 +117,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Accept an invitation; returns tokens for that organisation' })
   @ApiResponse({ status: 200, description: 'Joined and signed in', type: LoginResponse })
   acceptInvitation(@Body() dto: AcceptInvitationDto) {
-    return this.authService.acceptInvitation(dto.token, dto.password, dto.name);
+    return this.authService.acceptInvitation(dto.token, dto.password, dto.name, dto.mfaCode);
   }
 
   /** Only dashboard sessions belong to a person. */

@@ -19,18 +19,26 @@ import { brand } from "@/lib/brand";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuthStore();
+  const { login, completeMfa } = useAuthStore();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  // Two-step sign-in: set once the password is right, until the code is.
+  const [mfaToken, setMfaToken] = useState<string | null>(null);
+  const [code, setCode] = useState("");
+  const [useRecovery, setUseRecovery] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      const next = await login(email, password);
+      if (next) {
+        setMfaToken(next.mfaToken);
+        return;
+      }
       toast.success("Welcome back!");
       router.push("/dashboard");
     } catch (error) {
@@ -38,6 +46,82 @@ export default function LoginPage() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function handleCode(e: React.FormEvent) {
+    e.preventDefault();
+    if (!mfaToken) return;
+    setIsLoading(true);
+    try {
+      await completeMfa(mfaToken, code);
+      toast.success("Welcome back!");
+      router.push("/dashboard");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "That code is not right";
+      toast.error(message);
+      // The five minutes ran out: start again from the password.
+      if (/took too long/.test(message)) {
+        setMfaToken(null);
+        setCode("");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  if (mfaToken) {
+    return (
+      <Card className="border-0 bg-transparent shadow-none">
+        <CardHeader className="space-y-1 px-0">
+          <CardTitle className="text-2xl">Two-step sign-in</CardTitle>
+          <CardDescription>
+            {useRecovery ? "Enter one of the recovery codes you saved. Each works once." : "Enter the 6-digit code from your authenticator app."}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="px-0">
+          <form onSubmit={handleCode} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="code">{useRecovery ? "Recovery code" : "Code"}</Label>
+              <Input
+                id="code"
+                autoFocus
+                autoComplete="one-time-code"
+                inputMode={useRecovery ? "text" : "numeric"}
+                placeholder={useRecovery ? "xxxx-xxxx" : "123456"}
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full" isLoading={isLoading}>
+              Verify
+            </Button>
+          </form>
+          <div className="mt-6 flex justify-between text-sm">
+            <button
+              type="button"
+              className="font-medium text-primary hover:underline"
+              onClick={() => {
+                setUseRecovery(!useRecovery);
+                setCode("");
+              }}
+            >
+              {useRecovery ? "Use the app instead" : "Use a recovery code"}
+            </button>
+            <button
+              type="button"
+              className="text-muted-foreground hover:underline"
+              onClick={() => {
+                setMfaToken(null);
+                setCode("");
+              }}
+            >
+              Back
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
