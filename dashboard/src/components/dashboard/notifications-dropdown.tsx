@@ -19,6 +19,7 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
+import { moneyApi } from "@/lib/api/money";
 import { apiClient } from "@/lib/api/client";
 
 interface Notification {
@@ -75,6 +76,20 @@ export function NotificationsDropdown() {
           read: false,
         };
       });
+
+      // Managed payments: a status change in the last 30 days is news.
+      const managed = await moneyApi.managedStatus().catch(() => null);
+      const account = managed?.account;
+      if (account?.statusChangedAt && Date.now() - new Date(account.statusChangedAt).getTime() < 30 * 86_400_000 && account.status !== "pending_review") {
+        const managedNotice: Record<string, { type: Notification["type"]; title: string; message: string }> = {
+          active: { type: "success", title: "Managed payments approved", message: "Payments can now go through managed payments." },
+          rejected: { type: "error", title: "Managed payments not approved", message: account.reason ?? "See the managed payments page." },
+          suspended: { type: "warning", title: "Managed payments paused", message: account.reason ?? "See the managed payments page." },
+        };
+        const notice = managedNotice[account.status];
+        if (notice) mapped.push({ id: `managed_${account.statusChangedAt}`, ...notice, timestamp: new Date(account.statusChangedAt), read: false });
+      }
+      mapped.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
       // Mark older ones as read (only first 3 are "unread")
       mapped.forEach((n, i) => {

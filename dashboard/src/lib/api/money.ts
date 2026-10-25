@@ -117,6 +117,8 @@ export interface ManagedAccount {
   email?: string;
   phone?: string;
   reason?: string;
+  /** When the status last changed. */
+  statusChangedAt?: string;
 }
 
 export type ManagedPayoutType = "mobile_money" | "bank" | "paypal";
