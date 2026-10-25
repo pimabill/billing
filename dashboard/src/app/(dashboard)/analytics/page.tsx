@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
   Bar,
@@ -197,606 +198,350 @@ export default function AnalyticsPage() {
     );
   }
 
+  const usd = (n: number) => formatCurrency(n, "USD");
+  const usdShort = (n: number) => formatCurrency(n, "USD", { abbreviated: true });
+  const signed = (n: number) => `${n >= 0 ? "+" : "−"}${usd(Math.abs(n))}`;
+  const exportCsv = () => {
+    if (!revenueData.length) return;
+    const header = "Month,Revenue,MRR,One-Time\n";
+    const rows = revenueData.map((r) => `${r.month || r.date},${r.revenue},${r.mrr},${r.oneTime}`).join("\n");
+    const url = URL.createObjectURL(new Blob([header + rows], { type: "text/csv" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${brand.fileSlug}-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  const axis = { stroke: "var(--muted-foreground)", fontSize: 12, tickLine: false, axisLine: false } as const;
+  const moneyTooltip = (label: (p: any) => string) =>
+    function MoneyTooltip({ active, payload }: any) {
+      if (!active || !payload?.length) return null;
+      return (
+        <div className="rounded-lg border bg-card p-2 text-sm shadow-md">
+          <p className="font-medium">{label(payload[0].payload)}</p>
+          <p className="text-muted-foreground">{usd(payload[0].value as number)}</p>
+        </div>
+      );
+    };
+
   return (
-    <div className="space-y-10">
-      {/* ── Page Header ── */}
-      <div className="flex items-center justify-between">
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">
-            Detailed insights and performance metrics
-          </p>
+          <p className="text-muted-foreground">Amounts in USD, converted from each currency you bill in.</p>
         </div>
-        <Button
-          variant="outline"
-          onClick={() => {
-            if (!revenueData.length) return;
-            const header = "Month,Revenue,MRR,One-Time\n";
-            const rows = revenueData
-              .map((r) => `${r.month || r.date},${r.revenue},${r.mrr},${r.oneTime}`)
-              .join("\n");
-            const blob = new Blob([header + rows], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `${brand.fileSlug}-analytics-${new Date().toISOString().slice(0, 10)}.csv`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }}
-        >
+        <Button variant="outline" size="sm" onClick={exportCsv}>
           <Download className="mr-2 h-4 w-4" />
-          Export Report
+          Export CSV
         </Button>
       </div>
 
-      {/* ══════════════════════════════════════════
-          SECTION 1 — REVENUE
-      ══════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b pb-2">
-          <DollarSign className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Revenue</h2>
-        </div>
+      <Tabs defaultValue="revenue">
+        <TabsList>
+          <TabsTrigger value="revenue">
+            <DollarSign className="mr-1.5 h-4 w-4" aria-hidden />
+            Revenue
+          </TabsTrigger>
+          <TabsTrigger value="subscriptions">
+            <Activity className="mr-1.5 h-4 w-4" aria-hidden />
+            Subscriptions
+          </TabsTrigger>
+          <TabsTrigger value="customers">
+            <Users className="mr-1.5 h-4 w-4" aria-hidden />
+            Customers
+          </TabsTrigger>
+          <TabsTrigger value="payments">
+            <CreditCard className="mr-1.5 h-4 w-4" aria-hidden />
+            Payments
+          </TabsTrigger>
+        </TabsList>
 
-        {/* Revenue KPI row */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {netRevenue && (
-            <>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Gross Revenue
-                    <MetricTooltip text="Total amount from all paid invoices before deducting refunds or credit notes." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{formatCurrency(netRevenue.grossRevenue, "USD")}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Refunds
-                    <MetricTooltip text="Total amount returned to customers via payment refunds." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-red-600">-{formatCurrency(netRevenue.refunds, "USD")}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Credit Notes
-                    <MetricTooltip text="Total value of issued credit notes, which reduce the amount owed by customers." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-orange-600">-{formatCurrency(netRevenue.creditNotes, "USD")}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Net Revenue
-                    <MetricTooltip text="Gross revenue minus refunds and credit notes. This is the actual revenue retained." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-green-600">{formatCurrency(netRevenue.netRevenue, "USD")}</p>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
-
-        {/* MRR & ARR breakdown row */}
-        {mrrBreakdown && (
-          <>
-            {/* ARR highlight */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    MRR
-                    <MetricTooltip text="Monthly Recurring Revenue — the predictable monthly revenue from all active subscriptions, normalised to a monthly amount." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{formatCurrency(mrrBreakdown.totalMrr, "USD")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Monthly Recurring Revenue</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    ARR
-                    <MetricTooltip text="Annual Recurring Revenue — MRR × 12. Represents the expected recurring revenue over a full year based on current active subscriptions." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold">{formatCurrency(mrrBreakdown.totalMrr * 12, "USD")}</p>
-                  <p className="text-xs text-muted-foreground mt-1">Annual Recurring Revenue (MRR × 12)</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* MRR movement row */}
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    New MRR
-                    <MetricTooltip text="MRR added from new subscriptions created this month." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-green-600">+{formatCurrency(mrrBreakdown.newMrr, "USD")}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Expansion
-                    <MetricTooltip text="MRR gained from existing customers upgrading to a higher-priced plan this month." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-blue-600">+{formatCurrency(mrrBreakdown.expansionMrr, "USD")}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Contraction
-                    <MetricTooltip text="MRR lost from existing customers downgrading to a lower-priced plan this month." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-2xl font-bold text-orange-600">-{formatCurrency(mrrBreakdown.contractionMrr, "USD")}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Net New MRR
-                    <MetricTooltip text="Net MRR change this month: New MRR + Expansion − Contraction − Churn MRR." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className={`text-2xl font-bold ${mrrBreakdown.netNewMrr >= 0 ? "text-green-600" : "text-red-600"}`}>
-                    {mrrBreakdown.netNewMrr >= 0 ? "+" : ""}{formatCurrency(mrrBreakdown.netNewMrr, "USD")}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
-
-        {/* Revenue chart + MRR by plan */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Revenue Trend</CardTitle>
-              <CardDescription>Monthly recurring and one-time revenue</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                  <YAxis
-                    stroke="#6b7280"
-                    fontSize={12}
-                    tickFormatter={(value) => formatCurrency(value, "USD", { abbreviated: true })}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="rounded-lg border bg-card p-2 shadow-md">
-                            <p className="text-sm font-medium">{payload[0].payload.month}</p>
-                            <p className="text-sm text-blue-600">
-                              {formatCurrency(payload[0].value as number, "USD")}
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Line type="monotone" dataKey="revenue" stroke="#3b82f6" strokeWidth={2} dot={{ r: 4 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {mrrBreakdown && mrrBreakdown.byPlan.length > 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>MRR by Plan</CardTitle>
-                <CardDescription>Monthly recurring revenue broken down by subscription plan</CardDescription>
+        <TabsContent value="revenue" className="mt-4 space-y-4">
+          <StatStrip
+            items={[
+              { label: "MRR", value: usd(mrrBreakdown?.totalMrr ?? metrics?.mrr ?? 0), hint: "Monthly recurring revenue: every active subscription, as a monthly amount." },
+              { label: "ARR", value: usd((mrrBreakdown?.totalMrr ?? metrics?.mrr ?? 0) * 12), hint: "Annual recurring revenue: MRR × 12." },
+              {
+                label: "Net new MRR",
+                value: mrrBreakdown ? signed(mrrBreakdown.netNewMrr) : "—",
+                tone: mrrBreakdown ? (mrrBreakdown.netNewMrr >= 0 ? "up" : "down") : undefined,
+                hint: "This month: new + expansion − contraction − churn.",
+              },
+              {
+                label: "Net revenue",
+                value: netRevenue ? usd(netRevenue.netRevenue) : "—",
+                sub: netRevenue ? `${usdShort(netRevenue.grossRevenue)} gross · −${usdShort(netRevenue.refunds)} refunds · −${usdShort(netRevenue.creditNotes)} credit notes` : undefined,
+                hint: "Paid invoices minus refunds and credit notes.",
+              },
+            ]}
+          />
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Revenue, last six months</CardTitle>
               </CardHeader>
               <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={mrrBreakdown.byPlan}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="planName" stroke="#6b7280" fontSize={12} />
-                    <YAxis
-                      stroke="#6b7280"
-                      fontSize={12}
-                      tickFormatter={(value) => formatCurrency(value, "USD", { abbreviated: true })}
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="month" {...axis} />
+                    <YAxis {...axis} width={60} tickFormatter={usdShort} />
+                    <Tooltip content={moneyTooltip((p) => p.month)} />
+                    <Line type="monotone" dataKey="revenue" stroke="var(--primary)" strokeWidth={2} dot={{ r: 3 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">MRR movement this month</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {mrrBreakdown ? (
+                  <dl className="divide-y text-sm">
+                    {[
+                      ["New", mrrBreakdown.newMrr, "Subscriptions started this month."],
+                      ["Expansion", mrrBreakdown.expansionMrr, "Customers moving to a higher-priced plan."],
+                      ["Contraction", -mrrBreakdown.contractionMrr, "Customers moving to a lower-priced plan."],
+                      ["Churn", -mrrBreakdown.churnMrr, "Subscriptions canceled this month."],
+                    ].map(([label, value, hint]) => (
+                      <div key={label as string} className="flex items-center justify-between py-2.5">
+                        <dt className="text-muted-foreground">
+                          {label as string}
+                          <MetricTooltip text={hint as string} />
+                        </dt>
+                        <dd className={`font-medium tabular-nums ${(value as number) > 0 ? "text-green-600" : (value as number) < 0 ? "text-red-600" : ""}`}>{signed(value as number)}</dd>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between py-2.5 font-semibold">
+                      <dt>Net</dt>
+                      <dd className="tabular-nums">{signed(mrrBreakdown.netNewMrr)}</dd>
+                    </div>
+                  </dl>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No subscriptions yet.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="subscriptions" className="mt-4 space-y-4">
+          <StatStrip
+            items={[
+              { label: "All subscriptions", value: String(metrics?.totalSubscriptions ?? 0), hint: "Every subscription ever created, in any status." },
+              { label: "Trialing", value: String(metrics?.trialingCount ?? 0), hint: "On a free trial before their first paid period." },
+              { label: "Churn rate", value: metrics?.churnRate ?? "0%", hint: "Canceled subscriptions out of all subscriptions. Lower is better." },
+              { label: "Plans with subscribers", value: String(metrics?.activePlansCount ?? 0), hint: "Plans with at least one active subscription." },
+            ]}
+          />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">MRR by plan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {mrrBreakdown && mrrBreakdown.byPlan.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={mrrBreakdown.byPlan}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                      <XAxis dataKey="planName" {...axis} />
+                      <YAxis {...axis} width={60} tickFormatter={usdShort} />
+                      <Tooltip content={moneyTooltip((p) => `${p.planName} · ${p.subscriptionCount} subscription${p.subscriptionCount === 1 ? "" : "s"}`)} />
+                      <Bar dataKey="mrr" fill="var(--primary)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No active subscriptions yet.</p>
+                )}
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Share of subscriptions by plan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {planDistribution.length > 0 ? (
+                  <div className="flex flex-col items-center gap-4 sm:flex-row">
+                    <ResponsiveContainer width="100%" height={220} className="sm:max-w-[220px]">
+                      <PieChart>
+                        <Pie data={planDistribution} dataKey="value" innerRadius={55} outerRadius={90} paddingAngle={2}>
+                          {planDistribution.map((entry) => (
+                            <Cell key={entry.name} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={(v) => `${v}%`} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <ul className="w-full space-y-1.5 text-sm">
+                      {planDistribution.map((p) => (
+                        <li key={p.name} className="flex items-center justify-between gap-2">
+                          <span className="flex min-w-0 items-center gap-2">
+                            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: p.color }} aria-hidden />
+                            <span className="truncate">{p.name}</span>
+                          </span>
+                          <span className="tabular-nums text-muted-foreground">{p.value}%</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No subscriptions yet.</p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          {cohorts && cohorts.cohorts.some((c) => c.totalCustomers > 0) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Retention by sign-up month</CardTitle>
+                <CardDescription>Share of each month&apos;s new customers still subscribed, month by month.</CardDescription>
+              </CardHeader>
+              <CardContent className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr>
+                      <th className="px-2 py-1 text-left font-medium text-muted-foreground">Cohort</th>
+                      <th className="px-2 py-1 text-left font-medium text-muted-foreground">Customers</th>
+                      {cohorts.months.map((m, i) => (
+                        <th key={m} className="px-2 py-1 text-center font-medium text-muted-foreground">
+                          M{i}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {cohorts.cohorts
+                      .filter((c) => c.totalCustomers > 0)
+                      .map((cohort) => (
+                        <tr key={cohort.month} className="border-t border-border">
+                          <td className="px-2 py-1 font-medium">{cohort.month}</td>
+                          <td className="px-2 py-1 text-muted-foreground">{cohort.totalCustomers}</td>
+                          {cohort.retentionPercentages.map((pct, i) => (
+                            <td
+                              key={i}
+                              className="px-2 py-1 text-center font-medium"
+                              style={{ backgroundColor: `color-mix(in srgb, var(--primary) ${Math.round(Math.max(8, pct) * 0.85)}%, transparent)`, color: pct > 55 ? "var(--primary-foreground)" : undefined }}
+                            >
+                              {pct.toFixed(0)}%
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="customers" className="mt-4 space-y-4">
+          <StatStrip
+            items={[
+              { label: "Customers", value: String(metrics?.totalCustomers ?? 0), hint: "Every customer account, whatever its status." },
+              { label: "Revenue per customer", value: usd(metrics?.arpu ?? 0), hint: "All revenue divided by the number of customers." },
+              { label: "Average lifetime value", value: ltv ? usd(ltv.avgLtv) : "—", hint: "What a customer pays over all their subscriptions." },
+              { label: "Average lifespan", value: ltv ? `${ltv.avgLifespanDays} days` : "—", hint: "From a customer's first subscription to cancellation, or today." },
+            ]}
+          />
+          {ltv && ltv.byPlan.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Lifetime value by plan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ul className="divide-y text-sm">
+                  {ltv.byPlan.map((p) => (
+                    <li key={p.planId} className="flex items-center justify-between py-2.5">
+                      <span className="font-medium">{p.planName}</span>
+                      <span className="tabular-nums">
+                        {usd(p.avgLtv)}
+                        <span className="ml-2 text-xs text-muted-foreground">{p.avgLifespanDays} days</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="payments" className="mt-4">
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">
+                  Payment success rate
+                  <MetricTooltip text="Successful payments out of all attempts. Aim for 90% or more." />
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col items-center justify-center py-6">
+                <div className="relative flex items-center justify-center">
+                  <svg className="h-40 w-40" viewBox="0 0 100 100" aria-hidden>
+                    <circle cx="50" cy="50" r="42" fill="none" stroke="var(--muted)" strokeWidth="8" />
+                    <circle
+                      cx="50"
+                      cy="50"
+                      r="42"
+                      fill="none"
+                      stroke={successRate >= 90 ? "#16a34a" : successRate >= 70 ? "#d97706" : "#dc2626"}
+                      strokeWidth="8"
+                      strokeLinecap="round"
+                      strokeDasharray={`${successRate * 2.64} 264`}
+                      transform="rotate(-90 50 50)"
                     />
-                    <Tooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const planData = payload[0].payload;
-                          return (
-                            <div className="rounded-lg border bg-card p-2 shadow-md">
-                              <p className="text-sm font-medium">{planData.planName}</p>
-                              <p className="text-sm text-blue-600">MRR: {formatCurrency(planData.mrr, "USD")}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {planData.subscriptionCount} subscription{planData.subscriptionCount !== 1 ? "s" : ""}
-                              </p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                    <Bar dataKey="mrr" fill="#3b82f6" name="MRR" />
+                  </svg>
+                  <span className="absolute text-3xl font-bold tabular-nums">{successRate.toFixed(1)}%</span>
+                </div>
+                <p className="mt-3 text-sm text-muted-foreground">{successRate >= 90 ? "Healthy" : successRate >= 70 ? "Fair" : "Needs attention"}</p>
+              </CardContent>
+            </Card>
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Collected per month</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={240}>
+                  <BarChart data={revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                    <XAxis dataKey="month" {...axis} />
+                    <YAxis {...axis} width={60} tickFormatter={usdShort} />
+                    <Tooltip content={moneyTooltip((p) => p.month)} />
+                    <Bar dataKey="revenue" fill="var(--primary)" radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>Plan Distribution</CardTitle>
-                <CardDescription>Share of active subscriptions per plan</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={planDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, value }) => `${name}: ${value}%`}
-                      outerRadius={100}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {planDistribution.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </section>
-
-      {/* ══════════════════════════════════════════
-          SECTION 2 — SUBSCRIPTIONS
-      ══════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b pb-2">
-          <Activity className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Subscriptions</h2>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Subscriptions
-                <MetricTooltip text="The total number of subscriptions ever created, across all statuses (active, canceled, trialing, paused)." />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{metrics?.totalSubscriptions ?? 0}</p>
-              <p className="text-sm text-muted-foreground mt-1">All-time subscriptions</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Trialing
-                <MetricTooltip text="Customers currently on a free trial period before their first paid billing cycle." />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{metrics?.trialingCount ?? 0}</p>
-              <p className="text-sm text-muted-foreground mt-1">Currently on free trial</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Churn Rate
-                <MetricTooltip text="Percentage of subscriptions that have been canceled out of all subscriptions ever created. Lower is better." />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{metrics?.churnRate ?? "0%"}</p>
-              <p className="text-sm text-muted-foreground mt-1">Canceled / total subscriptions</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Active Plans
-                <MetricTooltip text="Number of distinct subscription plans that currently have at least one active subscriber." />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{metrics?.activePlansCount ?? 0}</p>
-              <p className="text-sm text-muted-foreground mt-1">Plans with active subscribers</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Retention cohort table */}
-        {cohorts && cohorts.cohorts.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Retention Cohort Analysis</CardTitle>
-              <CardDescription>Monthly cohort retention rates</CardDescription>
-            </CardHeader>
-            <CardContent className="overflow-x-auto">
-              <table className="w-full text-xs">
-                <thead>
-                  <tr>
-                    <th className="px-2 py-1 text-left font-medium text-muted-foreground">Cohort</th>
-                    <th className="px-2 py-1 text-left font-medium text-muted-foreground">Users</th>
-                    {cohorts.months.map((m, i) => (
-                      <th key={m} className="px-2 py-1 text-center font-medium text-muted-foreground">
-                        M{i}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {cohorts.cohorts
-                    .filter((c) => c.totalCustomers > 0)
-                    .map((cohort) => (
-                      <tr key={cohort.month} className="border-t border-border">
-                        <td className="px-2 py-1 font-medium">{cohort.month}</td>
-                        <td className="px-2 py-1 text-muted-foreground">{cohort.totalCustomers}</td>
-                        {cohort.retentionPercentages.map((pct, i) => {
-                          const bg =
-                            pct >= 80
-                              ? `rgba(34, 197, 94, ${pct / 100})`
-                              : pct >= 50
-                                ? `rgba(245, 158, 11, ${pct / 100})`
-                                : `rgba(239, 68, 68, ${Math.max(0.15, pct / 100)})`;
-                          return (
-                            <td
-                              key={i}
-                              className="px-2 py-1 text-center font-medium"
-                              style={{ backgroundColor: bg, color: pct > 50 ? "#fff" : undefined }}
-                            >
-                              {pct.toFixed(0)}%
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </CardContent>
-          </Card>
-        )}
-      </section>
-
-      {/* ══════════════════════════════════════════
-          SECTION 3 — CUSTOMERS
-      ══════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b pb-2">
-          <Users className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Customers</h2>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total Customers
-                <MetricTooltip text="Total number of registered customer accounts, regardless of subscription or activity status." />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{metrics?.totalCustomers ?? 0}</p>
-              <p className="text-sm text-muted-foreground mt-1">Registered customers</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                ARPU
-                <MetricTooltip text="Average Revenue Per User — total revenue divided by the number of customers. Reflects how much revenue each customer generates on average." />
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-bold">{formatCurrency(metrics?.arpu ?? 0, "USD")}</p>
-              <p className="text-sm text-muted-foreground mt-1">Per customer (all time)</p>
-            </CardContent>
-          </Card>
-          {ltv && (
-            <>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Avg. Lifetime Value
-                    <MetricTooltip text="Average Customer Lifetime Value — the total revenue a customer generates over the entire duration of their subscription(s)." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{formatCurrency(ltv.avgLtv, "USD")}</p>
-                  <p className="text-sm text-muted-foreground mt-1">Average LTV across all customers</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">
-                    Avg. Lifespan
-                    <MetricTooltip text="Average number of days a customer remains subscribed, from their first subscription creation to cancellation (or today for active subscribers)." />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">{ltv.avgLifespanDays}<span className="text-base font-normal text-muted-foreground ml-1">days</span></p>
-                  <p className="text-sm text-muted-foreground mt-1">Average customer lifespan</p>
-                </CardContent>
-              </Card>
-            </>
-          )}
-        </div>
-
-        {/* LTV by plan + plan distribution */}
-        {(ltv || planDistribution.length > 0) && (
-          <div className="grid gap-6 lg:grid-cols-2">
-            {ltv && ltv.byPlan.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>LTV by Plan</CardTitle>
-                  <CardDescription>Average customer lifetime value per plan</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {ltv.byPlan.map((p) => (
-                      <div key={p.planId} className="flex items-center justify-between">
-                        <span className="text-sm font-medium">{p.planName}</span>
-                        <div className="text-right">
-                          <span className="text-sm font-bold">{formatCurrency(p.avgLtv, "USD")}</span>
-                          <span className="text-xs text-muted-foreground ml-2">
-                            ({p.avgLifespanDays}d)
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-            {planDistribution.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Plan Distribution</CardTitle>
-                  <CardDescription>Share of active subscriptions per plan</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                      <Pie
-                        data={planDistribution}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: ${value}%`}
-                        outerRadius={90}
-                        dataKey="value"
-                      >
-                        {planDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            )}
           </div>
-        )}
-      </section>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
 
-      {/* ══════════════════════════════════════════
-          SECTION 4 — PAYMENTS
-      ══════════════════════════════════════════ */}
-      <section className="space-y-4">
-        <div className="flex items-center gap-2 border-b pb-2">
-          <CreditCard className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold">Payments</h2>
+interface StatItem {
+  label: string;
+  value: string;
+  hint?: string;
+  sub?: string;
+  tone?: "up" | "down";
+}
+
+/** One row of headline numbers, in a single bordered strip rather than a card each. */
+function StatStrip({ items }: { items: StatItem[] }) {
+  return (
+    <div className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-2 lg:grid-cols-4">
+      {items.map((i) => (
+        <div key={i.label} className="bg-card p-4">
+          <p className="text-sm text-muted-foreground">
+            {i.label}
+            {i.hint && <MetricTooltip text={i.hint} />}
+          </p>
+          <p className={`mt-1 text-2xl font-bold tabular-nums ${i.tone === "up" ? "text-green-600" : i.tone === "down" ? "text-red-600" : ""}`}>{i.value}</p>
+          {i.sub && <p className="mt-1 text-xs text-muted-foreground">{i.sub}</p>}
         </div>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Success Rate gauge */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Payment Success Rate</CardTitle>
-              <CardDescription>Ratio of successful to total payment attempts</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col items-center justify-center h-[260px]">
-              <div className="relative flex items-center justify-center">
-                <svg className="w-48 h-48" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="42" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-                  <circle
-                    cx="50"
-                    cy="50"
-                    r="42"
-                    fill="none"
-                    stroke={successRate >= 90 ? "#22c55e" : successRate >= 70 ? "#f59e0b" : "#ef4444"}
-                    strokeWidth="8"
-                    strokeLinecap="round"
-                    strokeDasharray={`${successRate * 2.64} 264`}
-                    transform="rotate(-90 50 50)"
-                  />
-                </svg>
-                <div className="absolute flex flex-col items-center">
-                  <span className="text-4xl font-bold">{successRate.toFixed(1)}%</span>
-                  <span className="text-sm text-muted-foreground">success</span>
-                </div>
-              </div>
-              <p className="text-sm text-muted-foreground mt-4">
-                {successRate >= 90 ? "Excellent" : successRate >= 70 ? "Good" : "Needs Attention"} — target is ≥ 90%
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Revenue trend (duplicate here for payment context) */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Monthly Payment Volume</CardTitle>
-              <CardDescription>Total payment revenue collected per month</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="month" stroke="#6b7280" fontSize={12} />
-                  <YAxis
-                    stroke="#6b7280"
-                    fontSize={12}
-                    tickFormatter={(value) => formatCurrency(value, "USD", { abbreviated: true })}
-                  />
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        return (
-                          <div className="rounded-lg border bg-card p-2 shadow-md">
-                            <p className="text-sm font-medium">{payload[0].payload.month}</p>
-                            <p className="text-sm text-blue-600">
-                              {formatCurrency(payload[0].value as number, "USD")}
-                            </p>
-                          </div>
-                        );
-                      }
-                      return null;
-                    }}
-                  />
-                  <Bar dataKey="revenue" fill="#3b82f6" name="Revenue" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+      ))}
     </div>
   );
 }
