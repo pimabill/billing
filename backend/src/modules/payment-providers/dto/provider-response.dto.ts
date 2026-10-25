@@ -1,23 +1,38 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class PaymentProviderResponse {
-  @ApiProperty({ example: 'clx1234567890' })
-  id: string;
+  @ApiProperty({ example: 'clx1234567890', nullable: true, type: String, description: 'Set once the provider is configured' })
+  id: string | null;
 
   @ApiProperty({ example: 'paystack' })
   providerName: string;
 
+  @ApiProperty({ example: 'Paystack' })
+  name: string;
+
+  @ApiProperty({ nullable: true, type: String, example: 'Accept payments from customers in Africa via cards, bank transfers, and mobile money' })
+  description: string | null;
+
+  @ApiProperty({ example: true, description: 'Credentials are saved for this organisation' })
+  isConfigured: boolean;
+
   @ApiProperty({ example: true })
   isActive: boolean;
 
-  @ApiProperty({ type: 'integer', example: 1 })
-  priority: number;
+  @ApiProperty({ type: 'integer', example: 1, nullable: true, description: 'Lower is tried first; null until configured' })
+  priority: number | null;
 
-  @ApiProperty()
-  createdAt: string;
+  @ApiProperty({ enum: ['live', 'sandbox'], nullable: true, description: 'Which environment the saved credentials are for, when it can be told' })
+  environment: 'live' | 'sandbox' | null;
 
-  @ApiProperty()
-  updatedAt: string;
+  @ApiProperty({ nullable: true, type: String, example: 'https://api.novabilling.one/webhooks/paystack/ten_123', description: 'Where the provider should send notifications; null when it sends none' })
+  webhookUrl: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  createdAt: string | null;
+
+  @ApiProperty({ nullable: true, type: String })
+  updatedAt: string | null;
 }
 
 export class ProviderTestResponse {

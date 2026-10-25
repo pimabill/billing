@@ -257,6 +257,7 @@ function mapProvider(p: any): PaymentProvider {
     isConfigured: p.isConfigured !== undefined ? p.isConfigured : !!p.id,
     isActive: p.isActive !== false,
     priority: p.priority || 0,
+    environment: p.environment ?? null,
   };
 }
 
@@ -898,7 +899,8 @@ export const apiClient = {
         },
       ];
 
-      const result = await apiFetch<any>(`/payment-providers?limit=50`);
+      // The API lists every provider; the dashboard keeps its own catalogue and asks for the configured ones.
+      const result = await apiFetch<any>(`/payment-providers?configured=true`);
       const configured = (result.data || result || []).map(mapProvider) as PaymentProvider[];
 
       // Build a map of configured providers by code for quick lookup

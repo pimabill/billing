@@ -4,6 +4,7 @@ import { EncryptionService } from '../../services/encryption.service';
 import { CreateProviderDto } from './dto/create-provider.dto';
 import { UpdateProviderDto } from './dto/update-provider.dto';
 import { ProviderFactory } from '../../providers/provider.factory';
+import { environmentOf, PROVIDER_CATALOGUE, providerName, webhookUrlFor } from './provider-catalogue';
 import { PesapalProvider } from '../../providers/pesapal.provider';
 
 @Injectable()
@@ -16,37 +17,65 @@ export class PaymentProvidersService {
     return `${process.env.API_BASE_URL || 'http://localhost:4000'}/webhooks/pesapal`;
   }
 
-  async findAll(db: PrismaClient) {
-    const providers = await db.paymentProvider.findMany({
-      orderBy: { priority: 'asc' },
-    });
-
-    return providers.map((p: any) => ({
-      id: p.id,
-      providerName: p.providerName,
-      isActive: p.isActive,
-      priority: p.priority,
-      createdAt: p.createdAt,
-      updatedAt: p.updatedAt,
+  /**
+   * Every supported provider, with whether it is configured and active here,
+   * which environment its credentials are for, and where it should send
+   * notifications. Credentials are never returned. `configured` lists only
+   * the ones set up.
+   */
+  async findAll(db: PrismaClient, tenantId?: string, options: { configured?: boolean } = {}) {
+    const rows = await db.paymentProvider.findMany({ orderBy: { priority: 'asc' } });
+    const configured = rows.map((p) => this.present(p, tenantId));
+    if (options.configured) return configured;
+    const missing = PROVIDER_CATALOGUE.filter((c) => !rows.some((r) => r.providerName === c.code)).map((c) => ({
+      id: null,
+      providerName: c.code,
+      name: c.name,
+      description: c.description,
+      isConfigured: false,
+      isActive: false,
+      priority: null,
+      environment: null,
+      webhookUrl: tenantId ? webhookUrlFor(c.code, tenantId) : null,
+      createdAt: null,
+      updatedAt: null,
     }));
+    return [...configured, ...missing];
   }
 
-  async findOne(db: PrismaClient, id: string) {
+  /** A configured provider as the API shows it: no credentials, only which environment they are for. */
+  private present(p: { id: string; providerName: string; isActive: boolean; priority: number; credentials: string; createdAt: Date; updatedAt: Date }, tenantId?: string) {
+    let environment: 'live' | 'sandbox' | null = null;
+    try {
+      environment = environmentOf(JSON.parse(this.encryptionService.decrypt(p.credentials)));
+    } catch {
+      environment = null;
+    }
+    return {
+      id: p.id,
+      providerName: p.providerName,
+      name: providerName(p.providerName),
+      description: PROVIDER_CATALOGUE.find((c) => c.code === p.providerName)?.description ?? null,
+      isConfigured: true,
+      isActive: p.isActive,
+      priority: p.priority,
+      environment,
+      webhookUrl: tenantId ? webhookUrlFor(p.providerName, tenantId) : null,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+    };
+  }
+
+  async findOne(db: PrismaClient, id: string, tenantId?: string) {
     const provider = await db.paymentProvider.findUnique({ where: { id } });
 
     if (!provider) {
       throw new NotFoundException('Payment provider not found');
     }
 
-    return {
-      id: provider.id,
-      providerName: provider.providerName,
-      isActive: provider.isActive,
-      priority: provider.priority,
-      createdAt: provider.createdAt,
-      updatedAt: provider.updatedAt,
-    };
+    return this.present(provider, tenantId);
   }
+
 
   /** Credentials without which a provider's payment notifications can never be verified. */
   private assertVerifiable(providerName: string, credentials: Record<string, unknown>) {

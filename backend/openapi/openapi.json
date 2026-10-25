@@ -3487,7 +3487,8 @@
                 "$ref": "#/components/schemas/ManagedAccountResponse"
               }
             ],
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "available": {
             "description": "Whether managed payments are offered on this installation",
@@ -3726,7 +3727,8 @@
               }
             ],
             "description": "Or show the payer these instructions",
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "paymentUrl": {
             "description": "Send the payer here to finish a hosted payment",
@@ -4630,18 +4632,46 @@
       "PaymentProviderResponse": {
         "properties": {
           "createdAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "description": {
+            "example": "Accept payments from customers in Africa via cards, bank transfers, and mobile money",
+            "nullable": true,
+            "type": "string"
+          },
+          "environment": {
+            "description": "Which environment the saved credentials are for, when it can be told",
+            "enum": [
+              "live",
+              "sandbox"
+            ],
+            "nullable": true,
             "type": "string"
           },
           "id": {
+            "description": "Set once the provider is configured",
             "example": "clx1234567890",
+            "nullable": true,
             "type": "string"
           },
           "isActive": {
             "example": true,
             "type": "boolean"
           },
+          "isConfigured": {
+            "description": "Credentials are saved for this organisation",
+            "example": true,
+            "type": "boolean"
+          },
+          "name": {
+            "example": "Paystack",
+            "type": "string"
+          },
           "priority": {
+            "description": "Lower is tried first; null until configured",
             "example": 1,
+            "nullable": true,
             "type": "integer"
           },
           "providerName": {
@@ -4649,14 +4679,26 @@
             "type": "string"
           },
           "updatedAt": {
+            "nullable": true,
+            "type": "string"
+          },
+          "webhookUrl": {
+            "description": "Where the provider should send notifications; null when it sends none",
+            "example": "https://api.novabilling.one/webhooks/paystack/ten_123",
+            "nullable": true,
             "type": "string"
           }
         },
         "required": [
           "id",
           "providerName",
+          "name",
+          "description",
+          "isConfigured",
           "isActive",
           "priority",
+          "environment",
+          "webhookUrl",
           "createdAt",
           "updatedAt"
         ],
@@ -11790,9 +11832,19 @@
     },
     "/api/payment-providers": {
       "get": {
-        "description": "Retrieve all configured payment providers for the tenant. Credentials are never returned.",
+        "description": "Every supported provider, configured or not: whether it is configured and active, its priority, which environment (live or sandbox) its credentials are for, and its webhook URL. Credentials are never returned. Configured providers come first, by priority; pass configured=true for only those.",
         "operationId": "PaymentProvidersController_findAll",
-        "parameters": [],
+        "parameters": [
+          {
+            "description": "Only the providers set up for this organisation",
+            "in": "query",
+            "name": "configured",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -11805,7 +11857,7 @@
                 }
               }
             },
-            "description": "List of configured providers (without credentials)"
+            "description": "Providers (without credentials)"
           }
         },
         "security": [

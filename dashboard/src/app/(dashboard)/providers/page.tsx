@@ -30,6 +30,7 @@ import { useCan } from "@/lib/permissions";
 import { brand } from "@/lib/brand";
 import { useAuthStore } from "@/lib/stores/auth";
 import { ProviderLogo } from "@/components/provider-logo";
+import { useEnvironment } from "@/lib/environment";
 import { BrandMark } from "@/components/brand-mark";
 
 
@@ -304,8 +305,25 @@ function webhookUrlFor(code: string): string {
     : `${getApiBaseUrl()}/webhooks/${code}`;
 }
 
+/** The value a provider's environment field takes on live: "live" or "production", from its placeholder. */
+const liveWord = (placeholder: string) => placeholder.split(/\s+or\s+/).map((w) => w.trim()).find((w) => w && !w.startsWith("sandbox")) ?? "live";
+
+/** A key that looks like it belongs to the other environment, for a warning before saving. */
+function keyMismatch(code: string, values: Record<string, string>, sandbox: boolean): string | null {
+  const secret = values.secretKey ?? "";
+  if (!secret) return null;
+  const test = code === "flutterwave" ? /^FLWSECK_TEST-/.test(secret) : ["stripe", "paystack"].includes(code) ? /^sk_test_/.test(secret) : null;
+  if (test === null) return null;
+  if (sandbox && !test) return "This looks like a live key. The sandbox should use the provider's test keys, so no real money moves.";
+  if (!sandbox && test) return "This looks like a test key. Live payments need the provider's live keys.";
+  return null;
+}
+
 export default function ProvidersPage() {
   const canConfigure = useCan("settings.providers");
+  // Live and the sandbox each keep their own providers: test credentials belong in the sandbox.
+  const env = useEnvironment();
+  const sandbox = env?.sandbox ?? false;
   const [providers, setProviders] = useState<PaymentProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -357,7 +375,8 @@ export default function ProvidersPage() {
     const fields = credentialFields[provider.code] || [];
     const creds: Record<string, string> = {};
     fields.forEach((f) => {
-      creds[f.key] = "";
+      // The environment field starts as the one being viewed.
+      creds[f.key] = f.key === "environment" ? (sandbox ? "sandbox" : liveWord(f.placeholder)) : "";
     });
     setCredentials(creds);
     setConfigOpen(true);
@@ -444,6 +463,12 @@ export default function ProvidersPage() {
         </div>
       </div>
 
+      {sandbox && (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          These are your <strong>sandbox</strong> providers, separate from live. Connect each one with its test credentials (for example a Flutterwave <code className="font-mono">FLWSECK_TEST-</code> key or PayPal sandbox app): nothing here moves real money.
+        </div>
+      )}
+
       {/* Provider Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {providers.map((provider) => {
@@ -465,7 +490,12 @@ export default function ProvidersPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Status Badges */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {provider.isConfigured && provider.environment && (
+                    <Badge variant={(provider.environment === "sandbox") === sandbox ? "secondary" : "warning"}>
+                      {provider.environment === "sandbox" ? "Test keys" : "Live keys"}
+                    </Badge>
+                  )}
                   <Badge
                     variant={provider.isConfigured ? "success" : "outline"}
                   >
@@ -719,7 +749,7 @@ export default function ProvidersPage() {
                   ) : (
                     <Input
                       id={field.key}
-                      type="password"
+                      type={field.key === "environment" || field.key === "targetEnvironment" ? "text" : "password"}
                       placeholder={field.placeholder}
                       value={credentials[field.key] || ""}
                       onChange={(e) =>
@@ -729,6 +759,16 @@ export default function ProvidersPage() {
                         })
                       }
                     />
+                  )}
+                  {field.key === "environment" && credentials.environment && (sandbox ? credentials.environment.trim().toLowerCase() !== "sandbox" : credentials.environment.trim().toLowerCase() === "sandbox") && (
+                    <p className="text-xs text-amber-600">
+                      {sandbox
+                        ? "This is the sandbox: set the provider to its sandbox environment."
+                        : "This is live: a provider in its sandbox environment is never used for live payments."}
+                    </p>
+                  )}
+                  {field.key === "secretKey" && configProvider && keyMismatch(configProvider.code, credentials, sandbox) && (
+                    <p className="text-xs text-amber-600">{keyMismatch(configProvider.code, credentials, sandbox)}</p>
                   )}
                 </div>
               ))}
