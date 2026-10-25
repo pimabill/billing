@@ -1,0 +1,22 @@
+{
+  "name": "pimabill",
+  "version": "0.0.0",
+  "description": "Official TypeScript and JavaScript SDK for the PimaBill API",
+  "license": "MIT",
+  "homepage": "https://github.com/pimabill/billing/tree/main/docs",
+  "repository": { "type": "git", "url": "git+https://github.com/pimabill/billing.git", "directory": "fern" },
+  "keywords": ["pimabill", "billing", "subscriptions", "invoices", "mobile money", "sdk"],
+  "engines": { "node": ">=18" },
+  "type": "commonjs",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "import": { "types": "./dist/esm/index.d.ts", "default": "./dist/esm/index.js" },
+      "require": { "types": "./dist/cjs/index.d.ts", "default": "./dist/cjs/index.js" }
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "sideEffects": false
+}

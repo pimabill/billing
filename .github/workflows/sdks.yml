@@ -2,16 +2,29 @@ name: SDKs
 
 # SDKs are generated from the committed OpenAPI spec when a release is cut
 # (called from release.yml), or on request. Pull requests only generate them
-# to type-check the docs (docs-sdks.yml); nothing is published from there. They
-# carry the system version and the MIT licence. Generated code is uploaded as
-# build artifacts; publishing to npm, PyPI and Packagist is added once the
-# SDK repositories and registry names are set up.
+# to type-check the docs (docs-sdks.yml); nothing is published from there.
+# They carry the system version and the MIT licence.
+#
+# Publishing (tier1 only; each registry is skipped until it is set up, see
+# RELEASING.md):
+#   npm       pimabill               NPM_TOKEN secret (automation token)
+#   PyPI      pimabill               repository variable PYPI_PUBLISHING=true, then
+#                                    trusted publishing (environment "pypi") or a
+#                                    PYPI_API_TOKEN secret
+#   Packagist pimabill/pimabill-php  PHP_SDK_DEPLOY_KEY secret (write deploy key
+#                                    for github.com/pimabill/pimabill-php)
 on:
   workflow_call:
     inputs:
       group: { type: string, required: true }
       ref: { type: string, required: true }
       version: { type: string, required: true }
+      publish: { type: boolean, default: false }
+    secrets:
+      FERN_TOKEN: { required: false }
+      NPM_TOKEN: { required: false }
+      PYPI_API_TOKEN: { required: false }
+      PHP_SDK_DEPLOY_KEY: { required: false }
   workflow_dispatch:
     inputs:
       group:
@@ -21,8 +34,12 @@ on:
         type: choice
         options: [tier1, tier2]
       ref:
-        description: "Release tag to build from, e.g. v1.4.0"
+        description: "Release tag to build from, e.g. v0.1.0"
         required: true
+      publish:
+        description: "Publish tier1 packages to npm, PyPI and Packagist"
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -31,6 +48,8 @@ jobs:
   generate:
     name: Generate ${{ inputs.group }} SDKs
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,6 +58,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
       # The spec's info.version is the release version; dispatch runs read it from the tag.
       - name: Resolve version
@@ -52,7 +76,7 @@ jobs:
           FERN_TOKEN: ${{ secrets.FERN_TOKEN }}
           GROUP: ${{ inputs.group }}
           VERSION: ${{ steps.version.outputs.value }}
-        run: npx --yes fern-api generate --local --group "$GROUP" --version "$VERSION" --log-level info
+        run: npx --yes fern-api@3.78.0 generate --local --group "$GROUP" --version "$VERSION" --log-level info
         working-directory: fern
 
       - uses: actions/upload-artifact@v4
@@ -60,3 +84,90 @@ jobs:
           name: sdks-${{ inputs.group }}-${{ steps.version.outputs.value }}
           path: sdks/
           retention-days: 30
+
+      # npm package (CommonJS + ES modules), Python wheel and sdist, Composer package.
+      - name: Package
+        if: inputs.group == 'tier1'
+        env:
+          VERSION: ${{ steps.version.outputs.value }}
+        run: fern/packaging/package.sh "$VERSION"
+
+      - uses: actions/upload-artifact@v4
+        if: inputs.group == 'tier1'
+        with:
+          name: packages-${{ steps.version.outputs.value }}
+          path: dist-sdks/
+          retention-days: 90
+
+  npm:
+    name: Publish to npm
+    needs: generate
+    if: inputs.publish && inputs.group == 'tier1'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm provenance
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages-${{ needs.generate.outputs.version }}
+          path: dist-sdks
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - name: Publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ -z "$NODE_AUTH_TOKEN" ]; then echo "::notice::NPM_TOKEN is not set; skipping npm"; exit 0; fi
+          npm publish dist-sdks/typescript/pimabill-*.tgz --access public --provenance
+
+  pypi:
+    name: Publish to PyPI
+    needs: generate
+    if: inputs.publish && inputs.group == 'tier1' && vars.PYPI_PUBLISHING == 'true'
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write # trusted publishing: no token is stored
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages-${{ needs.generate.outputs.version }}
+          path: dist-sdks
+      # Trusted publishing unless a PYPI_API_TOKEN secret is set (then the token is used).
+      - uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist-sdks/python/dist/
+          password: ${{ secrets.PYPI_API_TOKEN }}
+
+  packagist:
+    name: Publish PHP (Packagist)
+    needs: generate
+    if: inputs.publish && inputs.group == 'tier1'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: packages-${{ needs.generate.outputs.version }}
+          path: dist-sdks
+      # Packagist reads tags from github.com/pimabill/pimabill-php; pushing one is the release.
+      - name: Push the release to pimabill/pimabill-php
+        env:
+          DEPLOY_KEY: ${{ secrets.PHP_SDK_DEPLOY_KEY }}
+          VERSION: ${{ needs.generate.outputs.version }}
+        run: |
+          if [ -z "$DEPLOY_KEY" ]; then echo "::notice::PHP_SDK_DEPLOY_KEY is not set; skipping Packagist"; exit 0; fi
+          mkdir -p ~/.ssh && printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan github.com >> ~/.ssh/known_hosts 2>/dev/null
+          git clone --depth 1 git@github.com:pimabill/pimabill-php.git repo || { mkdir repo && git -C repo init -b main && git -C repo remote add origin git@github.com:pimabill/pimabill-php.git; }
+          find repo -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -r dist-sdks/php/. repo/
+          cd repo
+          git config user.name "pimabill-release"
+          git config user.email "release@pimabill.invalid"
+          git add -A
+          git commit -m "Release v$VERSION" || echo "No changes"
+          git tag "v$VERSION"
+          git push origin HEAD:main --tags

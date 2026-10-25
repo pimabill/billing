@@ -36,9 +36,11 @@ jobs:
     if: needs.release-please.outputs.created == 'true'
     permissions:
       contents: read
+      id-token: write # npm provenance and PyPI trusted publishing
     uses: ./.github/workflows/sdks.yml
     with:
       group: tier1
       ref: ${{ needs.release-please.outputs.tag }}
       version: ${{ needs.release-please.outputs.version }}
+      publish: true
     secrets: inherit

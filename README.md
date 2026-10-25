@@ -148,17 +148,25 @@ curl -X POST http://localhost:4000/api/customers \
 
 ## SDKs
 
+Official SDKs for TypeScript, Python and PHP are generated from the OpenAPI spec and published with every release (MIT licensed):
+
+```bash
+npm install pimabill
+pip install pimabill
+composer require pimabill/pimabill-php
+```
+
 ### TypeScript
 
 ```typescript
-import { PimaBillClient } from "pimabill";
+import { PimaBillClient, PimaBillEnvironment } from "pimabill";
 
-const client = new PimaBillClient({
-  token: "your-jwt-token",
-  environment: "http://localhost:4000/api",
-});
+const client = new PimaBillClient({ token: process.env.PIMABILL_API_KEY! });
+// Sandbox: new PimaBillClient({ token: "sk_test_...", environment: PimaBillEnvironment.Sandbox })
+// Self-hosted: new PimaBillClient({ token, baseUrl: "https://billing.example.com" })
 
 const customer = await client.customers.create({
+  externalId: "usr_98765",
   name: "Jane Doe",
   email: "jane@example.com",
   currency: "USD",
@@ -168,19 +176,25 @@ const customer = await client.customers.create({
 ### Python
 
 ```python
-from pimabill import PimaBill
+import os
 
-client = PimaBill(
-    token="your-jwt-token",
-    base_url="http://localhost:4000/api",
-)
+from pimabill import PimaBillClient
+
+client = PimaBillClient(token=os.environ["PIMABILL_API_KEY"])
 
 customer = client.customers.create(
+    external_id="usr_98765",
     name="Jane Doe",
     email="jane@example.com",
     currency="USD",
 )
 ```
+
+See the [SDK guides](docs/content/2.sdks) and [RELEASING.md](RELEASING.md) for how the packages are built and published.
+
+## Sandbox
+
+A sandbox deployment (`SANDBOX_MODE=true`) runs the same code against payment providers' test accounts, with `sk_test_` keys. The live dashboard can switch between live and sandbox; see the [Sandbox guide](docs/content/3.guides/8.sandbox.md).
 
 ## Payment Providers
 
