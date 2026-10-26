@@ -36,6 +36,10 @@ export class CustomersService {
       ];
     }
 
+    if (query.externalId) {
+      where.externalId = query.externalId;
+    }
+
     if (query.country) {
       where.country = query.country;
     }

@@ -15,10 +15,13 @@ import { CreatePlanPriceDto } from './dto/create-plan-price.dto';
 export class PlansService {
   private readonly logger = new Logger(PlansService.name);
 
-  async findAll(db: PrismaClient, isActive?: boolean) {
+  async findAll(db: PrismaClient, isActive?: boolean, code?: string) {
     const where: Record<string, unknown> = {};
     if (isActive !== undefined) {
       where.isActive = isActive;
+    }
+    if (code) {
+      where.code = code;
     }
 
     return db.plan.findMany({

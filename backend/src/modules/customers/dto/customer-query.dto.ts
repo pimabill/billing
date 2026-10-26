@@ -23,6 +23,11 @@ export class CustomerQueryDto {
   @IsString()
   search?: string;
 
+  @ApiProperty({ required: false, description: "Your application's ID for the customer: the exact externalId it was created with" })
+  @IsOptional()
+  @IsString()
+  externalId?: string;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()

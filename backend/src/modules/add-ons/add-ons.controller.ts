@@ -30,15 +30,18 @@ export class AddOnsController {
   @ApiOperation({ summary: 'List add-ons', description: 'Retrieve a paginated list of add-ons with prices.' })
   @ApiQuery({ name: 'page', required: false, type: 'integer' })
   @ApiQuery({ name: 'limit', required: false, type: 'integer' })
+  @ApiQuery({ name: 'code', required: false, type: String, description: 'Only the add-on with this code; codes are the same in live and the sandbox' })
   @ApiResponse({ status: 200, description: 'Paginated list of add-ons', type: PaginatedAddOnResponse })
   async findAll(
     @TenantDb() db: PrismaClient,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('code') code?: string,
   ) {
     return this.addOnsService.findAll(db, {
       page: page ? parseInt(page, 10) : undefined,
       limit: limit ? parseInt(limit, 10) : undefined,
+      code,
     });
   }
 
