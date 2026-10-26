@@ -47,8 +47,10 @@ export class CloudPlansService implements OnApplicationBootstrap {
 
   onApplicationBootstrap() {
     if (!this.enabled) return;
-    // In the background: startup must not wait on the operator's database.
-    setTimeout(() => void this.run().catch((e) => this.logger.warn(`Cloud plans setup failed: ${e instanceof Error ? e.message : e}`)), 5_000).unref();
+    // In the background: startup must not wait on the operator's database. The
+    // API and the workers start together; one of them sets up the plans.
+    const setup = () => (this.cronLock ? this.cronLock.runExclusive('cloud-plans-bootstrap', 2 * 60_000, () => this.run()) : this.run());
+    setTimeout(() => void setup().catch((e) => this.logger.warn(`Cloud plans setup failed: ${e instanceof Error ? e.message : e}`)), 5_000).unref();
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
