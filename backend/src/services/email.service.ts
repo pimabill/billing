@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
+import { promises as dns } from 'dns';
 import { CentralPrismaService } from '../database/central-prisma.service';
 import { getBrand } from '../config/brand';
 import { EncryptionService } from './encryption.service';
@@ -9,6 +10,10 @@ import { resolvePublicHost } from '../common/net/safe-url';
 
 /** Sandbox emails say so in the subject, so nobody mistakes a test invoice for a real one. */
 const sandboxSubject = (subject: string) => (isSandbox() ? `[Sandbox] ${subject}` : subject);
+
+/** Domains that never receive mail (RFC 2606 and 6761). */
+const RESERVED_DOMAIN = /(^|\.)(example\.(com|net|org)|example|test|invalid|localhost|local)$/i;
+const DOMAIN_CACHE_MS = 60 * 60 * 1000;
 
 /** Ports a tenant's SMTP server may use. */
 export const SMTP_PORTS = [25, 465, 587, 2525];
@@ -31,6 +36,7 @@ export class EmailService {
   private readonly logger = new Logger(EmailService.name);
   private systemTransporter: nodemailer.Transporter | null = null;
   private tenantTransporters = new Map<string, { transporter: nodemailer.Transporter; from: string; cachedAt: number }>();
+  private domainCache = new Map<string, { receives: boolean; checkedAt: number }>();
   private static readonly CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
   constructor(
@@ -126,6 +132,42 @@ export class EmailService {
     this.tenantTransporters.delete(tenantId);
   }
 
+  /**
+   * Why the platform's own mail account should not send to this address, or
+   * null to send. Every send counts against the platform's quota and every
+   * bounce against its reputation, so it skips domains that cannot receive
+   * mail; the sandbox emails only people with a login or an invitation (test
+   * customers are usually made up), like a payment provider's test mode.
+   * A tenant's own SMTP server is theirs to spend.
+   */
+  async refusal(to: string, transporter: nodemailer.Transporter): Promise<string | null> {
+    if (transporter !== this.systemTransporter) return null;
+    const domain = to.split('@').pop()?.trim().toLowerCase() ?? '';
+    if (!domain || RESERVED_DOMAIN.test(domain)) return 'a test domain';
+    if (isSandbox()) {
+      const email = { equals: to.trim(), mode: 'insensitive' as const };
+      const [user, invitation] = await Promise.all([
+        this.centralPrisma.client.user.findFirst({ where: { email }, select: { id: true } }),
+        this.centralPrisma.client.invitation.findFirst({ where: { email, acceptedAt: null }, select: { id: true } }),
+      ]);
+      if (!user && !invitation) return 'the sandbox emails only team members';
+    }
+    if (!(await this.receivesMail(domain))) return `${domain} has no mail server`;
+    return null;
+  }
+
+  /** A domain receives mail if it has an MX record, or else an address (RFC 5321). */
+  private async receivesMail(domain: string): Promise<boolean> {
+    const cached = this.domainCache.get(domain);
+    if (cached && Date.now() - cached.checkedAt < DOMAIN_CACHE_MS) return cached.receives;
+    const has = (lookup: Promise<unknown[]>) => lookup.then((r) => r.length > 0, (e: NodeJS.ErrnoException) => (['ENOTFOUND', 'ENODATA'].includes(e.code ?? '') ? false : null));
+    // A lookup that fails for another reason (a timeout) proves nothing: send.
+    const mx = await has(dns.resolveMx(domain));
+    const receives = mx !== false || (await has(dns.resolve4(domain))) !== false;
+    this.domainCache.set(domain, { receives, checkedAt: Date.now() });
+    return receives;
+  }
+
   async sendMail(
     to: string,
     subject: string,
@@ -140,6 +182,11 @@ export class EmailService {
     if (!transporter) {
       this.logger.warn(`Email not configured. Would send to ${to}: ${subject}`);
       this.logger.debug(`Template: ${template}, Context: ${JSON.stringify(context)}`);
+      return;
+    }
+    const refused = await this.refusal(to, transporter);
+    if (refused) {
+      this.logger.log(`Not sent to ${to} (${refused}): ${subject}`);
       return;
     }
 
@@ -173,6 +220,11 @@ export class EmailService {
     subject = sandboxSubject(subject);
     if (!transporter) {
       this.logger.warn(`Email not configured. Would send to ${to}: ${subject}`);
+      return false;
+    }
+    const refused = await this.refusal(to, transporter);
+    if (refused) {
+      this.logger.log(`Not sent to ${to} (${refused}): ${subject}`);
       return false;
     }
     await transporter.sendMail({ from, to, subject, html, text: this.stripHtml(html) });
