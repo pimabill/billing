@@ -70,7 +70,7 @@ export class InvoicesController {
     const invoice = await this.invoicesService.create(db, tenant.id, fields as CreateInvoiceDto);
     if (!checkout) return invoice;
     // A one-time charge: the invoice and the link to pay it, in one call.
-    const link = await this.invoicesService.createCheckout(db, (invoice as { id: string }).id, checkout.callbackUrl, checkout.providerName, tenant.id);
+    const link = await this.invoicesService.createCheckout(db, (invoice as { id: string }).id, checkout.callbackUrl, checkout.providerName, tenant.id, checkout.amount);
     return { ...invoice, checkout: link };
   }
 
@@ -124,6 +124,11 @@ export class InvoicesController {
           description: 'Payment method used (cash, bank_transfer, check, manual). Defaults to "manual".',
           example: 'cash',
         },
+        amount: {
+          type: 'number',
+          description: 'Part of the invoice paid, for a deposit or an instalment. Defaults to everything still due; the invoice is paid once payments cover it.',
+          example: 50,
+        },
       },
     },
   })
@@ -134,9 +139,9 @@ export class InvoicesController {
     @TenantDb() db: PrismaClient,
     @Tenant() tenant: { id: string },
     @Param('id') id: string,
-    @Body() body: { paymentMethod?: string },
+    @Body() body: { paymentMethod?: string; amount?: number },
   ) {
-    return this.invoicesService.markPaid(db, tenant.id, id, body.paymentMethod);
+    return this.invoicesService.markPaid(db, tenant.id, id, body.paymentMethod, body.amount);
   }
 
   @Post(':id/checkout')
@@ -163,6 +168,11 @@ export class InvoicesController {
           description: 'Optional: name of a specific active payment provider to use (e.g. "stripe", "paypal")',
           example: 'stripe',
         },
+        amount: {
+          type: 'number',
+          description: 'Charge part of the invoice, for a deposit or an instalment. Defaults to everything still due.',
+          example: 50,
+        },
       },
     },
   })
@@ -180,9 +190,9 @@ export class InvoicesController {
     @TenantDb() db: PrismaClient,
     @Req() req: { tenant: { id: string } },
     @Param('id') id: string,
-    @Body() body: { callbackUrl?: string; providerName?: string },
+    @Body() body: { callbackUrl?: string; providerName?: string; amount?: number },
   ) {
-    return this.invoicesService.createCheckout(db, id, body.callbackUrl, body.providerName, req.tenant.id);
+    return this.invoicesService.createCheckout(db, id, body.callbackUrl, body.providerName, req.tenant.id, body.amount);
   }
 
   @Post(':id/send-email')

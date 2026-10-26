@@ -1,3 +1,4 @@
+import { Prisma } from '../../../src/generated/prisma-tenant/client';
 import { WebhooksController } from '../../../src/modules/webhooks/webhooks.controller';
 import { ProviderFactory } from '../../../src/providers/provider.factory';
 import { createMockPrisma } from '../../helpers/mock-prisma';
@@ -8,6 +9,7 @@ describe('WebhooksController (payment notifications)', () => {
   let handleWebhook: jest.Mock;
   let controller: WebhooksController;
   let money: { handleCheckoutNotification: jest.Mock };
+  let queues: ReturnType<typeof createMockQueue>[];
 
   beforeEach(() => {
     db = createMockPrisma();
@@ -16,6 +18,7 @@ describe('WebhooksController (payment notifications)', () => {
     handleWebhook = jest.fn();
     jest.spyOn(ProviderFactory, 'create').mockReturnValue({ handleWebhook } as never);
     money = { handleCheckoutNotification: jest.fn().mockResolvedValue(false) };
+    queues = [createMockQueue(), createMockQueue()];
     controller = new WebhooksController(
       {
         client: {
@@ -25,8 +28,8 @@ describe('WebhooksController (payment notifications)', () => {
       } as never,
       { getTenantClient: jest.fn().mockResolvedValue(db) } as never,
       { decrypt: () => '{}' } as never,
-      createMockQueue() as never,
-      createMockQueue() as never,
+      queues[0] as never,
+      queues[1] as never,
       money as never,
       {} as never,
     );
@@ -55,12 +58,29 @@ describe('WebhooksController (payment notifications)', () => {
     db.providerEvent.create.mockResolvedValue({});
     db.payment.updateMany.mockResolvedValue({ count: 1 });
     db.invoice.updateMany.mockResolvedValue({ count: 1 });
+    db.invoice.findUniqueOrThrow.mockResolvedValue({ amount: new Prisma.Decimal(100), amountPaid: new Prisma.Decimal(100) });
     const getPaymentStatus = jest.fn().mockResolvedValue({ status: 'succeeded', transactionId: 'pay_m', amount: 110000, currency: 'UGX', reference: 'pay_m' });
     jest.spyOn(ProviderFactory, 'create').mockReturnValue({ getPaymentStatus } as never);
 
     expect(await controller.settleManagedPayment(db as never, 't1', 'pay_m')).toBe(true);
     expect(getPaymentStatus).toHaveBeenCalledWith('pay_m');
     expect(db.invoice.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: 'inv_m' }), data: expect.objectContaining({ status: 'PAID' }) }));
+  });
+
+  it('counts an instalment and keeps the invoice open until it is covered', async () => {
+    db.payment.findFirst.mockResolvedValue({ id: 'pay_d', provider: 'managed', status: 'PROCESSING', amount: '100000', currency: 'UGX', invoiceId: 'inv_d', invoice: { id: 'inv_d', invoiceNumber: 'INV-2', customer: null } });
+    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'managed', credentials: 'enc' });
+    db.providerEvent.create.mockResolvedValue({});
+    db.payment.updateMany.mockResolvedValue({ count: 1 });
+    db.invoice.updateMany.mockResolvedValue({ count: 1 });
+    db.invoice.findUniqueOrThrow.mockResolvedValue({ amount: new Prisma.Decimal(300000), amountPaid: new Prisma.Decimal(100000) });
+    jest.spyOn(ProviderFactory, 'create').mockReturnValue({ getPaymentStatus: jest.fn().mockResolvedValue({ status: 'succeeded', transactionId: 'pay_d', amount: 100000, currency: 'UGX', reference: 'pay_d' }) } as never);
+
+    expect(await controller.settleManagedPayment(db as never, 't1', 'pay_d')).toBe(true);
+    expect(db.invoice.updateMany).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'PAID' }) }));
+    const events = queues.flatMap((q) => q.add.mock.calls.map((c: unknown[]) => (c[1] as { event?: string }).event));
+    expect(events).toContain('invoice.partially_paid');
+    expect(events).not.toContain('invoice.paid');
   });
 
   it('leaves a managed invoice payment open while the service still reports it pending', async () => {
@@ -83,6 +103,7 @@ describe('WebhooksController (payment notifications)', () => {
     dbB.payment.findFirst.mockResolvedValue({ id: 'pay_b', status: 'PROCESSING', amount: '49', currency: 'USD', invoiceId: 'inv_b', invoice: null });
     dbB.payment.updateMany.mockResolvedValue({ count: 1 });
     dbB.invoice.updateMany.mockResolvedValue({ count: 1 });
+    dbB.invoice.findUniqueOrThrow.mockResolvedValue({ amount: new Prisma.Decimal(100), amountPaid: new Prisma.Decimal(100) });
     handleWebhook.mockResolvedValue({ status: 'succeeded', transactionId: 'tx_1', amount: 49, currency: 'USD' });
     const shared = new WebhooksController(
       {

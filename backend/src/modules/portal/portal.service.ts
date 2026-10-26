@@ -1,5 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
+import { amountDue } from '../invoices/apply-payment';
 import { InvoicesService } from '../invoices/invoices.service';
 
 @Injectable()
@@ -153,7 +154,7 @@ export class PortalService {
     if (invoice.customerId !== customerId) throw new NotFoundException('Invoice not found');
     if (invoice.status === 'PAID') throw new BadRequestException('Invoice is already paid');
     if (invoice.status === 'CANCELED') throw new BadRequestException('Invoice has been voided');
-    if (Number(invoice.amount) <= 0) throw new BadRequestException('Nothing to pay on this invoice');
+    if (amountDue(invoice).lte(0)) throw new BadRequestException('Nothing to pay on this invoice');
 
     // The same checkout as the API: providers in priority order, managed payments last.
     const result = await this.invoices.createCheckout(db, invoiceId, callbackUrl, undefined, tenantId);
@@ -163,7 +164,7 @@ export class PortalService {
       paymentId: result.paymentId,
       provider: result.provider,
       invoiceNumber: invoice.invoiceNumber,
-      amount: Number(invoice.amount),
+      amount: Number(amountDue(invoice)),
       currency: invoice.currency,
     };
   }

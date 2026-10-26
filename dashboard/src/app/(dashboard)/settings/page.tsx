@@ -83,6 +83,7 @@ export default function SettingsPage() {
     },
     { id: "invoice.created", label: "Invoice Created", category: "Invoices" },
     { id: "invoice.paid", label: "Invoice Paid", category: "Invoices" },
+    { id: "invoice.partially_paid", label: "Invoice Partially Paid", category: "Invoices" },
     { id: "invoice.failed", label: "Invoice Failed", category: "Invoices" },
     {
       id: "payment.succeeded",

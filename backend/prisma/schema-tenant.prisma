@@ -175,6 +175,8 @@ model Invoice {
   subscriptionId String?
   customerId     String
   amount         Decimal       @db.Decimal(19, 4)
+  /// Paid so far: deposits and instalments add up to `amount`, when the invoice becomes PAID.
+  amountPaid     Decimal       @default(0) @db.Decimal(19, 4)
   currency       String
   status         InvoiceStatus @default(DRAFT)
   dueDate        DateTime

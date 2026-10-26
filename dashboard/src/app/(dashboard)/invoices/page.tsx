@@ -91,6 +91,7 @@ export default function InvoicesPage() {
   const [markPaidDialogOpen, setMarkPaidDialogOpen] = useState(false);
   const [markPaidInvoice, setMarkPaidInvoice] = useState<Invoice | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paidAmount, setPaidAmount] = useState("");
   const [isMarkingPaid, setIsMarkingPaid] = useState(false);
 
   // Checkout provider selection dialog state
@@ -194,6 +195,7 @@ export default function InvoicesPage() {
   function openMarkPaidDialog(invoice: Invoice) {
     setMarkPaidInvoice(invoice);
     setPaymentMethod("cash");
+    setPaidAmount(String(invoice.amount - invoice.amountPaid));
     setMarkPaidDialogOpen(true);
   }
 
@@ -201,8 +203,11 @@ export default function InvoicesPage() {
     if (!markPaidInvoice) return;
     setIsMarkingPaid(true);
     try {
-      await apiClient.invoices.markPaid(markPaidInvoice.id, paymentMethod);
-      toast.success("Invoice marked as paid");
+      const due = markPaidInvoice.amount - markPaidInvoice.amountPaid;
+      const amount = Number(paidAmount);
+      const part = amount > 0 && amount < due;
+      await apiClient.invoices.markPaid(markPaidInvoice.id, paymentMethod, part ? amount : undefined);
+      toast.success(part ? "Part payment recorded" : "Invoice marked as paid");
       setMarkPaidDialogOpen(false);
       loadInvoices();
     } catch (error: any) {
@@ -412,7 +417,7 @@ export default function InvoicesPage() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <Badge variant={statusColors[invoice.status] as any}>
-                            {invoice.status}
+                            {invoice.status === "pending" && invoice.amountPaid > 0 ? "partially paid" : invoice.status}
                           </Badge>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
@@ -722,8 +727,28 @@ export default function InvoicesPage() {
                     {formatCurrency(markPaidInvoice.amount, markPaidInvoice.currency)}
                   </span>
                 </p>
+                {markPaidInvoice.amountPaid > 0 && (
+                  <p>
+                    <span className="text-muted-foreground">Already paid:</span>{" "}
+                    {formatCurrency(markPaidInvoice.amountPaid, markPaidInvoice.currency)}
+                  </p>
+                )}
               </div>
             )}
+            <div className="space-y-2">
+              <Label htmlFor="paid-amount">Amount received</Label>
+              <Input
+                id="paid-amount"
+                type="number"
+                min="0"
+                step="any"
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Less than what's due records a deposit or instalment; the invoice stays open for the rest.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button

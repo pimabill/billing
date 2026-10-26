@@ -1,3 +1,4 @@
+import { Prisma } from '../../../src/generated/prisma-tenant/client';
 import { RecurringChargeService } from '../../../src/modules/billing/recurring-charge.service';
 import { createMockPrisma } from '../../helpers/mock-prisma';
 import { createMockQueue } from '../../helpers/mock-queue';
@@ -40,6 +41,7 @@ describe('RecurringChargeService', () => {
     db.payment.updateMany.mockResolvedValue({ count: 1 });
     db.payment.update.mockResolvedValue({});
     db.invoice.updateMany.mockResolvedValue({ count: 1 });
+    db.invoice.findUniqueOrThrow.mockResolvedValue({ amount: new Prisma.Decimal('49.00'), amountPaid: new Prisma.Decimal('49.00') });
     db.subscription.updateMany.mockResolvedValue({ count: 1 });
     db.paymentRetry.updateMany.mockResolvedValue({ count: 0 });
   });
@@ -52,7 +54,7 @@ describe('RecurringChargeService', () => {
     expect(outcome).toEqual({ result: 'succeeded', paymentId: 'pay_new' });
     expect(charge.mock.calls[0][0].reference).toBe('pay_new');
     expect(db.invoice.updateMany).toHaveBeenCalledWith({
-      where: { id: 'inv_1', status: { in: ['PENDING', 'FAILED'] } },
+      where: { id: 'inv_1', status: { in: ['DRAFT', 'PENDING', 'FAILED'] } },
       data: expect.objectContaining({ status: 'PAID' }),
     });
     expect(db.subscription.updateMany).toHaveBeenCalledWith({ where: { id: 'sub_1', status: 'PAST_DUE' }, data: { status: 'ACTIVE' } });

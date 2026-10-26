@@ -423,6 +423,7 @@ export function generateInvoices(
         customerName: subscription.customerName,
         subscriptionId: subscription.id,
         amount: subscription.amount,
+        amountPaid: status === "paid" ? subscription.amount : 0,
         currency: subscription.currency,
         status,
         dueDate: dueDate.toISOString(),

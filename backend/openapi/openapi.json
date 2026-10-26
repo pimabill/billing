@@ -2663,6 +2663,11 @@
       },
       "InvoiceCheckoutOptionsDto": {
         "properties": {
+          "amount": {
+            "description": "Charge part of the invoice now, such as a deposit; the rest can be paid later",
+            "example": 50,
+            "type": "number"
+          },
           "callbackUrl": {
             "description": "Where the customer returns after paying",
             "example": "https://shop.example.com/paid",
@@ -2700,7 +2705,13 @@
       },
       "InvoiceItemDto": {
         "properties": {
+          "addOnCode": {
+            "description": "Sell an add-on once: its price in the invoice currency fills unitAmount and its name fills description. Use it for one-time products and bundles that never renew.",
+            "example": "cert-bundle-3m",
+            "type": "string"
+          },
           "description": {
+            "description": "Required unless addOnCode is set",
             "example": "Premium Monthly Plan",
             "type": "string"
           },
@@ -2709,6 +2720,7 @@
             "type": "number"
           },
           "unitAmount": {
+            "description": "Required unless addOnCode is set",
             "example": 9999.99,
             "type": "number"
           }
@@ -2725,6 +2737,11 @@
           "amount": {
             "description": "Decimal amount as string",
             "example": "99.9900",
+            "type": "string"
+          },
+          "amountPaid": {
+            "description": "Paid so far, as a decimal string. Below amount while a deposit or instalments are being paid.",
+            "example": "0.0000",
             "type": "string"
           },
           "checkout": {
@@ -2795,6 +2812,7 @@
           "invoiceNumber",
           "customerId",
           "amount",
+          "amountPaid",
           "currency",
           "status",
           "dueDate",
@@ -10905,6 +10923,11 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "amount": {
+                    "description": "Charge part of the invoice, for a deposit or an instalment. Defaults to everything still due.",
+                    "example": 50,
+                    "type": "number"
+                  },
                   "callbackUrl": {
                     "description": "URL to redirect customer after payment",
                     "example": "https://myapp.com/payment/complete",
@@ -11012,6 +11035,11 @@
             "application/json": {
               "schema": {
                 "properties": {
+                  "amount": {
+                    "description": "Part of the invoice paid, for a deposit or an instalment. Defaults to everything still due; the invoice is paid once payments cover it.",
+                    "example": 50,
+                    "type": "number"
+                  },
                   "paymentMethod": {
                     "description": "Payment method used (cash, bank_transfer, check, manual). Defaults to \"manual\".",
                     "example": "cash",

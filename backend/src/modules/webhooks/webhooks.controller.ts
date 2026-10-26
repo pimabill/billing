@@ -28,6 +28,7 @@ import { ManagedAccountStatus, managedConfig, ManagedPaymentsClient } from '../m
 import { ManagedAccountsService } from '../money/managed.service';
 import { Prisma, PrismaClient } from '../../generated/prisma-tenant/client';
 import { toScaled } from '../ledger/ledger.money';
+import { applyPayment } from '../invoices/apply-payment';
 import {
   WEBHOOK_QUEUE,
   EMAIL_QUEUE,
@@ -505,7 +506,7 @@ export class WebhooksController {
 
     // Payment and invoice change together, and only from an open state, so a
     // concurrent redelivery cannot apply the outcome twice.
-    const { won, invoicePaid } = await db.$transaction(async (tx) => {
+    const { won, invoicePaid, partial } = await db.$transaction(async (tx) => {
       const moved = await tx.payment.updateMany({
         where: { id: payment.id, status: { in: OPEN_PAYMENT } },
         data: {
@@ -514,13 +515,11 @@ export class WebhooksController {
           failureReason: succeeded ? null : 'Payment failed via webhook',
         },
       });
-      if (moved.count === 0) return { won: false, invoicePaid: false };
-      if (!succeeded) return { won: true, invoicePaid: false };
-      const paid = await tx.invoice.updateMany({
-        where: { id: payment.invoiceId, status: { in: PAYABLE_INVOICE } },
-        data: { status: 'PAID', paidAt: new Date() },
-      });
-      return { won: true, invoicePaid: paid.count > 0 };
+      if (moved.count === 0) return { won: false, invoicePaid: false, partial: null };
+      if (!succeeded) return { won: true, invoicePaid: false, partial: null };
+      // A deposit or instalment leaves the invoice open; the payment that completes it marks it paid.
+      const applied = await applyPayment(tx, payment.invoiceId, payment.amount);
+      return { won: true, invoicePaid: applied.paid, partial: applied.applied && !applied.paid ? applied : null };
     });
 
     if (!won) {
@@ -533,6 +532,25 @@ export class WebhooksController {
     const tenantName = tenant.name || 'Your billing provider';
     const invoiceNumber = invoice?.invoiceNumber || payment.invoiceId;
     const formattedAmount = PdfService.formatAmount(payment.amount, payment.currency);
+
+    if (succeeded && partial) {
+      await this.webhookQueue.add(WebhookJobType.SEND_WEBHOOK, {
+        tenantId: tenant.id,
+        event: 'invoice.partially_paid',
+        payload: {
+          invoiceId: payment.invoiceId,
+          invoiceNumber,
+          paymentId: payment.id,
+          amount: Number(payment.amount),
+          amountPaid: Number(partial.amountPaid),
+          amountDue: Number(partial.amount.sub(partial.amountPaid)),
+          total: Number(partial.amount),
+          currency: payment.currency,
+          provider: providerName,
+        },
+      });
+      return true;
+    }
 
     if (succeeded && !invoicePaid) {
       // Money arrived for an invoice that is already paid or voided: the tenant must refund or apply it.
