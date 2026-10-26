@@ -3487,7 +3487,8 @@
                 "$ref": "#/components/schemas/ManagedAccountResponse"
               }
             ],
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "available": {
             "description": "Whether managed payments are offered on this installation",
@@ -3726,7 +3727,8 @@
               }
             ],
             "description": "Or show the payer these instructions",
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "paymentUrl": {
             "description": "Send the payer here to finish a hosted payment",
