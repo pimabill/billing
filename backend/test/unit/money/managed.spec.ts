@@ -226,3 +226,43 @@ describe('ManagedAccountsService status changes', () => {
     expect(stored().reason).toBe('Chargebacks <b>high</b>');
   });
 });
+
+describe('ManagedAccountsService in the sandbox', () => {
+  const env = { ...process.env };
+  afterEach(() => {
+    process.env = { ...env };
+    jest.restoreAllMocks();
+  });
+
+  it('sets the sandbox account up from the approved live one instead of asking for an application', async () => {
+    process.env.SANDBOX_MODE = 'true';
+    process.env.MANAGED_PAYMENTS_URL = 'https://managed.example.com';
+    process.env.MANAGED_PAYMENTS_API_KEY = 'inst_sandbox';
+    process.env.MANAGED_PAYMENTS_WEBHOOK_SECRET = 'whsec';
+    const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(async (url) =>
+      String(url).endsWith('/v1/accounts/mirror')
+        ? ({ ok: true, status: 200, json: async () => ({ id: 'acc_sbx', status: 'active', businessName: 'Acme', country: 'UG', currency: 'UGX', methods: ['card'] }) } as Response)
+        : ({ ok: false, status: 404, json: async () => ({}) } as Response),
+    );
+    let stored: string | null = null;
+    const db = {
+      paymentProvider: {
+        findUnique: jest.fn(async () => (stored ? { credentials: stored } : null)),
+        upsert: jest.fn(async (args: any) => {
+          stored = args.create.credentials;
+          return {};
+        }),
+      },
+    };
+    const email = { sendHtml: jest.fn() };
+    const service = new ManagedAccountsService({ encrypt: (v: string) => v, decrypt: (v: string) => v } as never, {} as never, email as never);
+
+    const result = await service.status(db as never, 'ten_1');
+    expect(result).toEqual({ available: true, account: expect.objectContaining({ id: 'acc_sbx', status: 'active' }) });
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://managed.example.com/v1/accounts/mirror');
+    expect(JSON.parse(String(init.body))).toMatchObject({ externalId: 'ten_1', notificationUrl: expect.stringContaining('/webhooks/managed/ten_1/callback') });
+    expect(JSON.parse(stored!)).toMatchObject({ accountId: 'acc_sbx', status: 'active' });
+    expect(email.sendHtml).not.toHaveBeenCalled();
+  });
+});
