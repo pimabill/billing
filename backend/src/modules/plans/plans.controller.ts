@@ -47,9 +47,10 @@ export class PlansController {
     type: Boolean,
     description: 'Filter by active status',
   })
+  @ApiQuery({ name: 'code', required: false, type: String, description: 'Only the plan with this code; codes are the same in live and the sandbox' })
   @ApiResponse({ status: 200, description: 'List of plans with prices', type: [PlanResponse] })
-  async findAll(@TenantDb() db: PrismaClient, @Query('isActive') isActive?: boolean) {
-    return this.plansService.findAll(db, isActive);
+  async findAll(@TenantDb() db: PrismaClient, @Query('isActive') isActive?: boolean, @Query('code') code?: string) {
+    return this.plansService.findAll(db, isActive, code);
   }
 
   @Get(':id')

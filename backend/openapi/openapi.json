@@ -7189,6 +7189,15 @@
             "schema": {
               "type": "integer"
             }
+          },
+          {
+            "description": "Only the add-on with this code; codes are the same in live and the sandbox",
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -10087,6 +10096,15 @@
             }
           },
           {
+            "description": "Your application's ID for the customer: the exact externalId it was created with",
+            "in": "query",
+            "name": "externalId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "country",
             "required": false,
@@ -12962,6 +12980,15 @@
             "required": false,
             "schema": {
               "type": "boolean"
+            }
+          },
+          {
+            "description": "Only the plan with this code; codes are the same in live and the sandbox",
+            "in": "query",
+            "name": "code",
+            "required": false,
+            "schema": {
+              "type": "string"
             }
           }
         ],

@@ -7,19 +7,21 @@ import { CreateAddOnDto, UpdateAddOnDto, ApplyAddOnDto } from './dto/create-add-
 export class AddOnsService {
   private readonly logger = new Logger(AddOnsService.name);
 
-  async findAll(db: PrismaClient, query: { page?: number; limit?: number }) {
+  async findAll(db: PrismaClient, query: { page?: number; limit?: number; code?: string }) {
     const page = query.page || 1;
     const limit = query.limit || 20;
     const skip = (page - 1) * limit;
+    const where = query.code ? { code: query.code } : {};
 
     const [data, total] = await Promise.all([
       db.addOn.findMany({
+        where,
         skip,
         take: limit,
         include: { prices: true },
         orderBy: { createdAt: 'desc' },
       }),
-      db.addOn.count(),
+      db.addOn.count({ where }),
     ]);
 
     return {
