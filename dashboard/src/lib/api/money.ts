@@ -117,6 +117,8 @@ export interface ManagedAccount {
   email?: string;
   phone?: string;
   reason?: string;
+  /** What the merchant's customers can pay with through managed payments. */
+  methods?: ("card" | "mobile_money" | "paypal")[];
 }
 
 export type ManagedPayoutType = "mobile_money" | "bank" | "paypal";

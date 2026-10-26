@@ -10,10 +10,20 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient, apiFetch } from "@/lib/api/client";
+import { moneyApi } from "@/lib/api/money";
 import { formatCurrency } from "@/lib/utils/currency";
 import type { Customer, Plan } from "@/types";
 
 type What = "once" | "plan";
+
+/** Providers that can take an invoice payment through a hosted checkout. */
+const CHECKOUT = new Set(["stripe", "paystack", "flutterwave", "dpo", "payu", "pesapal", "paypal", "managed"]);
+const METHOD_LABELS: Record<string, string> = { card: "Card", mobile_money: "Mobile money", paypal: "PayPal" };
+
+interface PayOption {
+  code: string;
+  label: string;
+}
 type How = "link" | "paid";
 
 interface Result {
@@ -45,6 +55,9 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
   const [trialDays, setTrialDays] = useState("");
   const [method, setMethod] = useState("mobile_money");
   const [busy, setBusy] = useState(false);
+  // What the customer can pay through: the organisation's own providers and managed payments.
+  const [payOptions, setPayOptions] = useState<PayOption[] | null>(null);
+  const [payWith, setPayWith] = useState("auto");
   const [result, setResult] = useState<Result | null>(null);
 
   useEffect(() => {
@@ -53,6 +66,20 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
     if (preset) setCustomerId(preset.id);
     apiClient.customers.list({ limit: 100 } as never).then((r: any) => setCustomers(r.data ?? r), () => setCustomers([]));
     apiClient.plans.list().then((p) => setPlans(p.filter((x: any) => x.isActive !== false)), () => setPlans([]));
+    Promise.all([
+      apiFetch<any>("/payment-providers?configured=true").catch(() => []),
+      moneyApi.managedStatus().catch(() => null),
+    ]).then(([providers, managed]) => {
+      const own: PayOption[] = ((providers?.data ?? providers ?? []) as { providerName: string; name?: string; isActive: boolean }[])
+        .filter((p) => p.isActive && p.providerName !== "managed" && CHECKOUT.has(p.providerName))
+        .map((p) => ({ code: p.providerName, label: p.name ?? p.providerName }));
+      const account = managed?.account;
+      const viaManaged: PayOption[] =
+        account?.status === "active"
+          ? [{ code: "managed", label: `Managed payments${account.methods?.length ? ` · ${account.methods.map((m) => METHOD_LABELS[m] ?? m).join(", ")}` : ""}` }]
+          : [];
+      setPayOptions([...own, ...viaManaged]);
+    });
   }, [open, preset]);
 
   const customer = useMemo(() => customers.find((c) => c.id === customerId) ?? (preset?.id === customerId ? preset : undefined), [customers, customerId, preset]);
@@ -89,7 +116,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
             currency,
             items: [{ description: description || "Payment", quantity: 1, unitAmount: value }],
             dueDate: today(7),
-            ...(how === "link" && { checkout: { callbackUrl: window.location.origin } }),
+            ...(how === "link" && { checkout: { callbackUrl: window.location.origin, ...(payWith !== "auto" && { providerName: payWith }) } }),
           }),
         });
         if (how === "paid") await apiClient.invoices.markPaid(invoice.id, method);
@@ -116,7 +143,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
             if (!invoiceId) await sleep(1500);
           }
           let url: string | null = null;
-          if (invoiceId && how === "link") url = (await apiClient.invoices.checkout(invoiceId, window.location.origin).catch(() => null))?.checkoutUrl ?? null;
+          if (invoiceId && how === "link") url = (await apiClient.invoices.checkout(invoiceId, window.location.origin, payWith !== "auto" ? payWith : undefined).catch(() => null))?.checkoutUrl ?? null;
           if (invoiceId && how === "paid") await apiClient.invoices.markPaid(invoiceId, method);
           setResult({
             invoiceId,
@@ -290,6 +317,42 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
                   </button>
                 ))}
               </div>
+              {how === "link" && payOptions && payOptions.length === 0 && (
+                <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+                  Nothing can take this payment yet. Connect a provider in{" "}
+                  <a href="/providers" className="font-medium underline">
+                    Payment providers
+                  </a>
+                  , or{" "}
+                  <a href="/money?tab=managed" className="font-medium underline">
+                    apply for managed payments
+                  </a>{" "}
+                  to get paid without one. You can still record a payment as already paid.
+                </div>
+              )}
+              {how === "link" && payOptions && payOptions.length === 1 && (
+                <p className="text-xs text-muted-foreground">Customers pay through {payOptions[0].label}.</p>
+              )}
+              {how === "link" && payOptions && payOptions.length > 1 && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="charge-pay-with" className="text-xs text-muted-foreground">
+                    Customers pay through
+                  </Label>
+                  <Select value={payWith} onValueChange={setPayWith}>
+                    <SelectTrigger id="charge-pay-with">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="auto">The first that can take it, in your priority order</SelectItem>
+                      {payOptions.map((o) => (
+                        <SelectItem key={o.code} value={o.code}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {how === "paid" && (
                 <Select value={method} onValueChange={setMethod}>
                   <SelectTrigger aria-label="Paid by">
@@ -307,7 +370,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
             </div>
 
             <DialogFooter>
-              <Button type="submit" isLoading={busy} disabled={!customerId}>
+              <Button type="submit" isLoading={busy} disabled={!customerId || (how === "link" && payOptions?.length === 0)}>
                 {what === "once" ? (how === "link" ? "Create payment link" : "Record payment") : "Subscribe"}
               </Button>
             </DialogFooter>
