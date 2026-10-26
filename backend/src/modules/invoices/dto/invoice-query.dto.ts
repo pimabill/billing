@@ -13,6 +13,11 @@ export class InvoiceQueryDto {
   @IsString()
   customerId?: string;
 
+  @ApiProperty({ required: false, description: 'Only invoices of this subscription, e.g. to find the first one after subscribing' })
+  @IsOptional()
+  @IsString()
+  subscriptionId?: string;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsDateString()

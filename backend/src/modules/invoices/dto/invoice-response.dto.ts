@@ -12,6 +12,20 @@ export class InvoiceCustomerResponse {
   email: string;
 }
 
+export class CheckoutResponse {
+  @ApiProperty({ example: 'https://paystack.com/pay/abc123' })
+  checkoutUrl: string;
+
+  @ApiProperty({ example: 'clxpay123' })
+  paymentId: string;
+
+  @ApiProperty({ example: 'paystack' })
+  provider: string;
+
+  @ApiProperty()
+  expiresAt: string;
+}
+
 export class InvoiceResponse {
   @ApiProperty({ example: 'clx1234567890' })
   id: string;
@@ -54,6 +68,9 @@ export class InvoiceResponse {
 
   @ApiProperty()
   updatedAt: string;
+
+  @ApiPropertyOptional({ type: () => CheckoutResponse, description: 'The payment link, when the invoice was created with `checkout`' })
+  checkout?: CheckoutResponse;
 }
 
 export class PaginatedInvoiceResponse {
@@ -64,16 +81,3 @@ export class PaginatedInvoiceResponse {
   meta: PaginationMeta;
 }
 
-export class CheckoutResponse {
-  @ApiProperty({ example: 'https://paystack.com/pay/abc123' })
-  checkoutUrl: string;
-
-  @ApiProperty({ example: 'clxpay123' })
-  paymentId: string;
-
-  @ApiProperty({ example: 'paystack' })
-  provider: string;
-
-  @ApiProperty()
-  expiresAt: string;
-}
