@@ -127,6 +127,8 @@ export interface PaymentProvider {
   isActive: boolean;
   priority: number;
   config?: Record<string, any>;
+  /** Which environment the saved credentials are for, when it can be told. */
+  environment?: "live" | "sandbox" | null;
 }
 
 export interface ActivityEvent {
