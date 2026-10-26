@@ -5,6 +5,7 @@ import { EncryptionService } from '../../services/encryption.service';
 import { ManagedAccount, ManagedCredentials, managedConfig, ManagedPaymentsClient, OpenManagedAccount, UpdateManagedAccount } from './adapters/managed.adapter';
 import { notificationUrls } from './notification-urls';
 import { CentralPrismaService } from '../../database/central-prisma.service';
+import { isSandbox } from '../../config/sandbox';
 import { cloudPlansEnabled } from '../cloud-plans/cloud-plans.catalogue';
 
 /** Lowest priority, so a tenant's own provider accounts are always preferred when it has them. */
@@ -95,7 +96,20 @@ export class ManagedAccountsService {
   async status(db: PrismaClient, tenantId: string): Promise<{ available: boolean; account: ManagedAccount | null }> {
     if (!managedConfig()) return { available: false, account: null };
     const id = await this.accountId(db);
-    if (!id) return { available: await this.allowedFor(tenantId), account: null };
+    if (!id) {
+      // The sandbox follows live: a merchant approved for managed payments there needs no second application.
+      if (isSandbox()) {
+        const mirrored = await this.client()
+          .mirrorAccount(tenantId, notificationUrls('managed', tenantId).notificationUrl)
+          .catch(() => null);
+        if (mirrored?.data) {
+          await this.sync(db, mirrored.data, tenantId);
+          this.logger.log(`Sandbox managed account ${mirrored.data.id} set up from tenant ${tenantId}'s live one (${mirrored.data.status})`);
+          return { available: true, account: mirrored.data };
+        }
+      }
+      return { available: await this.allowedFor(tenantId), account: null };
+    }
     const r = await this.client().getAccount(id);
     if (!r.data) throw new BadRequestException(r.error ?? 'Could not load the managed account');
     await this.sync(db, r.data, tenantId);

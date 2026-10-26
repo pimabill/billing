@@ -14,7 +14,8 @@ import { Capabilities, CollectRequest, MoneyProvider, ProviderOutcome, Rail } fr
  *
  * API (v1, JSON, `Authorization: Bearer <instance key>`):
  *   POST /v1/accounts                     open an account (business + bank details)
- *   GET  /v1/accounts/:id                 account status
+ *   GET  /v1/accounts/:id                 account status and payment methods
+ *   POST /v1/accounts/mirror              sandbox only: the account, set up from the approved live one
  *   POST /v1/collections                  create a checkout (Idempotency-Key: our reference)
  *   GET  /v1/collections/:reference       collection status
  * Notifications: POST to notificationUrl with
@@ -113,6 +114,11 @@ export class ManagedPaymentsClient {
 
   getAccount(id: string) {
     return this.request<ManagedAccount>('GET', `/v1/accounts/${encodeURIComponent(id)}`);
+  }
+
+  /** Sandbox deployments: the merchant's account, set up from their approved live one (404 when they are not approved there). */
+  mirrorAccount(externalId: string, notificationUrl: string) {
+    return this.request<ManagedAccount>('POST', '/v1/accounts/mirror', { externalId, notificationUrl });
   }
 
   /** "t=…,v1=…" over the raw body, within ten minutes; constant-time compare. */
