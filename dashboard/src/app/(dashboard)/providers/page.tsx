@@ -31,6 +31,8 @@ import { brand } from "@/lib/brand";
 import { useAuthStore } from "@/lib/stores/auth";
 import { ProviderLogo } from "@/components/provider-logo";
 import { useEnvironment } from "@/lib/environment";
+import Link from "next/link";
+import { moneyApi, type ManagedAccount } from "@/lib/api/money";
 import { BrandMark } from "@/components/brand-mark";
 
 
@@ -324,6 +326,11 @@ export default function ProvidersPage() {
   // Live and the sandbox each keep their own providers: test credentials belong in the sandbox.
   const env = useEnvironment();
   const sandbox = env?.sandbox ?? false;
+  // Managed payments takes payments without a provider of your own: show it first.
+  const [managed, setManaged] = useState<{ available: boolean; account: ManagedAccount | null } | null>(null);
+  useEffect(() => {
+    moneyApi.managedStatus().then(setManaged, () => setManaged(null));
+  }, []);
   const [providers, setProviders] = useState<PaymentProvider[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -467,6 +474,45 @@ export default function ProvidersPage() {
         <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
           These are your <strong>sandbox</strong> providers, separate from live. Connect each one with its test credentials (for example a Flutterwave <code className="font-mono">FLWSECK_TEST-</code> key or PayPal sandbox app): nothing here moves real money.
         </div>
+      )}
+
+      {managed?.available && (
+        <Card className="border-primary/30 bg-primary/[0.03]">
+          <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold">Managed payments</span>
+                {managed.account && (
+                  <Badge variant={managed.account.status === "active" ? "success" : managed.account.status === "pending_review" ? "warning" : "error"}>
+                    {{ active: "Active", pending_review: "In review", rejected: "Not approved", suspended: "Paused" }[managed.account.status]}
+                  </Badge>
+                )}
+                {managed.account?.status === "active" && managed.account.fee && (
+                  <span className="text-xs text-muted-foreground">{managed.account.fee.value}% per payment</span>
+                )}
+              </div>
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                {managed.account?.status === "active"
+                  ? "Your customers can pay through managed payments, so you don't need a provider of your own. Any provider you connect below is tried first."
+                  : managed.account
+                    ? "Your customers will be able to pay through managed payments once it is on."
+                    : "Get paid without a provider account of your own: we take the payments and pay them out to your mobile money, bank or PayPal."}
+              </p>
+              {managed.account?.methods && managed.account.methods.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {managed.account.methods.map((m) => (
+                    <Badge key={m} variant="secondary">
+                      {{ card: "Card", mobile_money: "Mobile money", paypal: "PayPal" }[m]}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+            <Button asChild variant={managed.account ? "outline" : "default"}>
+              <Link href="/money?tab=managed">{managed.account ? "Manage" : "Apply"}</Link>
+            </Button>
+          </CardContent>
+        </Card>
       )}
 
       {/* Provider Cards */}

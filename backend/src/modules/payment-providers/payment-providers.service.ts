@@ -4,7 +4,7 @@ import { EncryptionService } from '../../services/encryption.service';
 import { CreateProviderDto } from './dto/create-provider.dto';
 import { UpdateProviderDto } from './dto/update-provider.dto';
 import { ProviderFactory } from '../../providers/provider.factory';
-import { environmentOf, PROVIDER_CATALOGUE, providerName, webhookUrlFor } from './provider-catalogue';
+import { environmentOf, PROVIDER_CATALOGUE, providerDescription, providerName, webhookUrlFor } from './provider-catalogue';
 import { PesapalProvider } from '../../providers/pesapal.provider';
 
 @Injectable()
@@ -55,7 +55,7 @@ export class PaymentProvidersService {
       id: p.id,
       providerName: p.providerName,
       name: providerName(p.providerName),
-      description: PROVIDER_CATALOGUE.find((c) => c.code === p.providerName)?.description ?? null,
+      description: providerDescription(p.providerName),
       isConfigured: true,
       isActive: p.isActive,
       priority: p.priority,

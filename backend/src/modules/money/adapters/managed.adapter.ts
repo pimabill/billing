@@ -49,6 +49,8 @@ export interface ManagedAccount {
   email?: string;
   phone?: string;
   reason?: string;
+  /** Payment methods the merchant's customers can use through managed payments. */
+  methods?: ('card' | 'mobile_money' | 'paypal')[];
 }
 
 export interface ManagedPayoutDestination {
