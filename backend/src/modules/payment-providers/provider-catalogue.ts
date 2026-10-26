@@ -33,6 +33,12 @@ const NAMES: Record<string, string> = { managed: 'Managed payments', 'dpo-group'
 
 export const providerName = (code: string) => PROVIDER_CATALOGUE.find((p) => p.code === code)?.name ?? NAMES[code] ?? code;
 
+const DESCRIPTIONS: Record<string, string> = {
+  managed: 'Payments taken for you by managed payments (card and mobile money), paid out to your account; see GET /money/managed for the methods',
+};
+
+export const providerDescription = (code: string) => PROVIDER_CATALOGUE.find((p) => p.code === code)?.description ?? DESCRIPTIONS[code] ?? null;
+
 /** Chains we only watch: no notifications to receive. */
 const WATCHED = new Set(['tron_usdt', 'eth_usdt', 'bsc_usdt', 'btc']);
 /** Registered for you once (shared URL); the rest notify this organisation's own URL. */
