@@ -49,6 +49,8 @@ export interface ManagedAccount {
   email?: string;
   phone?: string;
   reason?: string;
+  /** When billing saw the status change (returned by GET /money/managed). */
+  statusChangedAt?: string;
 }
 
 export interface ManagedPayoutDestination {

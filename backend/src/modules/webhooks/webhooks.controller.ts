@@ -81,7 +81,7 @@ export class WebhooksController {
   async managedPayments(
     @Param('tenantId') tenantId: string,
     @Req() req: RawBodyRequest<Request>,
-    @Body() body: { event?: string; id?: string; collection?: { reference?: string }; account?: { id?: string; status?: ManagedAccountStatus } },
+    @Body() body: { event?: string; id?: string; collection?: { reference?: string }; account?: { id?: string; status?: ManagedAccountStatus; reason?: string; fee?: { type: 'percentage' | 'flat'; value: number } } },
     @Headers('x-managed-signature') signature?: string,
   ) {
     const config = managedConfig();
@@ -93,7 +93,7 @@ export class WebhooksController {
 
     if (body.account?.id && body.account.status) {
       if ((await this.managed.accountId(db)) !== body.account.id) return { status: 'ignored' };
-      await this.managed.sync(db, { id: body.account.id, status: body.account.status });
+      await this.managed.sync(db, { id: body.account.id, status: body.account.status, reason: body.account.reason, fee: body.account.fee }, tenantId);
       return { status: 'ok' };
     }
     const reference = body.collection?.reference;
