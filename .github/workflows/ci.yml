@@ -218,6 +218,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Compose requires these; the stack is thrown away after the run.
+      - name: Create throwaway secrets
+        run: |
+          {
+            echo "CENTRAL_DB_PASSWORD=$(openssl rand -hex 16)"
+            echo "TENANT_DB_PASSWORD=$(openssl rand -hex 16)"
+            echo "JWT_SECRET=$(openssl rand -hex 32)"
+            echo "JWT_REFRESH_SECRET=$(openssl rand -hex 32)"
+            echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
+          } > .env
+
       - name: Start services
         run: docker compose up -d --build --wait
         timeout-minutes: 10
