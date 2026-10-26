@@ -52,6 +52,8 @@ export interface ManagedAccount {
   reason?: string;
   /** When billing saw the status change (returned by GET /money/managed). */
   statusChangedAt?: string;
+  /** Payment methods the merchant's customers can use through managed payments. */
+  methods?: ('card' | 'mobile_money' | 'paypal')[];
 }
 
 export interface ManagedPayoutDestination {
