@@ -229,8 +229,13 @@ jobs:
             echo "ENCRYPTION_KEY=$(openssl rand -hex 32)"
           } > .env
 
+      # The API first: containers that mount a new volume together race to
+      # fill it from the image ("mkdir .../uploads/_data/invoices: file exists").
       - name: Start services
-        run: docker compose up -d --build --wait
+        run: |
+          docker compose build
+          docker compose up -d --wait api
+          docker compose up -d --wait
         timeout-minutes: 10
 
       - uses: actions/setup-node@v4

@@ -518,7 +518,7 @@ export class WebhooksController {
       if (moved.count === 0) return { won: false, invoicePaid: false, partial: null };
       if (!succeeded) return { won: true, invoicePaid: false, partial: null };
       // A deposit or instalment leaves the invoice open; the payment that completes it marks it paid.
-      const applied = await applyPayment(tx, payment.invoiceId, payment.amount);
+      const applied = await applyPayment(tx, payment.invoiceId, payment.amount, new Date(), payment.id);
       return { won: true, invoicePaid: applied.paid, partial: applied.applied && !applied.paid ? applied : null };
     });
 

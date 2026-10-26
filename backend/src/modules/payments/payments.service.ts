@@ -14,7 +14,7 @@ import { PdfService } from '../../services/pdf.service';
 import { PaymentQueryDto } from './dto/payment-query.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { applyPayment } from '../invoices/apply-payment';
+import { applyPayment, isUnapplied, unapplyRefund } from '../invoices/apply-payment';
 import {
   EMAIL_QUEUE,
   WEBHOOK_QUEUE,
@@ -115,7 +115,7 @@ export class PaymentsService {
         include: { invoice: { include: { customer: true } } },
       });
       if (dto.status === 'SUCCEEDED') {
-        await applyPayment(tx, dto.invoiceId, dto.amount, paidAt);
+        await applyPayment(tx, dto.invoiceId, dto.amount, paidAt, created.id);
       }
       return created;
     });
@@ -159,20 +159,25 @@ export class PaymentsService {
 
     const providerRefund = await this.refundAtProvider(db, payment, refundAmount, dto.recordOnly);
 
-    const updatedPayment = await db.payment.update({
-      where: { id },
-      data: {
-        status: 'REFUNDED',
-        metadata: {
-          ...(payment.metadata as Record<string, unknown> || {}),
-          refundAmount,
-          refundReason: dto.reason,
-          refundedAt: new Date().toISOString(),
-          refundMode: providerRefund ? 'provider' : 'recorded',
-          ...(providerRefund?.refundId && { providerRefundId: providerRefund.refundId }),
+    // The payment is refunded once, and what it paid comes off its invoice in the same step.
+    const updatedPayment = await db.$transaction(async (tx) => {
+      const moved = await tx.payment.updateMany({
+        where: { id, status: 'SUCCEEDED' },
+        data: {
+          status: 'REFUNDED',
+          metadata: {
+            ...(payment.metadata as Record<string, unknown> || {}),
+            refundAmount,
+            refundReason: dto.reason,
+            refundedAt: new Date().toISOString(),
+            refundMode: providerRefund ? 'provider' : 'recorded',
+            ...(providerRefund?.refundId && { providerRefundId: providerRefund.refundId }),
+          },
         },
-      },
-      include: { invoice: { include: { customer: true } } },
+      });
+      if (moved.count === 0) throw new BadRequestException('This payment was refunded meanwhile');
+      if (!isUnapplied(payment)) await unapplyRefund(tx, payment.invoiceId, refundAmount);
+      return tx.payment.findUniqueOrThrow({ where: { id }, include: { invoice: { include: { customer: true } } } });
     });
 
     // Email customer about refund

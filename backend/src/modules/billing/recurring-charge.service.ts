@@ -112,7 +112,7 @@ export class RecurringChargeService {
           where: { id: payment.id, status: 'PROCESSING' },
           data: { status: 'SUCCEEDED', providerTransactionId: result.transactionId },
         });
-        const applied = await applyPayment(tx, invoiceId, amountDue(invoice));
+        const applied = await applyPayment(tx, invoiceId, amountDue(invoice), new Date(), payment.id);
         return { paid: applied.paid };
       });
       if (!paid) {
