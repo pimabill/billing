@@ -57,7 +57,7 @@
     "helmet": "^8.0.0",
     "ioredis": "^5.4.2",
     "joi": "^17.13.3",
-    "nodemailer": "^8.0.1",
+    "nodemailer": "^10.2.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pdfkit": "^0.15.1",
@@ -124,6 +124,14 @@
     "testEnvironment": "node",
     "moduleNameMapper": {
       "^@/(.*)$": "<rootDir>/src/$1"
+    }
+  },
+  "overrides": {
+    "@nestjs/platform-express": {
+      "multer": "^2.5.0"
+    },
+    "@nestjs/swagger": {
+      "js-yaml": "^5.4.1"
     }
   }
 }

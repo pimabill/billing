@@ -18,6 +18,10 @@ env:
   AWS_REGION: us-east-1
   ECS_CLUSTER: novabilling
 
+# Least privilege: jobs that need more ask for it themselves.
+permissions:
+  contents: read
+
 jobs:
   guard:
     name: Deployment Guard

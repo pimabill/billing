@@ -586,10 +586,19 @@ Powered by <span style="color:${accentColor};font-weight:600;">${getBrand().name
     return this.wrapInLayout(html, context);
   }
 
+  /**
+   * The plain-text part of an email: everything outside tags, in one linear
+   * pass (no regular expression to backtrack, and a nested `<<b>script>`
+   * leaves no tag behind), then whitespace collapsed.
+   */
   private stripHtml(html: string): string {
-    return html
-      .replace(/<[^>]*>/g, '')
-      .replace(/\s+/g, ' ')
-      .trim();
+    let text = '';
+    let depth = 0;
+    for (const ch of html) {
+      if (ch === '<') depth++;
+      else if (ch === '>') depth = Math.max(0, depth - 1);
+      else if (depth === 0) text += ch;
+    }
+    return text.split(/\s+/).filter(Boolean).join(' ');
   }
 }
