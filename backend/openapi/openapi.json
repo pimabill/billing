@@ -948,6 +948,41 @@
         },
         "type": "object"
       },
+      "ConfiguredPaymentProviderResponse": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "id": {
+            "example": "clx1234567890",
+            "type": "string"
+          },
+          "isActive": {
+            "example": true,
+            "type": "boolean"
+          },
+          "priority": {
+            "example": 1,
+            "type": "integer"
+          },
+          "providerName": {
+            "example": "paystack",
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "providerName",
+          "isActive",
+          "priority",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object"
+      },
       "CouponResponse": {
         "properties": {
           "appliesToPlanIds": {
@@ -4657,6 +4692,72 @@
           "isDefault",
           "createdAt",
           "updatedAt"
+        ],
+        "type": "object"
+      },
+      "PaymentProviderDetailResponse": {
+        "properties": {
+          "createdAt": {
+            "type": "string"
+          },
+          "description": {
+            "nullable": true,
+            "type": "string"
+          },
+          "environment": {
+            "description": "Which environment the saved credentials are for, when it can be told",
+            "enum": [
+              "live",
+              "sandbox"
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "example": "clx1234567890",
+            "type": "string"
+          },
+          "isActive": {
+            "example": true,
+            "type": "boolean"
+          },
+          "isConfigured": {
+            "example": true,
+            "type": "boolean"
+          },
+          "name": {
+            "example": "Paystack",
+            "type": "string"
+          },
+          "priority": {
+            "example": 1,
+            "type": "integer"
+          },
+          "providerName": {
+            "example": "paystack",
+            "type": "string"
+          },
+          "updatedAt": {
+            "type": "string"
+          },
+          "webhookUrl": {
+            "description": "Where the provider should send notifications; null when it sends none",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "providerName",
+          "isActive",
+          "priority",
+          "createdAt",
+          "updatedAt",
+          "name",
+          "description",
+          "isConfigured",
+          "environment",
+          "webhookUrl"
         ],
         "type": "object"
       },
@@ -11929,7 +12030,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentProviderResponse"
+                  "$ref": "#/components/schemas/ConfiguredPaymentProviderResponse"
                 }
               }
             },
@@ -11970,7 +12071,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentProviderResponse"
+                  "$ref": "#/components/schemas/ConfiguredPaymentProviderResponse"
                 }
               }
             },
@@ -12009,7 +12110,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentProviderResponse"
+                  "$ref": "#/components/schemas/PaymentProviderDetailResponse"
                 }
               }
             },
@@ -12058,7 +12159,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PaymentProviderResponse"
+                  "$ref": "#/components/schemas/ConfiguredPaymentProviderResponse"
                 }
               }
             },
