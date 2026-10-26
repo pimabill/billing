@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowDownLeft,
+  Banknote,
   ArrowRight,
   Check,
   CreditCard,
@@ -29,6 +30,7 @@ import { moneyApi, type ManagedAccount } from "@/lib/api/money";
 import { planApi, type PlanStatus } from "@/lib/api/plan";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatRelativeTime } from "@/lib/utils/date";
+import { ChargeDialog } from "@/components/charge-dialog";
 import type { ActivityEvent, PaymentProvider, RevenueData } from "@/types";
 
 interface Overview {
@@ -71,6 +73,7 @@ const usageRows: [keyof PlanStatus["usage"], string][] = [
 
 export default function DashboardPage() {
   const [data, setData] = useState<Overview | null>(null);
+  const [charging, setCharging] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -155,11 +158,9 @@ export default function DashboardPage() {
               Collect a payment
             </Link>
           </Button>
-          <Button asChild size="sm">
-            <Link href="/invoices">
-              <Receipt className="mr-2 h-4 w-4" aria-hidden />
-              Invoices
-            </Link>
+          <Button size="sm" onClick={() => setCharging(true)}>
+            <Banknote className="mr-2 h-4 w-4" aria-hidden />
+            Charge a customer
           </Button>
         </div>
       </div>
@@ -378,6 +379,7 @@ export default function DashboardPage() {
           )}
         </CardContent>
       </Card>
+      <ChargeDialog open={charging} onOpenChange={setCharging} />
     </div>
   );
 }

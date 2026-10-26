@@ -60,6 +60,7 @@ export class InvoicesService {
     const where: Record<string, unknown> = {};
     if (query.status) where.status = query.status;
     if (query.customerId) where.customerId = query.customerId;
+    if (query.subscriptionId) where.subscriptionId = query.subscriptionId;
     if (query.dateFrom || query.dateTo) {
       where.createdAt = {
         ...(query.dateFrom && { gte: new Date(query.dateFrom) }),

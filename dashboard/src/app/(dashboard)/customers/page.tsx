@@ -26,9 +26,11 @@ import { Badge } from "@/components/ui/badge";
 import type { Customer, PaymentMethod } from "@/types";
 import { toast } from "sonner";
 import { useCan } from "@/lib/permissions";
+import { ChargeDialog } from "@/components/charge-dialog";
 import { BrandMark } from "@/components/brand-mark";
 
 export default function CustomersPage() {
+  const [charging, setCharging] = useState<Customer | null>(null);
   const canWrite = useCan("billing.write");
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -249,6 +251,7 @@ export default function CustomersPage() {
             onEdit={canWrite ? openEditDialog : undefined}
             onDelete={canWrite ? handleDelete : undefined}
             onViewPaymentMethods={openPaymentMethods}
+            onCharge={canWrite ? (c) => setCharging(c) : undefined}
           />
 
           {/* Pagination */}
@@ -449,6 +452,7 @@ export default function CustomersPage() {
           </div>
         </DialogContent>
       </Dialog>
+      <ChargeDialog open={Boolean(charging)} onOpenChange={(v) => !v && setCharging(null)} customer={charging} />
     </div>
   );
 }

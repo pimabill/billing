@@ -10,6 +10,19 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { InvoiceItemDto } from './invoice-item.dto';
 
+/** Ask for a payment link in the same call: a one-time charge in one request. */
+export class InvoiceCheckoutOptionsDto {
+  @ApiProperty({ required: false, example: 'https://shop.example.com/paid', description: 'Where the customer returns after paying' })
+  @IsOptional()
+  @IsString()
+  callbackUrl?: string;
+
+  @ApiProperty({ required: false, example: 'flutterwave', description: 'A specific active provider; otherwise the highest-priority one that can take it' })
+  @IsOptional()
+  @IsString()
+  providerName?: string;
+}
+
 export class CreateInvoiceDto {
   @ApiProperty({ description: 'Customer ID' })
   @IsString()
@@ -57,4 +70,14 @@ export class CreateInvoiceDto {
   @IsOptional()
   @IsDateString()
   createdAt?: string;
+
+  @ApiProperty({
+    required: false,
+    type: InvoiceCheckoutOptionsDto,
+    description: 'Also create a payment link: the response then includes `checkout` with the URL to send the customer',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => InvoiceCheckoutOptionsDto)
+  checkout?: InvoiceCheckoutOptionsDto;
 }
