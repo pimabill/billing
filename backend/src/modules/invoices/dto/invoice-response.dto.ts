@@ -42,6 +42,9 @@ export class InvoiceResponse {
   @ApiProperty({ example: '99.9900', description: 'Decimal amount as string' })
   amount: string;
 
+  @ApiProperty({ example: '0.0000', description: 'Paid so far, as a decimal string. Below amount while a deposit or instalments are being paid.' })
+  amountPaid: string;
+
   @ApiProperty({ example: 'USD' })
   currency: string;
 

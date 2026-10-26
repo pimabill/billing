@@ -13,6 +13,7 @@ import { nextInvoiceNumber } from '../billing/invoice-number';
 import { dec, Dec, roundMoney } from '../billing/pricing';
 import { isSandbox } from '../../config/sandbox';
 import { assertKnownCurrency } from '../../common/utils/currency.utils';
+import { amountDue, applyPayment } from './apply-payment';
 import {
   EMAIL_QUEUE,
   WEBHOOK_QUEUE,
@@ -112,8 +113,9 @@ export class InvoicesService {
     }
 
     const currency = dto.currency ? await assertKnownCurrency(db, dto.currency) : customer.currency;
+    const items = await this.resolveItems(db, dto.items, currency);
     const totalAmount = roundMoney(
-      dto.items.reduce((sum, item) => sum.add(dec(item.quantity).mul(dec(item.unitAmount))), new Dec(0)),
+      items.reduce((sum, item) => sum.add(dec(item.quantity).mul(dec(item.unitAmount))), new Dec(0)),
       currency,
     );
     if (dto.invoiceNumber && (await db.invoice.findUnique({ where: { invoiceNumber: dto.invoiceNumber }, select: { id: true } }))) {
@@ -129,8 +131,9 @@ export class InvoicesService {
         amount: totalAmount,
         currency,
         dueDate: new Date(dto.dueDate),
-        metadata: { items: dto.items } as any,
+        metadata: { items } as any,
         ...(dto.status && { status: dto.status }),
+        ...(dto.status === 'PAID' && { amountPaid: totalAmount }),
         ...(dto.paidAt && { paidAt: new Date(dto.paidAt) }),
         ...(dto.createdAt && { createdAt: new Date(dto.createdAt) }),
       },
@@ -149,7 +152,7 @@ export class InvoicesService {
           status: invoice.status,
           dueDate: new Date(dto.dueDate),
           createdAt: invoice.createdAt,
-          metadata: { items: dto.items },
+          metadata: { items },
         },
         {
           name: customer.name,
@@ -174,6 +177,27 @@ export class InvoicesService {
     }
 
     return invoice;
+  }
+
+  /** Fill add-on items from the catalogue: the add-on's name and its price in the invoice currency. */
+  private async resolveItems(db: PrismaClient, items: CreateInvoiceDto['items'], currency: string) {
+    const codes = [...new Set(items.filter((i) => i.addOnCode).map((i) => i.addOnCode!))];
+    if (codes.length === 0) return items;
+    const addOns = await db.addOn.findMany({ where: { code: { in: codes } }, include: { prices: true } });
+    return items.map((item) => {
+      if (!item.addOnCode) return item;
+      const addOn = addOns.find((a) => a.code === item.addOnCode);
+      if (!addOn) throw new BadRequestException(`Add-on ${item.addOnCode} not found`);
+      const price = addOn.prices.find((p) => p.currency === currency);
+      if (item.unitAmount === undefined && !price) {
+        throw new BadRequestException(`Add-on ${item.addOnCode} has no ${currency} price`);
+      }
+      return {
+        ...item,
+        description: item.description ?? addOn.invoiceDisplayName ?? addOn.name,
+        unitAmount: item.unitAmount ?? Number(price!.amount),
+      };
+    });
   }
 
   async finalize(db: PrismaClient, tenantId: string, id: string) {
@@ -302,7 +326,8 @@ export class InvoicesService {
     return updated;
   }
 
-  async markPaid(db: PrismaClient, tenantId: string, id: string, paymentMethod?: string) {
+  /** Record a payment taken outside PimaBill: all that is left, or `amount` (a deposit or an instalment). */
+  async markPaid(db: PrismaClient, tenantId: string, id: string, paymentMethod?: string, amount?: number) {
     const invoice = await db.invoice.findUnique({
       where: { id },
       include: { customer: true },
@@ -320,19 +345,38 @@ export class InvoicesService {
 
     const now = new Date();
     const provider = paymentMethod || 'manual';
+    const due = amountDue(invoice);
+    const paying = amount !== undefined ? roundMoney(dec(amount), invoice.currency) : due;
+    if (paying.lte(0)) throw new BadRequestException('The amount must be above zero');
+    if (paying.gt(due)) throw new BadRequestException(`Only ${due.toString()} ${invoice.currency} is left to pay on this invoice`);
 
     // Invoice and payment record change together, and only from an unpaid state.
-    const updatedInvoice = await db.$transaction(async (tx) => {
-      const moved = await tx.invoice.updateMany({
-        where: { id, status: { in: ['DRAFT', 'PENDING', 'FAILED'] } },
-        data: { status: 'PAID', paidAt: now },
-      });
-      if (moved.count === 0) throw new BadRequestException('Invoice changed meanwhile; reload and try again');
+    const { updatedInvoice, applied } = await db.$transaction(async (tx) => {
+      const applied = await applyPayment(tx, id, paying, now);
+      if (!applied.applied) throw new BadRequestException('Invoice changed meanwhile; reload and try again');
       await tx.payment.create({
-        data: { invoiceId: id, provider, amount: invoice.amount, currency: invoice.currency, status: 'SUCCEEDED' },
+        data: { invoiceId: id, provider, amount: paying, currency: invoice.currency, status: 'SUCCEEDED' },
       });
-      return tx.invoice.findUniqueOrThrow({ where: { id }, include: { customer: true } });
+      return { updatedInvoice: await tx.invoice.findUniqueOrThrow({ where: { id }, include: { customer: true } }), applied };
     });
+    if (!applied.paid) {
+      // A deposit or instalment: the invoice stays open for the rest.
+      await this.webhookQueue.add(WebhookJobType.SEND_WEBHOOK, {
+        tenantId,
+        event: 'invoice.partially_paid',
+        payload: {
+          invoiceId: id,
+          invoiceNumber: invoice.invoiceNumber,
+          amount: Number(paying),
+          amountPaid: Number(applied.amountPaid),
+          amountDue: Number(applied.amount.sub(applied.amountPaid)),
+          total: Number(applied.amount),
+          currency: invoice.currency,
+          provider,
+        },
+      });
+      return updatedInvoice;
+    }
     await db.paymentRetry.updateMany({ where: { invoiceId: id, status: { in: ['PENDING', 'PROCESSING'] } }, data: { status: 'SUCCESS' } });
 
     // Email customer
@@ -464,7 +508,11 @@ export class InvoicesService {
     return { message: `Invoice email queued for ${email}` };
   }
 
-  async createCheckout(db: PrismaClient, id: string, callbackUrl?: string, providerName?: string, tenantId?: string) {
+  /**
+   * A payment link for the invoice: for what is left to pay, or for `amount`
+   * (a deposit or an instalment), which must not be more than what is left.
+   */
+  async createCheckout(db: PrismaClient, id: string, callbackUrl?: string, providerName?: string, tenantId?: string, amount?: number) {
     const invoice = await db.invoice.findUnique({
       where: { id },
       include: { customer: true },
@@ -484,6 +532,11 @@ export class InvoicesService {
     if (dec(invoice.amount).lte(0)) {
       throw new BadRequestException('Nothing to pay on this invoice');
     }
+    const due = amountDue(invoice);
+    if (due.lte(0)) throw new BadRequestException('Nothing is left to pay on this invoice');
+    const charge = amount !== undefined ? roundMoney(dec(amount), invoice.currency) : due;
+    if (charge.lte(0)) throw new BadRequestException('The amount must be above zero');
+    if (charge.gt(due)) throw new BadRequestException(`Only ${due.toString()} ${invoice.currency} is left to pay on this invoice`);
 
     // The requested provider, or every active one in priority order: when one cannot start a
     // checkout (a revoked key, an outage) the next is tried, managed payments last.
@@ -516,7 +569,7 @@ export class InvoicesService {
         data: {
           invoiceId: id,
           provider: providerConfig.providerName,
-          amount: invoice.amount,
+          amount: charge,
           currency: invoice.currency,
           status: 'PROCESSING',
         },
@@ -526,7 +579,7 @@ export class InvoicesService {
       // failure here is safe to follow with the next provider.
       const result = await provider
         .charge({
-          amount: Number(invoice.amount),
+          amount: Number(charge),
           currency: invoice.currency,
           email: invoice.customer.email,
           customerName: invoice.customer.name ?? undefined,

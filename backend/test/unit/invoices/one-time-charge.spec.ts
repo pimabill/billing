@@ -12,7 +12,7 @@ describe('one-time charge', () => {
   it('creates the invoice and its payment link in one call', async () => {
     const out = await controller.create({} as never, { id: 'ten_1' }, { ...body, checkout: { callbackUrl: 'https://shop.example/paid' } } as never);
     expect(service.create).toHaveBeenCalledWith({}, 'ten_1', body);
-    expect(service.createCheckout).toHaveBeenCalledWith({}, 'inv_1', 'https://shop.example/paid', undefined, 'ten_1');
+    expect(service.createCheckout).toHaveBeenCalledWith({}, 'inv_1', 'https://shop.example/paid', undefined, 'ten_1', undefined);
     expect(out).toEqual({ ...invoice, checkout: link });
   });
 

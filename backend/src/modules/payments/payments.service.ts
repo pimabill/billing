@@ -14,6 +14,7 @@ import { PdfService } from '../../services/pdf.service';
 import { PaymentQueryDto } from './dto/payment-query.dto';
 import { RefundPaymentDto } from './dto/refund-payment.dto';
 import { CreatePaymentDto } from './dto/create-payment.dto';
+import { applyPayment } from '../invoices/apply-payment';
 import {
   EMAIL_QUEUE,
   WEBHOOK_QUEUE,
@@ -96,10 +97,11 @@ export class PaymentsService {
       throw new NotFoundException('Invoice not found');
     }
 
-    const markPaid = dto.status === 'SUCCEEDED' && invoice.status !== 'PAID';
-    // Payment and invoice change together or not at all.
-    const [payment] = await db.$transaction([
-      db.payment.create({
+    const paidAt = dto.createdAt ? new Date(dto.createdAt) : new Date();
+    // Payment and invoice change together or not at all. A succeeded payment
+    // counts toward the invoice; it is paid once the payments cover it.
+    const payment = await db.$transaction(async (tx) => {
+      const created = await tx.payment.create({
         data: {
           invoiceId: dto.invoiceId,
           provider: dto.provider,
@@ -108,19 +110,15 @@ export class PaymentsService {
           status: dto.status,
           providerTransactionId: dto.providerTransactionId,
           failureReason: dto.failureReason,
-          ...(dto.createdAt && { createdAt: new Date(dto.createdAt) }),
+          ...(dto.createdAt && { createdAt: paidAt }),
         },
         include: { invoice: { include: { customer: true } } },
-      }),
-      ...(markPaid
-        ? [
-            db.invoice.update({
-              where: { id: dto.invoiceId },
-              data: { status: 'PAID', paidAt: dto.createdAt ? new Date(dto.createdAt) : new Date() },
-            }),
-          ]
-        : []),
-    ]);
+      });
+      if (dto.status === 'SUCCEEDED') {
+        await applyPayment(tx, dto.invoiceId, dto.amount, paidAt);
+      }
+      return created;
+    });
 
     // Webhook
     await this.webhookQueue.add(WebhookJobType.SEND_WEBHOOK, {

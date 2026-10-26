@@ -7,6 +7,7 @@ import { EncryptionService } from '../../services/encryption.service';
 import { PdfService } from '../../services/pdf.service';
 import { ProviderFactory } from '../../providers/provider.factory';
 import { EMAIL_QUEUE, WEBHOOK_QUEUE, EmailJobType, WebhookJobType } from '../../queues/billing.queue';
+import { amountDue, applyPayment } from '../invoices/apply-payment';
 import { dec } from './pricing';
 
 export type ChargeOutcome =
@@ -70,7 +71,7 @@ export class RecurringChargeService {
       data: {
         invoiceId,
         provider: providerConfig.providerName,
-        amount: invoice.amount,
+        amount: amountDue(invoice),
         currency: invoice.currency,
         status: 'PROCESSING',
         metadata: { source, paymentMethodId },
@@ -79,7 +80,7 @@ export class RecurringChargeService {
 
     const result = await provider.chargePaymentMethod({
       paymentMethodId: paymentMethod.tokenId,
-      amount: Number(invoice.amount),
+      amount: Number(amountDue(invoice)),
       currency: invoice.currency,
       // A new reference per attempt: providers refuse a reused one.
       reference: payment.id,
@@ -98,7 +99,7 @@ export class RecurringChargeService {
       paymentId: payment.id,
       invoiceId,
       subscriptionId: invoice.subscriptionId,
-      amount: Number(invoice.amount),
+      amount: Number(amountDue(invoice)),
       currency: invoice.currency,
       provider: providerConfig.providerName,
       automatic: true,
@@ -111,11 +112,8 @@ export class RecurringChargeService {
           where: { id: payment.id, status: 'PROCESSING' },
           data: { status: 'SUCCEEDED', providerTransactionId: result.transactionId },
         });
-        const moved = await tx.invoice.updateMany({
-          where: { id: invoiceId, status: { in: ['PENDING', 'FAILED'] } },
-          data: { status: 'PAID', paidAt: new Date() },
-        });
-        return { paid: moved.count > 0 };
+        const applied = await applyPayment(tx, invoiceId, amountDue(invoice));
+        return { paid: applied.paid };
       });
       if (!paid) {
         // Paid by other means while this charge ran: flag the extra payment for refund.

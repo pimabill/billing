@@ -82,6 +82,8 @@ export interface Invoice {
   customerEmail?: string;
   subscriptionId?: string;
   amount: number;
+  /** Paid so far: below amount while a deposit or instalments are being paid. */
+  amountPaid: number;
   currency: string;
   status: "draft" | "pending" | "paid" | "failed" | "canceled";
   dueDate: string;

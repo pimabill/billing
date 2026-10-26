@@ -169,6 +169,7 @@ function mapInvoice(inv: any): Invoice {
     customerEmail: inv.customer?.email || undefined,
     subscriptionId: inv.subscriptionId || undefined,
     amount: total,
+    amountPaid: Number(inv.amountPaid) || 0,
     currency: inv.currency || "USD",
     status: (inv.status || "PENDING").toLowerCase() as Invoice["status"],
     dueDate: inv.dueDate,
@@ -648,10 +649,10 @@ export const apiClient = {
       return mapInvoice(result);
     },
 
-    async markPaid(id: string, paymentMethod?: string): Promise<Invoice> {
+    async markPaid(id: string, paymentMethod?: string, amount?: number): Promise<Invoice> {
       const result = await apiFetch<any>(`/invoices/${id}/mark-paid`, {
         method: "POST",
-        body: JSON.stringify({ paymentMethod: paymentMethod || "manual" }),
+        body: JSON.stringify({ paymentMethod: paymentMethod || "manual", ...(amount ? { amount } : {}) }),
       });
       return mapInvoice(result);
     },

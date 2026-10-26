@@ -5,6 +5,8 @@ import {
   IsArray,
   IsDateString,
   ValidateNested,
+  IsNumber,
+  Min,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -21,6 +23,11 @@ export class InvoiceCheckoutOptionsDto {
   @IsOptional()
   @IsString()
   providerName?: string;
+  @ApiProperty({ required: false, example: 50, description: 'Charge part of the invoice now, such as a deposit; the rest can be paid later' })
+  @IsOptional()
+  @IsNumber()
+  @Min(0.01)
+  amount?: number;
 }
 
 export class CreateInvoiceDto {
