@@ -43,6 +43,7 @@ import { formatDate, isOverdue } from "@/lib/utils/date";
 import type { Invoice, Customer, PaymentProvider } from "@/types";
 import { toast } from "sonner";
 import { useCan } from "@/lib/permissions";
+import { ChargeDialog } from "@/components/charge-dialog";
 import { BrandMark } from "@/components/brand-mark";
 
 const statusColors = {
@@ -60,6 +61,7 @@ interface LineItemForm {
 }
 
 export default function InvoicesPage() {
+  const [charging, setCharging] = useState(false);
   const canWrite = useCan("billing.write");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -319,10 +321,15 @@ export default function InvoicesPage() {
           )}
         </div>
         {canWrite && (
+          <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setCharging(true)}>
+            Charge a customer
+          </Button>
           <Button onClick={openCreateDialog}>
             <Plus className="mr-2 h-4 w-4" />
             Create Invoice
           </Button>
+          </div>
         )}
       </div>
 
@@ -793,6 +800,7 @@ export default function InvoicesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ChargeDialog open={charging} onOpenChange={setCharging} onDone={() => loadInvoices()} />
     </div>
   );
 }

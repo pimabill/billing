@@ -1543,6 +1543,14 @@
       },
       "CreateInvoiceDto": {
         "properties": {
+          "checkout": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InvoiceCheckoutOptionsDto"
+              }
+            ],
+            "description": "Also create a payment link: the response then includes `checkout` with the URL to send the customer"
+          },
           "createdAt": {
             "description": "Backdate createdAt (ISO 8601). For data imports.",
             "type": "string"
@@ -2618,6 +2626,21 @@
         ],
         "type": "object"
       },
+      "InvoiceCheckoutOptionsDto": {
+        "properties": {
+          "callbackUrl": {
+            "description": "Where the customer returns after paying",
+            "example": "https://shop.example.com/paid",
+            "type": "string"
+          },
+          "providerName": {
+            "description": "A specific active provider; otherwise the highest-priority one that can take it",
+            "example": "flutterwave",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "InvoiceCustomerResponse": {
         "properties": {
           "email": {
@@ -2668,6 +2691,14 @@
             "description": "Decimal amount as string",
             "example": "99.9900",
             "type": "string"
+          },
+          "checkout": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CheckoutResponse"
+              }
+            ],
+            "description": "The payment link, when the invoice was created with `checkout`"
           },
           "createdAt": {
             "type": "string"
@@ -3487,7 +3518,8 @@
                 "$ref": "#/components/schemas/ManagedAccountResponse"
               }
             ],
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "available": {
             "description": "Whether managed payments are offered on this installation",
@@ -3726,7 +3758,8 @@
               }
             ],
             "description": "Or show the payer these instructions",
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "paymentUrl": {
             "description": "Send the payer here to finish a hosted payment",
@@ -10562,6 +10595,15 @@
             }
           },
           {
+            "description": "Only invoices of this subscription, e.g. to find the first one after subscribing",
+            "in": "query",
+            "name": "subscriptionId",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "in": "query",
             "name": "dateFrom",
             "required": false,
@@ -10622,7 +10664,7 @@
         ]
       },
       "post": {
-        "description": "Create a draft invoice with line items. The total amount is automatically calculated from the items.",
+        "description": "Create a draft invoice with line items. The total amount is automatically calculated from the items. For a one-time charge, add `checkout: {}`: the response includes `checkout.checkoutUrl`, a payment link for the customer.",
         "operationId": "InvoicesController_create",
         "parameters": [],
         "requestBody": {

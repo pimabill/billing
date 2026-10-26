@@ -56,7 +56,8 @@ export class InvoicesController {
   @ApiOperation({
     summary: 'Create a new invoice',
     description:
-      'Create a draft invoice with line items. The total amount is automatically calculated from the items.',
+      'Create a draft invoice with line items. The total amount is automatically calculated from the items. ' +
+      'For a one-time charge, add `checkout: {}`: the response includes `checkout.checkoutUrl`, a payment link for the customer.',
   })
   @ApiResponse({ status: 201, description: 'Invoice created in draft status', type: InvoiceResponse })
   @ApiResponse({ status: 404, description: 'Customer not found' })
@@ -65,7 +66,12 @@ export class InvoicesController {
     @Tenant() tenant: { id: string },
     @Body() dto: CreateInvoiceDto,
   ) {
-    return this.invoicesService.create(db, tenant.id, dto);
+    const { checkout, ...fields } = dto;
+    const invoice = await this.invoicesService.create(db, tenant.id, fields as CreateInvoiceDto);
+    if (!checkout) return invoice;
+    // A one-time charge: the invoice and the link to pay it, in one call.
+    const link = await this.invoicesService.createCheckout(db, (invoice as { id: string }).id, checkout.callbackUrl, checkout.providerName, tenant.id);
+    return { ...invoice, checkout: link };
   }
 
   @Post(':id/finalize')

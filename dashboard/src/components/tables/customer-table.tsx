@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Edit, Trash2, CreditCard } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, CreditCard, Banknote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -21,10 +21,12 @@ interface CustomerTableProps {
   onEdit?: (customer: Customer) => void;
   onDelete?: (customer: Customer) => void;
   onViewPaymentMethods?: (customer: Customer) => void;
+  /** Charge this customer once, or subscribe them to a plan. */
+  onCharge?: (customer: Customer) => void;
 }
 
-export function CustomerTable({ customers, onEdit, onDelete, onViewPaymentMethods }: CustomerTableProps) {
-  const hasActions = Boolean(onEdit || onDelete || onViewPaymentMethods);
+export function CustomerTable({ customers, onEdit, onDelete, onViewPaymentMethods, onCharge }: CustomerTableProps) {
+  const hasActions = Boolean(onEdit || onDelete || onViewPaymentMethods || onCharge);
   return (
     <div className="rounded-md border border-border overflow-hidden">
       <div className="overflow-x-auto">
@@ -93,6 +95,12 @@ export function CustomerTable({ customers, onEdit, onDelete, onViewPaymentMethod
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        {onCharge && (
+                          <DropdownMenuItem onClick={() => onCharge(customer)}>
+                            <Banknote className="mr-2 h-4 w-4" />
+                            Charge
+                          </DropdownMenuItem>
+                        )}
                         {onEdit && (
                           <DropdownMenuItem onClick={() => onEdit(customer)}>
                             <Edit className="mr-2 h-4 w-4" />
