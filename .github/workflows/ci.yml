@@ -10,6 +10,10 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege: jobs that need more ask for it themselves.
+permissions:
+  contents: read
+
 jobs:
   # ──────────────────────────────────────────────
   # Backend: lint, type-check, unit tests

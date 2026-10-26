@@ -586,9 +586,16 @@ Powered by <span style="color:${accentColor};font-weight:600;">${getBrand().name
     return this.wrapInLayout(html, context);
   }
 
+  /** The plain-text part of an email: tags removed until none are left (so `<<b>script>` cannot survive), then any stray brackets. */
   private stripHtml(html: string): string {
-    return html
-      .replace(/<[^>]*>/g, '')
+    let text = html;
+    let previous: string;
+    do {
+      previous = text;
+      text = text.replace(/<[^<>]*>/g, '');
+    } while (text !== previous);
+    return text
+      .replace(/[<>]/g, '')
       .replace(/\s+/g, ' ')
       .trim();
   }
