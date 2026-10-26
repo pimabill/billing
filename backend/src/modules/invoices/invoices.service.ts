@@ -12,6 +12,7 @@ import { WalletsService } from '../wallets/wallets.service';
 import { nextInvoiceNumber } from '../billing/invoice-number';
 import { dec, Dec, roundMoney } from '../billing/pricing';
 import { isSandbox } from '../../config/sandbox';
+import { assertKnownCurrency } from '../../common/utils/currency.utils';
 import {
   EMAIL_QUEUE,
   WEBHOOK_QUEUE,
@@ -109,7 +110,7 @@ export class InvoicesService {
       throw new NotFoundException('Customer not found');
     }
 
-    const currency = dto.currency?.toUpperCase() || customer.currency;
+    const currency = dto.currency ? await assertKnownCurrency(db, dto.currency) : customer.currency;
     const totalAmount = roundMoney(
       dto.items.reduce((sum, item) => sum.add(dec(item.quantity).mul(dec(item.unitAmount))), new Dec(0)),
       currency,

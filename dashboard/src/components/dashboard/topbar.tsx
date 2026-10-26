@@ -45,7 +45,8 @@ export function Topbar() {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
+      {/* Actions sit at the far right, apart from search. */}
+      <div className="ml-auto flex items-center gap-2">
         <PlanPill />
         <NotificationsDropdown />
 
@@ -54,6 +55,7 @@ export function Topbar() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label={theme === "dark" ? "Use light theme" : "Use dark theme"}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (

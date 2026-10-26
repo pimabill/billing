@@ -96,3 +96,48 @@ h3 {
   .pima-animated .pima-high { animation: none; }
   .pima-animated .pima-low { animation-duration: 2.4s; }
 }
+
+/* Night: the deep ledger-green ground of the hero, header and feature bands. */
+:root {
+  --night: #051413;
+  --night-2: #0a2321;
+  --night-line: rgba(255, 255, 255, 0.09);
+  --night-ink: #e9f3f1;
+  --night-ink-2: #9fb7b3;
+  --glow: #1fc4b4;
+}
+
+@theme inline {
+  --color-night: var(--night);
+  --color-night-2: var(--night-2);
+  --color-night-line: var(--night-line);
+  --color-night-ink: var(--night-ink);
+  --color-night-ink-2: var(--night-ink-2);
+  --color-glow: var(--glow);
+}
+
+/* Soft light from the top corners, over a faint ledger grid. */
+.bg-aurora {
+  background-color: var(--night);
+  background-image:
+    radial-gradient(60rem 30rem at 15% -10%, rgba(31, 196, 180, 0.28), transparent 60%),
+    radial-gradient(40rem 26rem at 95% 5%, rgba(224, 132, 87, 0.18), transparent 60%),
+    linear-gradient(to bottom, transparent, var(--night) 92%),
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: auto, auto, auto, 56px 56px, 56px 56px;
+}
+
+.text-glow {
+  background: linear-gradient(100deg, #7ff0e2 0%, #1fc4b4 45%, #f3b38f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.shadow-float {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 40px 120px -30px rgba(31, 196, 180, 0.35),
+    0 30px 60px -30px rgba(0, 0, 0, 0.6);
+}

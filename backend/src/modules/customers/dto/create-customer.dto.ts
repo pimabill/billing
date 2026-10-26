@@ -35,10 +35,10 @@ export class CreateCustomerDto {
   @MaxLength(3)
   country?: string;
 
-  @ApiProperty({ example: 'NGN', description: 'ISO currency code' })
+  @ApiProperty({ example: 'NGN', description: 'An ISO 4217 code, or one of your own currencies (Settings → Currencies)' })
   @IsString()
   @IsNotEmpty()
-  @MaxLength(3)
+  @MaxLength(10)
   currency: string;
 
   @ApiProperty({ required: false, description: 'Custom metadata' })

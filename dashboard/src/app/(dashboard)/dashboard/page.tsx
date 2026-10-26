@@ -44,6 +44,13 @@ interface Overview {
   webhookUrl: string | null;
   arpu: number;
   churnRate: string;
+  byCurrency: ByCurrency | null;
+}
+
+interface ByCurrency {
+  currency: string;
+  ratesAsOf: string | null;
+  currencies: { currency: string; collectedThisMonth: string; collectedLastMonth: string; outstanding: string; mrr: string; rate: number | null }[];
 }
 
 const unwrap = (j: any) => j?.data?.data ?? j?.data ?? j;
@@ -68,7 +75,7 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       const soft = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
-      const [profile, kpis, revenue, activity, providers, managed, plan, plans, keys, customers, subscriptions] = await Promise.all([
+      const [profile, kpis, revenue, activity, providers, managed, plan, plans, keys, customers, subscriptions, byCurrency] = await Promise.all([
         soft(apiClient.tenant.getProfile(), null),
         soft(apiClient.analytics.getKPIs(), null),
         soft(apiClient.analytics.getRevenueData(), []),
@@ -80,6 +87,7 @@ export default function DashboardPage() {
         soft(fetch("/api/proxy/tenants/me/api-keys", { credentials: "include" }).then((r) => (r.ok ? r.json() : [])), []),
         soft(fetch("/api/proxy/analytics/customers", { credentials: "include" }).then((r) => r.json()), {}),
         soft(fetch("/api/proxy/analytics/subscriptions", { credentials: "include" }).then((r) => r.json()), {}),
+        soft(fetch("/api/proxy/analytics/by-currency", { credentials: "include" }).then((r) => (r.ok ? r.json() : null)), null),
       ]);
       const p = unwrap(profile) ?? {};
       setData({
@@ -95,12 +103,14 @@ export default function DashboardPage() {
         webhookUrl: p.webhookUrl ?? null,
         arpu: Number(unwrap(customers)?.arpu) || 0,
         churnRate: unwrap(subscriptions)?.churnRate || "0.00%",
+        byCurrency: unwrap(byCurrency),
       });
     })();
   }, []);
 
   const isLoading = !data;
   const kpis = data?.kpis;
+  const reporting: string = kpis?.currency ?? "USD";
   const ownProviders = data?.providers.filter((p) => p.isConfigured && p.isActive) ?? [];
   const managed = data?.managed?.account ?? null;
   const canTakePayments = ownProviders.length > 0 || managed?.status === "active";
@@ -188,9 +198,9 @@ export default function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KPICard
           title="Monthly recurring revenue"
-          value={kpis ? formatCurrency(kpis.mrr, "USD", { abbreviated: true }) : "$0"}
+          value={kpis ? formatCurrency(kpis.mrr, reporting, { abbreviated: true }) : "—"}
           change={kpis?.mrrChange}
-          hint="in USD, from active subscriptions"
+          hint={`in ${reporting}, from active subscriptions`}
           icon={<DollarSign className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
@@ -260,7 +270,7 @@ export default function DashboardPage() {
               </div>
               <div className="flex items-center justify-between gap-2 border-t pt-3">
                 <span>Average revenue per customer</span>
-                <span className="font-medium tabular-nums">{formatCurrency(data?.arpu ?? 0, "USD")}</span>
+                <span className="font-medium tabular-nums">{formatCurrency(data?.arpu ?? 0, reporting)}</span>
               </div>
               <div className="flex items-center justify-between gap-2">
                 <span>Churn rate</span>
@@ -303,6 +313,51 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {data?.byCurrency && data.byCurrency.currencies.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <CardTitle className="text-base">Money by currency</CardTitle>
+              <Link href="/settings?tab=currencies" className="text-sm text-primary hover:underline">
+                Reporting in {data.byCurrency.currency}
+              </Link>
+            </div>
+            <CardDescription>Exactly as collected and owed in each currency. Nothing here is converted.</CardDescription>
+          </CardHeader>
+          <CardContent className="overflow-x-auto">
+            <table className="w-full min-w-[560px] text-sm">
+              <thead>
+                <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
+                  <th className="py-2 font-medium">Currency</th>
+                  <th className="py-2 text-right font-medium">Collected this month</th>
+                  <th className="py-2 text-right font-medium">Last month</th>
+                  <th className="py-2 text-right font-medium">Outstanding</th>
+                  <th className="py-2 text-right font-medium">Recurring / month</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.byCurrency.currencies.map((c) => (
+                  <tr key={c.currency} className="border-b last:border-0">
+                    <td className="py-2.5">
+                      <span className="font-mono font-medium">{c.currency}</span>
+                      {c.currency !== data.byCurrency!.currency && c.rate !== null && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          1 ≈ {c.rate.toLocaleString(undefined, { maximumFractionDigits: c.rate < 1 ? 5 : 2 })} {data.byCurrency!.currency}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-right font-medium tabular-nums">{formatCurrency(Number(c.collectedThisMonth), c.currency)}</td>
+                    <td className="py-2.5 text-right tabular-nums text-muted-foreground">{formatCurrency(Number(c.collectedLastMonth), c.currency)}</td>
+                    <td className="py-2.5 text-right tabular-nums">{formatCurrency(Number(c.outstanding), c.currency)}</td>
+                    <td className="py-2.5 text-right tabular-nums text-muted-foreground">{formatCurrency(Number(c.mrr), c.currency)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

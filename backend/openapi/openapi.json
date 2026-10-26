@@ -136,7 +136,7 @@
             "type": "number"
           },
           "currency": {
-            "description": "ISO currency code",
+            "description": "An ISO 4217 code, or one of your own currencies (Settings → Currencies)",
             "example": "NGN",
             "type": "string"
           }
@@ -548,6 +548,42 @@
           "filters",
           "createdAt",
           "updatedAt"
+        ],
+        "type": "object"
+      },
+      "ByCurrencyResponse": {
+        "properties": {
+          "currencies": {
+            "items": {
+              "$ref": "#/components/schemas/CurrencyTotals"
+            },
+            "type": "array"
+          },
+          "currency": {
+            "description": "The reporting currency every total is in (Settings → Currencies)",
+            "example": "UGX",
+            "type": "string"
+          },
+          "ratesAsOf": {
+            "description": "The newest day the exchange rates used are from",
+            "example": "2026-10-25",
+            "nullable": true,
+            "type": "string"
+          },
+          "unconverted": {
+            "description": "Currencies with no exchange rate, left out of totals",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "currency",
+          "ratesAsOf",
+          "unconverted",
+          "currencies"
         ],
         "type": "object"
       },
@@ -1390,6 +1426,38 @@
         ],
         "type": "object"
       },
+      "CreateCurrencyDto": {
+        "properties": {
+          "code": {
+            "description": "2 to 10 letters or digits; not an ISO 4217 code",
+            "example": "PTS",
+            "type": "string"
+          },
+          "decimals": {
+            "description": "Decimal places, 0 to 8 (default 2)",
+            "example": 0,
+            "type": "number"
+          },
+          "name": {
+            "example": "Loyalty points",
+            "type": "string"
+          },
+          "perUsd": {
+            "description": "How many units make one US dollar, for reports in your reporting currency",
+            "example": 100,
+            "type": "number"
+          },
+          "symbol": {
+            "example": "pts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "name"
+        ],
+        "type": "object"
+      },
       "CreateCustomerDto": {
         "properties": {
           "country": {
@@ -1401,7 +1469,7 @@
             "type": "string"
           },
           "currency": {
-            "description": "ISO currency code",
+            "description": "An ISO 4217 code, or one of your own currencies (Settings → Currencies)",
             "example": "NGN",
             "type": "string"
           },
@@ -1846,7 +1914,7 @@
             "type": "number"
           },
           "currency": {
-            "description": "ISO currency code",
+            "description": "An ISO 4217 code, or one of your own currencies (Settings → Currencies)",
             "example": "NGN",
             "type": "string"
           }
@@ -2226,8 +2294,69 @@
         ],
         "type": "object"
       },
+      "CurrencyAmount": {
+        "properties": {
+          "amount": {
+            "description": "Exactly as collected, not converted",
+            "example": "1250000.0000",
+            "type": "string"
+          },
+          "currency": {
+            "example": "UGX",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency",
+          "amount"
+        ],
+        "type": "object"
+      },
       "CurrencyResponse": {
         "properties": {},
+        "type": "object"
+      },
+      "CurrencyTotals": {
+        "properties": {
+          "collectedLastMonth": {
+            "description": "Paid last calendar month, as collected",
+            "example": "2900000.0000",
+            "type": "string"
+          },
+          "collectedThisMonth": {
+            "description": "Paid this calendar month, as collected",
+            "example": "3200000.0000",
+            "type": "string"
+          },
+          "currency": {
+            "example": "UGX",
+            "type": "string"
+          },
+          "mrr": {
+            "description": "Monthly recurring revenue in this currency",
+            "example": "2100000.0000",
+            "type": "string"
+          },
+          "outstanding": {
+            "description": "On unpaid invoices",
+            "example": "650000.0000",
+            "type": "string"
+          },
+          "rate": {
+            "description": "One unit in the reporting currency at today's rate",
+            "example": 1,
+            "nullable": true,
+            "type": "number"
+          }
+        },
+        "required": [
+          "currency",
+          "collectedThisMonth",
+          "collectedLastMonth",
+          "outstanding",
+          "mrr",
+          "rate"
+        ],
         "type": "object"
       },
       "CustomerAnalyticsResponse": {
@@ -2237,9 +2366,20 @@
             "example": "83.33",
             "type": "string"
           },
+          "currency": {
+            "description": "The reporting currency every total is in (Settings → Currencies)",
+            "example": "UGX",
+            "type": "string"
+          },
           "newCustomers": {
             "example": 12,
             "type": "integer"
+          },
+          "ratesAsOf": {
+            "description": "The newest day the exchange rates used are from",
+            "example": "2026-10-25",
+            "nullable": true,
+            "type": "string"
           },
           "totalCustomers": {
             "example": 150,
@@ -2248,9 +2388,20 @@
           "totalRevenue": {
             "example": "12500.0000",
             "type": "string"
+          },
+          "unconverted": {
+            "description": "Currencies with no exchange rate, left out of totals",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
+          "currency",
+          "ratesAsOf",
+          "unconverted",
           "totalCustomers",
           "newCustomers",
           "arpu",
@@ -2594,12 +2745,12 @@
             "type": "integer"
           },
           "arpu": {
-            "description": "Average Revenue Per User in USD",
+            "description": "Average Revenue Per User in your reporting currency",
             "example": 83.33,
             "type": "number"
           },
           "arr": {
-            "description": "Annual Recurring Revenue (MRR × 12) in USD",
+            "description": "Annual Recurring Revenue (MRR × 12) in your reporting currency",
             "example": 50400,
             "type": "number"
           },
@@ -2609,7 +2760,7 @@
             "type": "number"
           },
           "avgLtv": {
-            "description": "Average customer Lifetime Value in USD",
+            "description": "Average customer Lifetime Value in your reporting currency",
             "example": 500,
             "type": "number"
           },
@@ -2618,8 +2769,13 @@
             "example": "5.00%",
             "type": "string"
           },
+          "currency": {
+            "description": "The reporting currency every total is in (Settings → Currencies)",
+            "example": "UGX",
+            "type": "string"
+          },
           "mrr": {
-            "description": "Monthly Recurring Revenue in USD",
+            "description": "Monthly Recurring Revenue in your reporting currency",
             "example": 4200,
             "type": "number"
           },
@@ -2627,6 +2783,12 @@
             "description": "New customers created within the selected period",
             "example": 12,
             "type": "integer"
+          },
+          "ratesAsOf": {
+            "description": "The newest day the exchange rates used are from",
+            "example": "2026-10-25",
+            "nullable": true,
+            "type": "string"
           },
           "retentionRate": {
             "description": "Retention rate: 100 - churn rate",
@@ -2644,7 +2806,7 @@
             "type": "integer"
           },
           "totalRevenue": {
-            "description": "Total all-time revenue from paid invoices in USD",
+            "description": "Total all-time revenue from paid invoices in your reporting currency",
             "example": 12500,
             "type": "number"
           },
@@ -2652,9 +2814,20 @@
             "description": "Total number of subscriptions ever created",
             "example": 100,
             "type": "number"
+          },
+          "unconverted": {
+            "description": "Currencies with no exchange rate, left out of totals",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
+          "currency",
+          "ratesAsOf",
+          "unconverted",
           "mrr",
           "arr",
           "totalRevenue",
@@ -3112,9 +3285,31 @@
               "$ref": "#/components/schemas/LtvPlanBreakdown"
             },
             "type": "array"
+          },
+          "currency": {
+            "description": "The reporting currency every total is in (Settings → Currencies)",
+            "example": "UGX",
+            "type": "string"
+          },
+          "ratesAsOf": {
+            "description": "The newest day the exchange rates used are from",
+            "example": "2026-10-25",
+            "nullable": true,
+            "type": "string"
+          },
+          "unconverted": {
+            "description": "Currencies with no exchange rate, left out of totals",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
+          "currency",
+          "ratesAsOf",
+          "unconverted",
           "avgLtv",
           "avgLifespanDays",
           "byPlan"
@@ -3292,7 +3487,8 @@
                 "$ref": "#/components/schemas/ManagedAccountResponse"
               }
             ],
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "available": {
             "description": "Whether managed payments are offered on this installation",
@@ -3531,7 +3727,8 @@
               }
             ],
             "description": "Or show the payer these instructions",
-            "nullable": true
+            "nullable": true,
+            "type": "object"
           },
           "paymentUrl": {
             "description": "Send the payer here to finish a hosted payment",
@@ -3727,6 +3924,11 @@
           "contractionMrr": {
             "type": "number"
           },
+          "currency": {
+            "description": "The reporting currency every total is in (Settings → Currencies)",
+            "example": "UGX",
+            "type": "string"
+          },
           "expansionMrr": {
             "type": "number"
           },
@@ -3736,11 +3938,28 @@
           "newMrr": {
             "type": "number"
           },
+          "ratesAsOf": {
+            "description": "The newest day the exchange rates used are from",
+            "example": "2026-10-25",
+            "nullable": true,
+            "type": "string"
+          },
           "totalMrr": {
             "type": "number"
+          },
+          "unconverted": {
+            "description": "Currencies with no exchange rate, left out of totals",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
+          "currency",
+          "ratesAsOf",
+          "unconverted",
           "totalMrr",
           "newMrr",
           "expansionMrr",
@@ -3779,17 +3998,39 @@
           "creditNotes": {
             "type": "number"
           },
+          "currency": {
+            "description": "The reporting currency every total is in (Settings → Currencies)",
+            "example": "UGX",
+            "type": "string"
+          },
           "grossRevenue": {
             "type": "number"
           },
           "netRevenue": {
             "type": "number"
           },
+          "ratesAsOf": {
+            "description": "The newest day the exchange rates used are from",
+            "example": "2026-10-25",
+            "nullable": true,
+            "type": "string"
+          },
           "refunds": {
             "type": "number"
+          },
+          "unconverted": {
+            "description": "Currencies with no exchange rate, left out of totals",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
+          "currency",
+          "ratesAsOf",
+          "unconverted",
           "grossRevenue",
           "refunds",
           "creditNotes",
@@ -5238,6 +5479,19 @@
         ],
         "type": "object"
       },
+      "ReportingCurrencyDto": {
+        "properties": {
+          "currency": {
+            "description": "The currency reports and analytics convert into",
+            "example": "UGX",
+            "type": "string"
+          }
+        },
+        "required": [
+          "currency"
+        ],
+        "type": "object"
+      },
       "RequestOtpDto": {
         "properties": {
           "phone": {
@@ -5276,6 +5530,18 @@
             "example": "50400.0000",
             "type": "string"
           },
+          "byCurrency": {
+            "description": "Revenue per currency, exactly as collected",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyAmount"
+            },
+            "type": "array"
+          },
+          "currency": {
+            "description": "The reporting currency every total is in (Settings → Currencies)",
+            "example": "UGX",
+            "type": "string"
+          },
           "invoiceCount": {
             "example": 45,
             "type": "integer"
@@ -5285,13 +5551,31 @@
             "example": "4200.0000",
             "type": "string"
           },
+          "ratesAsOf": {
+            "description": "The newest day the exchange rates used are from",
+            "example": "2026-10-25",
+            "nullable": true,
+            "type": "string"
+          },
           "totalRevenue": {
             "description": "Total revenue as decimal string",
             "example": "12500.0000",
             "type": "string"
+          },
+          "unconverted": {
+            "description": "Currencies with no exchange rate, left out of totals",
+            "example": [],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "required": [
+          "currency",
+          "ratesAsOf",
+          "unconverted",
+          "byCurrency",
           "totalRevenue",
           "invoiceCount",
           "mrr",
@@ -6051,6 +6335,27 @@
         },
         "type": "object"
       },
+      "UpdateCurrencyDto": {
+        "properties": {
+          "decimals": {
+            "description": "Only while nothing uses the currency",
+            "type": "number"
+          },
+          "name": {
+            "type": "string"
+          },
+          "perUsd": {
+            "description": "Units per US dollar; null to stop converting it",
+            "nullable": true,
+            "type": "object"
+          },
+          "symbol": {
+            "nullable": true,
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
       "UpdateCustomerDto": {
         "properties": {
           "country": {
@@ -6062,7 +6367,7 @@
             "type": "string"
           },
           "currency": {
-            "description": "ISO currency code",
+            "description": "An ISO 4217 code, or one of your own currencies (Settings → Currencies)",
             "example": "NGN",
             "type": "string"
           },
@@ -7030,6 +7335,34 @@
         "summary": "Update an add-on",
         "tags": [
           "Add-Ons"
+        ]
+      }
+    },
+    "/api/analytics/by-currency": {
+      "get": {
+        "description": "Collected this month and last, outstanding, and recurring revenue in each currency, exactly as they are (nothing converted), with each currency's rate into your reporting currency.",
+        "operationId": "AnalyticsController_byCurrency",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ByCurrencyResponse"
+                }
+              }
+            },
+            "description": "Totals per currency"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Money per currency",
+        "tags": [
+          "Analytics"
         ]
       }
     },
@@ -9380,6 +9713,152 @@
           }
         },
         "summary": "List supported currencies",
+        "tags": [
+          "Currencies"
+        ]
+      }
+    },
+    "/api/currencies/custom": {
+      "post": {
+        "operationId": "CurrencySettingsController_create",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCurrencyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Define your own currency, e.g. points or a stablecoin",
+        "tags": [
+          "Currencies"
+        ]
+      }
+    },
+    "/api/currencies/custom/{code}": {
+      "delete": {
+        "operationId": "CurrencySettingsController_remove",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Remove one of your currencies, if nothing uses it",
+        "tags": [
+          "Currencies"
+        ]
+      },
+      "patch": {
+        "operationId": "CurrencySettingsController_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "code",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCurrencyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Rename one of your currencies or change its rate",
+        "tags": [
+          "Currencies"
+        ]
+      }
+    },
+    "/api/currencies/reporting": {
+      "put": {
+        "operationId": "CurrencySettingsController_setReporting",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportingCurrencyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Set the currency reports and analytics convert into",
+        "tags": [
+          "Currencies"
+        ]
+      }
+    },
+    "/api/currencies/settings": {
+      "get": {
+        "operationId": "CurrencySettingsController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Your reporting currency, the currencies you use and define, and every ISO 4217 currency",
         "tags": [
           "Currencies"
         ]

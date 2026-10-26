@@ -39,6 +39,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { LoggerMiddleware } from './common/middleware/logger.middleware';
+import { CurrenciesModule } from './modules/currencies/currencies.module';
 import { ServicesModule } from './services/services.module';
 
 @Module({
@@ -70,6 +71,7 @@ import { ServicesModule } from './services/services.module';
     PaymentProvidersModule,
     WebhooksModule,
     AnalyticsModule,
+    CurrenciesModule,
     CouponsModule,
     AddOnsModule,
     CreditNotesModule,

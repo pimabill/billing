@@ -8,6 +8,8 @@ export interface MonthlyRevenue {
   /** "2026-10" */
   date: string;
   revenue: number;
+  /** The reporting currency. */
+  currency?: string;
 }
 
 const monthLabel = (ym: string, style: "short" | "long" = "short") => {
@@ -15,8 +17,9 @@ const monthLabel = (ym: string, style: "short" | "long" = "short") => {
   return new Date(y, m - 1, 1).toLocaleDateString(undefined, { month: style, ...(style === "long" && { year: "numeric" }) });
 };
 
-/** Collected revenue per month, in USD (the API converts each currency). The current month is highlighted. */
+/** Collected revenue per month in the reporting currency (the API converts each currency at its payment date). */
 export function MonthlyRevenueChart({ data, title = "Revenue", height = 260 }: { data: MonthlyRevenue[]; title?: string; height?: number }) {
+  const currency = data.find((d) => d.currency)?.currency ?? "USD";
   const total = data.reduce((sum, d) => sum + d.revenue, 0);
   const current = data.at(-1)?.revenue ?? 0;
   const previous = data.at(-2)?.revenue ?? 0;
@@ -29,10 +32,10 @@ export function MonthlyRevenueChart({ data, title = "Revenue", height = 260 }: {
       <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 pb-2">
         <div>
           <CardTitle className="text-base">{title}</CardTitle>
-          <CardDescription>Last six months, in USD</CardDescription>
+          <CardDescription>Last six months, in {currency}</CardDescription>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold tabular-nums">{formatCurrency(current, "USD")}</p>
+          <p className="text-2xl font-bold tabular-nums">{formatCurrency(current, currency)}</p>
           <p className="text-xs text-muted-foreground">
             this month
             {change !== null && (
@@ -55,14 +58,14 @@ export function MonthlyRevenueChart({ data, title = "Revenue", height = 260 }: {
             <BarChart data={rows} margin={{ top: 8, right: 0, left: 0, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
               <XAxis dataKey="label" stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} />
-              <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} width={56} tickFormatter={(v) => formatCurrency(v, "USD", { abbreviated: true })} />
+              <YAxis stroke="var(--muted-foreground)" fontSize={12} tickLine={false} axisLine={false} width={56} tickFormatter={(v) => formatCurrency(v, currency, { abbreviated: true })} />
               <Tooltip
                 cursor={{ fill: "var(--muted)" }}
                 content={({ active, payload }) =>
                   active && payload?.length ? (
                     <div className="rounded-lg border bg-card px-3 py-2 text-sm shadow-md">
                       <p className="font-medium">{monthLabel(payload[0].payload.date, "long")}</p>
-                      <p className="tabular-nums text-muted-foreground">{formatCurrency(payload[0].value as number, "USD")}</p>
+                      <p className="tabular-nums text-muted-foreground">{formatCurrency(payload[0].value as number, currency)}</p>
                     </div>
                   ) : null
                 }

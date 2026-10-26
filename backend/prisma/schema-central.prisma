@@ -286,3 +286,16 @@ model TenantMetricsDaily {
   @@unique([tenantId, date])
   @@index([date])
 }
+
+/// Daily exchange rates, shared by every organisation: units of `currency` per one US dollar.
+/// Amounts are converted at the rate of their own day, so past months keep the rate they had.
+model ExchangeRate {
+  date      DateTime @db.Date
+  currency  String
+  perUsd    Decimal  @db.Decimal(24, 10)
+  source    String
+  createdAt DateTime @default(now())
+
+  @@id([date, currency])
+  @@index([currency, date])
+}

@@ -984,3 +984,16 @@ model CryptoAddressClaim {
   @@unique([keyId, index])
   @@index([keyId, expiresAt])
 }
+
+/// A currency the organisation defines itself, beside ISO 4217 ones: points, a stablecoin, a voucher.
+model Currency {
+  /// 2 to 10 letters or digits, upper case; must not be an ISO 4217 code.
+  code      String   @id
+  name      String
+  symbol    String?
+  decimals  Int      @default(2)
+  /// Units per one US dollar, set by the organisation, for converting into its reporting currency.
+  perUsd    Decimal? @db.Decimal(24, 10)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
