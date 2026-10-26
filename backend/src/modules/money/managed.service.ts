@@ -19,29 +19,41 @@ export interface StoredManaged extends ManagedCredentials {
 
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
-type StatusMessage = (ctx: { org: string; reason?: string; fee: string | null }) => { title: string; body: string[] };
-const STATUS_MESSAGES = new Map<string, StatusMessage>([
-  ['pending_review', ({ org }) => ({ title: `Managed payments for ${org} are in review`, body: ['We are reviewing your details and will email you when that is done.'] })],
-  ['active', ({ org, fee }) => ({
-    title: `Managed payments are on for ${org}`,
-    body: [
-      'Your application is approved. Invoice checkouts, renewals, portal payments and payment links can now be paid through managed payments, by card or mobile money.',
-      ...(fee ? [`Our fee is ${fee} per payment, on top of the payment provider's own fee, taken before each payout.`] : []),
-      'Payouts go to the destination you gave us; you can change it any time on the managed payments page.',
-    ],
-  })],
-  ['rejected', ({ org, reason }) => ({
-    title: `Managed payments for ${org} were not approved`,
-    body: [reason ? `The reason given: ${reason}` : 'We could not approve the application.', 'Reply to this email if you think this is a mistake, or connect your own payment provider in Settings → Payment providers.'],
-  })],
-  ['suspended', ({ org, reason }) => ({
-    title: `Managed payments for ${org} are paused`,
-    body: [
-      reason ? `The reason given: ${reason}` : 'Managed payments are paused on your account.',
-      'Payments through managed payments are paused until this is resolved; payments through your own providers are not affected. Reply to this email to resolve it.',
-    ],
-  })],
-]);
+interface StatusContext {
+  org: string;
+  reason?: string;
+  fee: string | null;
+}
+
+/** What to tell people about a status; null for one we do not know (it came from a notification). */
+function statusMessage(status: string, { org, reason, fee }: StatusContext): { title: string; body: string[] } | null {
+  switch (status) {
+    case 'active':
+      return {
+        title: `Managed payments are on for ${org}`,
+        body: [
+          'Your application is approved. Invoice checkouts, renewals, portal payments and payment links can now be paid through managed payments, by card or mobile money.',
+          ...(fee ? [`Our fee is ${fee} per payment, on top of the payment provider's own fee, taken before each payout.`] : []),
+          'Payouts go to the destination you gave us; you can change it any time on the managed payments page.',
+        ],
+      };
+    case 'rejected':
+      return {
+        title: `Managed payments for ${org} were not approved`,
+        body: [reason ? `The reason given: ${reason}` : 'We could not approve the application.', 'Reply to this email if you think this is a mistake, or connect your own payment provider in Settings → Payment providers.'],
+      };
+    case 'suspended':
+      return {
+        title: `Managed payments for ${org} are paused`,
+        body: [
+          reason ? `The reason given: ${reason}` : 'Managed payments are paused on your account.',
+          'Payments through managed payments are paused until this is resolved; payments through your own providers are not affected. Reply to this email to resolve it.',
+        ],
+      };
+    default:
+      return null;
+  }
+}
 
 /**
  * Tenant side of managed payments: opening the tenant's managed account
@@ -158,10 +170,8 @@ export class ManagedAccountsService {
     const org = people[0].tenant.name;
     const link = `${(process.env.DASHBOARD_URL || 'http://localhost:4002').replace(/\/$/, '')}/money?tab=managed`;
     const fee = account.fee?.type === 'percentage' ? `${account.fee.value}%` : null;
-    // The status comes from a notification: only the four known ones have a message.
-    const make = STATUS_MESSAGES.get(account.status);
-    if (!make) return;
-    const message = make({ org, reason: account.reason, fee });
+    const message = statusMessage(account.status, { org, reason: account.reason, fee });
+    if (!message) return;
     const html = `<div style="font-family:system-ui,sans-serif;max-width:560px;color:#10141b">
 <h2 style="font-size:18px;margin:0 0 12px">${escapeHtml(message.title)}</h2>
 ${message.body.map((p) => `<p style="line-height:1.55;margin:0 0 12px">${escapeHtml(p)}</p>`).join('')}
