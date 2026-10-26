@@ -128,13 +128,11 @@ describe('ManagedAccountsService', () => {
 
   it('keeps the managed connection active only while the account is, at the lowest priority', async () => {
     const upsert = jest.fn();
-    const db = { paymentProvider: { upsert } };
+    const db = { paymentProvider: { upsert, findUnique: jest.fn(async () => null) } };
     await service.sync(db as never, { id: 'acc_9', status: 'pending_review' });
-    expect(upsert).toHaveBeenCalledWith({
-      where: { providerName: 'managed' },
-      create: { providerName: 'managed', credentials: 'enc:{"accountId":"acc_9"}', isActive: false, priority: 1000 },
-      update: { credentials: 'enc:{"accountId":"acc_9"}', isActive: false },
-    });
+    const call = upsert.mock.calls[0][0];
+    expect(call).toMatchObject({ where: { providerName: 'managed' }, create: { providerName: 'managed', isActive: false, priority: 1000 }, update: { isActive: false } });
+    expect(JSON.parse(call.create.credentials.slice(4))).toMatchObject({ accountId: 'acc_9', status: 'pending_review' });
     await service.sync(db as never, { id: 'acc_9', status: 'active' });
     expect(upsert.mock.calls[1][0].update.isActive).toBe(true);
   });
@@ -176,5 +174,55 @@ describe('OpenManagedAccountDto', () => {
     expect(errors({ payoutDestination: { type: 'paypal', email: 'not-an-email' } })).toEqual(['payoutDestination']);
     expect(errors({ payoutDestination: { type: 'bank', bankCode: '031', accountNumber: '9030012345678' } })).toEqual(['payoutDestination']);
     expect(errors({ payoutDestination: { type: 'cheque' } })).toEqual(['payoutDestination']);
+  });
+});
+
+describe('ManagedAccountsService status changes', () => {
+  const setup = () => {
+    let stored: string | null = null;
+    const db = {
+      paymentProvider: {
+        findUnique: jest.fn(async () => (stored ? { credentials: stored } : null)),
+        upsert: jest.fn(async (args: any) => {
+          stored = args.create.credentials;
+          return {};
+        }),
+      },
+    };
+    const encryption = { encrypt: (v: string) => v, decrypt: (v: string) => v };
+    const central = {
+      client: {
+        membership: {
+          findMany: jest.fn(async () => [
+            { user: { email: 'owner@example.com', name: 'Owner' }, tenant: { name: 'Acme' } },
+            { user: { email: 'admin@example.com', name: 'Admin' }, tenant: { name: 'Acme' } },
+          ]),
+        },
+      },
+    };
+    const email = { sendHtml: jest.fn(async () => true) };
+    const service = new ManagedAccountsService(encryption as never, central as never, email as never);
+    return { db, email, service, stored: () => (stored ? JSON.parse(stored) : null) };
+  };
+
+  it('records the application quietly, then emails owners and admins when it is approved or paused', async () => {
+    const { db, email, service, stored } = setup();
+    await service.sync(db as never, { id: 'acc_1', status: 'pending_review' }, 't1');
+    expect(email.sendHtml).not.toHaveBeenCalled();
+
+    await service.sync(db as never, { id: 'acc_1', status: 'active', fee: { type: 'percentage', value: 1 } }, 't1');
+    expect(email.sendHtml).toHaveBeenCalledTimes(2);
+    expect((email.sendHtml.mock.calls[0] as unknown[])[1]).toBe('Managed payments are on for Acme');
+    expect((email.sendHtml.mock.calls[0] as unknown[])[2]).toContain('1% per payment');
+    expect(stored()).toMatchObject({ accountId: 'acc_1', status: 'active', statusChangedAt: expect.any(String) });
+
+    // The same status again is not news.
+    await service.sync(db as never, { id: 'acc_1', status: 'active' }, 't1');
+    expect(email.sendHtml).toHaveBeenCalledTimes(2);
+
+    await service.sync(db as never, { id: 'acc_1', status: 'suspended', reason: 'Chargebacks <b>high</b>' }, 't1');
+    expect((email.sendHtml.mock.calls[2] as unknown[])[1]).toBe('Managed payments for Acme are paused');
+    expect((email.sendHtml.mock.calls[2] as unknown[])[2]).toContain('Chargebacks &lt;b&gt;high&lt;/b&gt;');
+    expect(stored().reason).toBe('Chargebacks <b>high</b>');
   });
 });
