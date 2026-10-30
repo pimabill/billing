@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.2.0](https://github.com/pimabill/billing/compare/v0.1.0...v0.2.0) (2026-10-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* the SDKs' default production and sandbox URLs are now https://api.pimabill.com and https://sandbox.pimabill.com.
+
+### Features
+
+* **api:** look up customers by externalId and plans and add-ons by code, with a guide to building an integration ([#149](https://github.com/pimabill/billing/issues/149)) ([ca9839e](https://github.com/pimabill/billing/commit/ca9839ef11c4a9ba6e3492d5828d886e7e143f2f))
+* **invoices:** sell one-time products by add-on code, and let customers pay invoices in parts ([#148](https://github.com/pimabill/billing/issues/148)) ([52dde5f](https://github.com/pimabill/billing/commit/52dde5fbfc0018dc1717c340f62d4828c4ad9de2))
+* **providers:** merchants on managed payments see it and its payment methods with their providers ([#146](https://github.com/pimabill/billing/issues/146)) ([3aabe46](https://github.com/pimabill/billing/commit/3aabe462f67468d22072e7e8686e8a789eca786f))
+* the hosted cloud moves to pimabill.com ([#153](https://github.com/pimabill/billing/issues/153)) ([3f79319](https://github.com/pimabill/billing/commit/3f793199221d762be9604d315e90f4dc8b96c453))
+
+
+### Bug Fixes
+
+* **email:** the sandbox emails only team members, and no email goes to a domain that can't receive it ([#151](https://github.com/pimabill/billing/issues/151)) ([2c2563e](https://github.com/pimabill/billing/commit/2c2563eb5f124b7267d2445a119440a113d41f2f))
+* **payments:** refunds come off what was paid on the invoice, and cloud plans are set up once at startup ([#152](https://github.com/pimabill/billing/issues/152)) ([1ce6233](https://github.com/pimabill/billing/commit/1ce6233673d33c5d3dd883c69ca98d2cbd3d1324))
+
 ## 0.1.0 (2026-10-26)
 
 
