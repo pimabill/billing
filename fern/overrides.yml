@@ -1,9 +1,9 @@
 # SDKs default to the hosted API; pass baseUrl / base_url (or the Local
 # environment) for a self-hosted or local server.
 servers:
-  - url: https://api.novabilling.one
+  - url: https://api.pimabill.com
     x-fern-server-name: Production
-  - url: https://sandbox.novabilling.one
+  - url: https://sandbox.pimabill.com
     x-fern-server-name: Sandbox
   - url: http://localhost:4000
     x-fern-server-name: Local

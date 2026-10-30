@@ -65,7 +65,7 @@ export class PaymentProviderResponse {
   @ApiProperty({ enum: ['live', 'sandbox'], nullable: true, description: 'Which environment the saved credentials are for, when it can be told' })
   environment: 'live' | 'sandbox' | null;
 
-  @ApiProperty({ nullable: true, type: String, example: 'https://api.novabilling.one/webhooks/paystack/ten_123', description: 'Where the provider should send notifications; null when it sends none' })
+  @ApiProperty({ nullable: true, type: String, example: 'https://api.pimabill.com/webhooks/paystack/ten_123', description: 'Where the provider should send notifications; null when it sends none' })
   webhookUrl: string | null;
 
   @ApiProperty({ nullable: true, type: String })

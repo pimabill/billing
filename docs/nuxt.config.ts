@@ -1,4 +1,4 @@
-const DOCS_URL = process.env.DOCS_URL || "https://docs.novabilling.one";
+const DOCS_URL = process.env.DOCS_URL || "https://docs.pimabill.com";
 // Docus builds the sitemap and llms.txt from this variable only, so set it from DOCS_URL.
 process.env.NUXT_SITE_URL ||= DOCS_URL;
 

@@ -32,7 +32,7 @@ async function seedDemoTenant(): Promise<void> {
     data: {
       name: 'Demo User',
       slug: 'demo-company',
-      email: 'demo@novabilling.one',
+      email: 'demo@pimabill.com',
       password: '$2b$10$dummyhashedpasswordfordemo', // "password123"
       // Stored hashed, like every API key; the plaintext is printed once below.
       apiKeyHash: createHash('sha256').update(apiKey).digest('hex'),
@@ -189,7 +189,7 @@ async function seedDemoTenant(): Promise<void> {
 
   console.log('\nDemo tenant seeded successfully!');
   console.log('---');
-  console.log(`Email: demo@novabilling.one`);
+  console.log(`Email: demo@pimabill.com`);
   console.log(`API Key: ${apiKey}`);
   console.log(`Customers: 10`);
   console.log(`Plans: ${planDefs.length}`);

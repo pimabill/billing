@@ -4834,7 +4834,7 @@
           },
           "webhookUrl": {
             "description": "Where the provider should send notifications; null when it sends none",
-            "example": "https://api.novabilling.one/webhooks/paystack/ten_123",
+            "example": "https://api.pimabill.com/webhooks/paystack/ten_123",
             "nullable": true,
             "type": "string"
           }
