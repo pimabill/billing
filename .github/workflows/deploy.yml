@@ -166,6 +166,16 @@ jobs:
             docker compose -f docker-compose.prod.yml logs --no-color --tail 60 api
             if [ -z "$healthy" ]; then echo "API did not become healthy within 3 minutes"; exit 1; fi
 
+            # Other stacks on this host (a sandbox, another domain) run the same
+            # images. Each has a .follow-deploy file naming its compose project;
+            # update its API, workers and dashboard too.
+            for marker in ~/*/.follow-deploy; do
+              [ -f "$marker" ] || continue
+              dir=$(dirname "$marker"); project=$(cat "$marker")
+              cp docker-compose.prod.yml "$dir/docker-compose.prod.yml"
+              (cd "$dir" && docker compose -p "$project" -f docker-compose.prod.yml up -d api worker dashboard) || echo "Could not update $project"
+            done
+
             # Clean up old images
             docker image prune -f
 
