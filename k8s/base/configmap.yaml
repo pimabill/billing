@@ -19,4 +19,4 @@ data:
   LANDING_URL: "http://landing:4001"
   DOCS_URL: "http://docs:4003"
   EMAIL_PORT: "587"
-  EMAIL_FROM: "noreply@novabilling.one"
+  EMAIL_FROM: "noreply@pimabill.com"

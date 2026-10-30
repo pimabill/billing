@@ -1,5 +1,5 @@
 region      = "us-east-1"
-domain      = "novabilling.one"
+domain      = "pimabill.com"
 environment = "production"
 
 # Database
@@ -16,7 +16,7 @@ email_host     = "smtp.gmail.com"
 email_port     = "587"
 email_user     = ""
 email_password = ""
-email_from     = "noreply@novabilling.one"
+email_from     = "noreply@pimabill.com"
 
 # Scaling
 api_desired_count    = 2

@@ -1,6 +1,6 @@
-const LANDING_URL = process.env.LANDING_URL || "https://novabilling.one";
-const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://app.novabilling.one";
-const API_REF_URL = process.env.API_REF_URL || "https://api.novabilling.one/api/reference";
+const LANDING_URL = process.env.LANDING_URL || "https://pimabill.com";
+const DASHBOARD_URL = process.env.DASHBOARD_URL || "https://app.pimabill.com";
+const API_REF_URL = process.env.API_REF_URL || "https://api.pimabill.com/api/reference";
 const GITHUB_URL = process.env.GITHUB_URL || "https://github.com/pimabill/billing";
 
 export default defineAppConfig({

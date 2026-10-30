@@ -19,7 +19,7 @@ export function getBrand(): Brand {
   return {
     name,
     slug: process.env.BRAND_SLUG?.trim() || 'pimabill',
-    supportEmail: process.env.BRAND_SUPPORT_EMAIL?.trim() || 'noreply@novabilling.one',
-    website: process.env.BRAND_WEBSITE?.trim() || 'https://novabilling.one',
+    supportEmail: process.env.BRAND_SUPPORT_EMAIL?.trim() || 'noreply@pimabill.com',
+    website: process.env.BRAND_WEBSITE?.trim() || 'https://pimabill.com',
   };
 }

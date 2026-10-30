@@ -84,7 +84,7 @@ services:
       EMAIL_PORT: ${EMAIL_PORT:-}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@novabilling.one}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@pimabill.com}
       PDF_STORAGE_PATH: /app/uploads/invoices
       DASHBOARD_URL: ${DASHBOARD_URL:-http://localhost:4002}
       CORS_ORIGINS: ${LANDING_URL:-http://localhost:4001},${DASHBOARD_URL:-http://localhost:4002}
@@ -133,7 +133,7 @@ services:
       EMAIL_PORT: ${EMAIL_PORT:-}
       EMAIL_USER: ${EMAIL_USER:-}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD:-}
-      EMAIL_FROM: ${EMAIL_FROM:-noreply@novabilling.one}
+      EMAIL_FROM: ${EMAIL_FROM:-noreply@pimabill.com}
     command: node dist/main
     volumes:
       - uploads:/app/uploads
