@@ -7,6 +7,7 @@ import {
   ValidateNested,
   IsNumber,
   Min,
+  IsIn,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -28,6 +29,11 @@ export class InvoiceCheckoutOptionsDto {
   @IsNumber()
   @Min(0.01)
   amount?: number;
+
+  @ApiProperty({ required: false, enum: ['card', 'mobile_money', 'paypal'], example: 'paypal', description: 'How the customer wants to pay, where the provider offers a choice (managed payments). Defaults to card.' })
+  @IsOptional()
+  @IsIn(['card', 'mobile_money', 'paypal'])
+  method?: 'card' | 'mobile_money' | 'paypal';
 }
 
 export class CreateInvoiceDto {

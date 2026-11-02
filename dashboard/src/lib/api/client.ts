@@ -668,6 +668,7 @@ export const apiClient = {
       id: string,
       callbackUrl?: string,
       providerName?: string,
+      method?: "card" | "mobile_money" | "paypal",
     ): Promise<{
       checkoutUrl: string;
       paymentId: string;
@@ -684,6 +685,7 @@ export const apiClient = {
         body: JSON.stringify({
           callbackUrl: callbackUrl || window.location.href,
           ...(providerName ? { providerName } : {}),
+          ...(method ? { method } : {}),
         }),
       });
     },

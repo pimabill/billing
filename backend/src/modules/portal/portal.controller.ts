@@ -25,6 +25,7 @@ import { PortalService } from './portal.service';
 import { PortalBillingResponse } from './dto/portal-response.dto';
 import { SubscriptionResponse } from '../subscriptions/dto/subscription-response.dto';
 import { InvoiceResponse, PaginatedInvoiceResponse, CheckoutResponse } from '../invoices/dto/invoice-response.dto';
+import { checkoutMethod } from '../invoices/invoices.service';
 import { PaginatedPaymentResponse } from '../payments/dto/payment-response.dto';
 
 /**
@@ -90,10 +91,15 @@ export class PortalController {
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async getBillingOverview(
     @TenantDb() db: PrismaClient,
+    @Req() req: { tenant: { id: string } },
     @Param('externalId') externalId: string,
   ) {
     const customerId = await this.resolveCustomerId(db, externalId);
-    return this.portalService.getBillingOverview(db, customerId);
+    const [overview, paymentOptions] = await Promise.all([
+      this.portalService.getBillingOverview(db, customerId),
+      this.portalService.paymentOptions(db, req.tenant.id),
+    ]);
+    return { ...overview, paymentOptions };
   }
 
   @Get(':externalId/subscriptions')
@@ -150,13 +156,13 @@ export class PortalController {
     @Req() req: { tenant: { id: string } },
     @Param('externalId') externalId: string,
     @Param('invoiceId') invoiceId: string,
-    @Body() body: { callbackUrl?: string },
+    @Body() body: { callbackUrl?: string; method?: string },
   ) {
     const customerId = await this.resolveCustomerId(db, externalId);
     if (body?.callbackUrl !== undefined && !/^https?:\/\//i.test(String(body.callbackUrl))) {
       throw new BadRequestException('callbackUrl must be an http(s) URL');
     }
-    return this.portalService.getInvoiceCheckout(db, customerId, invoiceId, body?.callbackUrl, req.tenant.id);
+    return this.portalService.getInvoiceCheckout(db, customerId, invoiceId, body?.callbackUrl, req.tenant.id, checkoutMethod(body?.method));
   }
 
   @Get(':externalId/invoices/:invoiceId/pdf')

@@ -11,6 +11,7 @@ import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BrandMark } from "@/components/brand-mark";
 import { useCan } from "@/lib/permissions";
+import { PAYPAL_CURRENCIES } from "@/lib/paypal";
 import { planApi, type CloudPlanOption, type PlanStatus } from "@/lib/api/plan";
 
 const usageLabels: [keyof PlanStatus["usage"], string][] = [
@@ -86,10 +87,10 @@ function PlanPage() {
     );
   }
 
-  const upgrade = async (plan: CloudPlanOption) => {
-    setBusy(plan.code);
+  const upgrade = async (plan: CloudPlanOption, method?: "paypal") => {
+    setBusy(method ? `${plan.code}:paypal` : plan.code);
     try {
-      const { url } = await planApi.checkout(plan.code, currency);
+      const { url } = await planApi.checkout(plan.code, currency, method);
       window.location.href = url;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not start checkout");
@@ -218,6 +219,12 @@ function PlanPage() {
                   <Button className="w-full" disabled={busy !== null} onClick={() => upgrade(p)}>
                     {busy === p.code ? <BrandMark animated tight className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" aria-hidden />}
                     Upgrade, pay with card or mobile money
+                  </Button>
+                )}
+                {p.tier === "growth" && !current && !partner && !enterprise && canManage && PAYPAL_CURRENCIES.has(currency) && (
+                  <Button variant="outline" className="mt-2 w-full" disabled={busy !== null} onClick={() => upgrade(p, "paypal")}>
+                    {busy === `${p.code}:paypal` && <BrandMark animated tight className="mr-2 h-4 w-4" />}
+                    Pay with PayPal
                   </Button>
                 )}
               </CardContent>

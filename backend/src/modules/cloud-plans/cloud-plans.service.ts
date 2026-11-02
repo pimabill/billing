@@ -10,6 +10,7 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { InvoicesService } from '../invoices/invoices.service';
 import { WebhooksController } from '../webhooks/webhooks.controller';
 import { isSandbox } from '../../config/sandbox';
+import type { CheckoutMethod } from '../../providers/base-payment.provider';
 import { CLOUD_CATALOGUE, CLOUD_TIERS, cloudPlansEnabled, CloudTier, ENTERPRISE_CODE, PAID_CODES, PARTNER_CODE, SUPERSEDED_LIMITS, SUPERSEDED_PRICES, tierOf } from './cloud-plans.catalogue';
 
 const DAY = 86_400_000;
@@ -306,7 +307,7 @@ export class CloudPlansService implements OnApplicationBootstrap {
    * operator, gets a subscription to the plan, and is sent to checkout for its
    * first invoice. Asking again reuses the open invoice.
    */
-  async checkout(tenantId: string, planCode: string, currency: string, returnUrl?: string): Promise<{ url: string }> {
+  async checkout(tenantId: string, planCode: string, currency: string, returnUrl?: string, method?: CheckoutMethod): Promise<{ url: string }> {
     if (!this.enabled) throw new BadRequestException('Plans are not offered on this deployment');
     if (!PAID_CODES.includes(planCode)) throw new BadRequestException(`Unknown plan ${planCode}`);
     const operator = await this.operator();
@@ -357,7 +358,7 @@ export class CloudPlansService implements OnApplicationBootstrap {
 
     const back = returnUrl ?? `${this.manageUrl()}?checkout=done`;
     const provider = process.env.CLOUD_BILLING_PROVIDER || 'managed';
-    const result = await this.invoices.createCheckout(db, invoice.id, back, provider, operator.id);
+    const result = await this.invoices.createCheckout(db, invoice.id, back, provider, operator.id, undefined, method);
     return { url: result.checkoutUrl! };
   }
 

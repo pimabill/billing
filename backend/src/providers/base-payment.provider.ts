@@ -52,6 +52,13 @@ export interface WebhookData {
   paymentMethodToken?: PaymentMethodToken;
 }
 
+/** The ways a payer can choose to pay at checkout. */
+export const CHECKOUT_METHODS = ['card', 'mobile_money', 'paypal'] as const;
+export type CheckoutMethod = (typeof CHECKOUT_METHODS)[number];
+
+/** Currencies PayPal takes payments in (no African currency among them). */
+export const PAYPAL_CURRENCIES = ['AUD', 'BRL', 'CAD', 'CNY', 'CZK', 'DKK', 'EUR', 'HKD', 'HUF', 'ILS', 'JPY', 'MYR', 'MXN', 'TWD', 'NZD', 'NOK', 'PHP', 'PLN', 'GBP', 'SGD', 'SEK', 'CHF', 'THB', 'USD'];
+
 export interface ChargeParams {
   amount: number;
   currency: string;
@@ -61,6 +68,8 @@ export interface ChargeParams {
   callbackUrl?: string;
   // Restrict payment methods (e.g., "card" to ensure tokenization for recurring billing)
   paymentOptions?: string;
+  /** How the payer chose to pay, for providers that offer several (managed payments). */
+  method?: CheckoutMethod;
   metadata?: Record<string, unknown>;
 }
 

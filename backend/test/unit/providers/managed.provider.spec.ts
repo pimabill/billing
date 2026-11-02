@@ -38,6 +38,12 @@ describe('ManagedCheckoutProvider', () => {
     });
   });
 
+  it('asks for PayPal when the payer chose it', async () => {
+    const fetch = jest.fn(() => json({ reference: 'pay_3', status: 'pending', checkoutUrl: 'https://www.paypal.com/checkoutnow?token=X' }));
+    await new ManagedCheckoutProvider({ accountId: 'acc_1' }, fetch as never).charge({ amount: 15, currency: 'USD', email: 'a@b.co', reference: 'pay_3', callbackUrl: 'https://x.example', method: 'paypal' });
+    expect(JSON.parse(String(((fetch.mock.calls[0] as unknown) as [string, RequestInit])[1].body))).toMatchObject({ method: 'paypal', currency: 'USD' });
+  });
+
   it('reports refusals as failures, so checkout can try the next provider', async () => {
     const provider = new ManagedCheckoutProvider({ accountId: 'acc_1' }, jest.fn(() => json({ message: 'Account is not active' }, 409)) as never);
     expect(await provider.charge({ amount: 1, currency: 'UGX', email: 'a@b.co', reference: 'pay_2' })).toMatchObject({ success: false, error: 'Account is not active' });

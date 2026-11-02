@@ -21,6 +21,11 @@ export class PlanCheckoutDto {
   @IsOptional()
   @IsUrl({ protocols: ['https', 'http'], require_tld: false })
   returnUrl?: string;
+
+  @ApiPropertyOptional({ enum: ['card', 'mobile_money', 'paypal'], description: 'How to pay; PayPal needs a currency it takes (USD, EUR, GBP). Defaults to card.' })
+  @IsOptional()
+  @IsIn(['card', 'mobile_money', 'paypal'])
+  method?: 'card' | 'mobile_money' | 'paypal';
 }
 
 export class PlanCheckoutResponse {
@@ -49,7 +54,7 @@ export class CloudPlansController {
   @ApiOperation({ summary: 'Start paying for a plan: returns a checkout link for its first invoice' })
   @ApiResponse({ status: 200, type: PlanCheckoutResponse })
   checkout(@Req() req: RequestWithTenant, @Body() dto: PlanCheckoutDto) {
-    return this.plans.checkout(req.tenant.id, dto.plan, dto.currency, dto.returnUrl);
+    return this.plans.checkout(req.tenant.id, dto.plan, dto.currency, dto.returnUrl, dto.method);
   }
 
   @Post('sync')
