@@ -10,6 +10,7 @@ import {
   Request,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '../../common/decorators/public.decorator';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { RequestWithTenant } from '../../common/interfaces/request-with-tenant.interface';
 import { PaymentMethodsService } from './payment-methods.service';
@@ -18,6 +19,8 @@ import { PaymentMethodResponse } from './dto/payment-method-response.dto';
 
 @ApiTags('Payment Methods')
 @ApiBearerAuth()
+// TenantGuard authenticates both dashboard sessions and API keys (within their scopes).
+@Public()
 @UseGuards(TenantGuard)
 @Controller('payment-methods')
 export class PaymentMethodsController {

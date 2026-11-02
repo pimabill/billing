@@ -1,5 +1,6 @@
-import { Controller, Get, Patch, Post, Delete, Body, Param, Req, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Patch, Post, Delete, Body, Param, Req, UseGuards, Query, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
+import { Public } from '../../common/decorators/public.decorator';
 import { TenantGuard } from '../../common/guards/tenant.guard';
 import { can, RequirePermission } from '../../common/auth/permissions';
 import { scopesAllow } from '../../common/auth/api-keys';
@@ -11,10 +12,18 @@ import { MessageResponse } from '../auth/dto/auth-response.dto';
 
 interface TenantRequest {
   tenant: { id: string; name: string; email: string };
+  authMethod?: 'session' | 'api_key';
+}
+
+/** Keys are made and revoked by people: an API key can never mint or revoke keys. */
+function requireSession(req: TenantRequest) {
+  if (req.authMethod !== 'session') throw new ForbiddenException('API keys are managed from the dashboard, not with an API key');
 }
 
 @ApiTags('Tenants')
 @ApiBearerAuth('JWT')
+// TenantGuard authenticates both dashboard sessions and API keys (within their scopes).
+@Public()
 @UseGuards(TenantGuard)
 @RequirePermission('org.manage')
 @Controller('tenants')
@@ -43,6 +52,7 @@ export class TenantsController {
   })
   @ApiResponse({ status: 201, description: 'The new key, shown once' })
   async rotateApiKey(@Req() req: TenantRequest) {
+    requireSession(req);
     return this.tenantsService.rotateApiKey(req.tenant.id);
   }
 
@@ -92,6 +102,7 @@ export class TenantsController {
     type: ApiKeyResponse,
   })
   async createApiKey(@Req() req: TenantRequest, @Body() dto: CreateApiKeyBodyDto) {
+    requireSession(req);
     const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : undefined;
     return this.tenantsService.createApiKey(req.tenant.id, dto.name, dto.scopes, expiresAt);
   }
@@ -163,6 +174,7 @@ export class TenantsController {
   @ApiResponse({ status: 200, description: 'API key deleted' })
   @ApiResponse({ status: 404, description: 'API key not found' })
   async deleteApiKey(@Req() req: TenantRequest, @Param('id') id: string) {
+    requireSession(req);
     return this.tenantsService.deleteApiKey(req.tenant.id, id);
   }
 }
