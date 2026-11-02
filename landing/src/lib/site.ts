@@ -22,6 +22,8 @@ export const site = {
   twitter: env("NEXT_PUBLIC_TWITTER_HANDLE", ""),
   logo: env("NEXT_PUBLIC_BRAND_LOGO", "/logo.svg"),
   license: "AGPL-3.0",
+  /** A copy of the site on a second domain stays out of search results, so it never competes with the main one. */
+  noindex: env("NEXT_PUBLIC_NOINDEX", "") === "true",
 };
 
 export const keywords = [
