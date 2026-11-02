@@ -11,6 +11,11 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  @ApiProperty({ required: false, description: 'Cloudflare Turnstile token, when the server has Turnstile on (see GET /auth/captcha)' })
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }
 
 export class SwitchOrganisationDto {

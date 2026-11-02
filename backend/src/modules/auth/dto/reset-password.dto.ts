@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEmail, MinLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, MinLength, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ForgotPasswordDto {
@@ -6,6 +6,11 @@ export class ForgotPasswordDto {
   @IsEmail()
   @IsNotEmpty()
   email: string;
+
+  @ApiProperty({ required: false, description: 'Cloudflare Turnstile token, when the server has Turnstile on (see GET /auth/captcha)' })
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }
 
 export class ResetPasswordDto {

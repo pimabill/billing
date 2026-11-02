@@ -299,10 +299,10 @@ async function sessionCall<T = SessionResult>(path: string, body: unknown): Prom
 export const apiClient = {
   // Auth (calls Next.js API routes directly, not the proxy)
   auth: {
-    login: (email: string, password: string, tenantId?: string) =>
-      sessionCall<SessionResult | MfaChallenge>("/api/auth/login", { email, password, tenantId }),
+    login: (email: string, password: string, tenantId?: string, captchaToken?: string) =>
+      sessionCall<SessionResult | MfaChallenge>("/api/auth/login", { email, password, tenantId, captchaToken }),
     verifyMfa: (mfaToken: string, code: string) => sessionCall("/api/auth/mfa/verify", { mfaToken, code }),
-    register: (data: { name: string; email: string; password: string; companyName: string }) =>
+    register: (data: { name: string; email: string; password: string; companyName: string; captchaToken?: string }) =>
       sessionCall("/api/auth/register", data),
     switchOrganisation: (tenantId: string) => sessionCall("/api/auth/switch", { tenantId }),
     createOrganisation: (companyName: string) => sessionCall("/api/auth/organisations", { companyName }),

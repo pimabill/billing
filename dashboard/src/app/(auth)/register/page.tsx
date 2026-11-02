@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import {
 import { useAuthStore } from "@/lib/stores/auth";
 import { apiClient } from "@/lib/api/client";
 import { toast } from "sonner";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 import { brand } from "@/lib/brand";
 
 export default function RegisterPage() {
@@ -25,6 +26,9 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const captcha = useRef<TurnstileHandle>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -36,6 +40,7 @@ export default function RegisterPage() {
         email,
         password,
         companyName,
+        ...(captchaToken && { captchaToken }),
       });
 
       applySession(result);
@@ -44,6 +49,7 @@ export default function RegisterPage() {
       router.push("/dashboard");
     } catch (error: any) {
       toast.error(error.message || "Registration failed");
+      captcha.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +119,9 @@ export default function RegisterPage() {
               />
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <Turnstile ref={captcha} onToken={setCaptchaToken} onReady={setCaptchaRequired} />
+
+            <Button type="submit" className="w-full" disabled={isLoading || (captchaRequired && !captchaToken)}>
               {isLoading ? "Creating account..." : "Start Free Beta"}
             </Button>
 

@@ -2501,6 +2501,10 @@
       },
       "ForgotPasswordDto": {
         "properties": {
+          "captchaToken": {
+            "description": "Cloudflare Turnstile token, when the server has Turnstile on (see GET /auth/captcha)",
+            "type": "string"
+          },
           "email": {
             "example": "john@company.com",
             "type": "string"
@@ -3260,6 +3264,10 @@
       },
       "LoginDto": {
         "properties": {
+          "captchaToken": {
+            "description": "Cloudflare Turnstile token, when the server has Turnstile on (see GET /auth/captcha)",
+            "type": "string"
+          },
           "email": {
             "example": "john@company.com",
             "type": "string"
@@ -5576,6 +5584,10 @@
       },
       "RegisterDto": {
         "properties": {
+          "captchaToken": {
+            "description": "Cloudflare Turnstile token, when the server has Turnstile on (see GET /auth/captcha)",
+            "type": "string"
+          },
           "companyName": {
             "description": "Company name (used to generate slug)",
             "example": "Acme Corp",
@@ -8079,6 +8091,22 @@
         "summary": "Get subscription analytics",
         "tags": [
           "Analytics"
+        ]
+      }
+    },
+    "/api/auth/captcha": {
+      "get": {
+        "description": "The Cloudflare Turnstile site key to show on sign-in, sign-up and password reset forms, or null when Turnstile is off. When it is on, those requests need `captchaToken`.",
+        "operationId": "AuthController_captcha",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "The site key, or null"
+          }
+        },
+        "summary": "Bot protection for the sign-in pages",
+        "tags": [
+          "Auth"
         ]
       }
     },

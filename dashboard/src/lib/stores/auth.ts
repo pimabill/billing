@@ -13,7 +13,7 @@ interface AuthState {
   organisations: Organisation[];
   isAuthenticated: boolean;
   /** Signs in, or returns the token for the second step when the account uses two-step sign-in. */
-  login: (email: string, password: string) => Promise<{ mfaToken: string } | void>;
+  login: (email: string, password: string, captchaToken?: string) => Promise<{ mfaToken: string } | void>;
   completeMfa: (mfaToken: string, code: string) => Promise<void>;
   logout: () => void;
   setUser: (user: User) => void;
@@ -49,8 +49,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set((s) => ({ user: session.user, isAuthenticated: true, organisations: session.organisations ?? s.organisations }));
   },
 
-  login: async (email: string, password: string) => {
-    const result = await apiClient.auth.login(email, password);
+  login: async (email: string, password: string, captchaToken?: string) => {
+    const result = await apiClient.auth.login(email, password, undefined, captchaToken);
     if ("mfaRequired" in result) return { mfaToken: result.mfaToken };
     get().applySession(result);
     await get().checkSession();
