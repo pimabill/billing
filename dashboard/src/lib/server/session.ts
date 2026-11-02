@@ -147,3 +147,20 @@ export async function linkSandbox() {
     return NextResponse.json({ message: "The sandbox is unavailable" }, { status: 502 });
   }
 }
+
+/**
+ * Pass a signed-out request (bot-check key, password reset) straight to the
+ * live API, which is where everyone signs in, and return its answer as is.
+ */
+export async function forwardPublic(path: string, init?: { method: "POST"; body: unknown }) {
+  try {
+    const res = await fetch(`${BACKEND_URL}/api${path}`, {
+      method: init?.method ?? "GET",
+      ...(init && { headers: { "Content-Type": "application/json" }, body: JSON.stringify(init.body) }),
+    });
+    const data = await res.json().catch(() => ({}));
+    return NextResponse.json(data, { status: res.status });
+  } catch {
+    return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  }
+}

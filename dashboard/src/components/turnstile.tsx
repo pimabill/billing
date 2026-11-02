@@ -35,7 +35,7 @@ let siteKeyRequest: Promise<string | null> | null = null;
 
 /** The API's Turnstile site key, or null when it doesn't use Turnstile. */
 function fetchSiteKey(): Promise<string | null> {
-  siteKeyRequest ??= fetch("/api/proxy/auth/captcha")
+  siteKeyRequest ??= fetch("/api/auth/captcha")
     .then((r) => (r.ok ? r.json() : {}))
     .then((b: { turnstileSiteKey?: string | null }) => b.turnstileSiteKey ?? null)
     .catch(() => null);
