@@ -1,13 +1,32 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { amountDue } from '../invoices/apply-payment';
+import { PAYPAL_CURRENCIES, type CheckoutMethod } from '../../providers/base-payment.provider';
+import { ManagedAccountsService } from '../money/managed.service';
 import { InvoicesService } from '../invoices/invoices.service';
 
 @Injectable()
 export class PortalService {
   private readonly logger = new Logger(PortalService.name);
 
-  constructor(private readonly invoices: InvoicesService) {}
+  constructor(
+    private readonly invoices: InvoicesService,
+    private readonly managed: ManagedAccountsService,
+  ) {}
+
+  /**
+   * Whether this organisation's customers can pay by PayPal: through its own
+   * PayPal, or through managed payments when its account offers PayPal.
+   */
+  async paymentOptions(db: PrismaClient, tenantId: string): Promise<{ paypal: boolean; paypalCurrencies: string[] }> {
+    const active = await db.paymentProvider.findMany({ where: { isActive: true, providerName: { in: ['paypal', 'managed'] } }, select: { providerName: true } });
+    let paypal = active.some((p) => p.providerName === 'paypal');
+    if (!paypal && active.some((p) => p.providerName === 'managed')) {
+      const status = await this.managed.status(db, tenantId).catch(() => null);
+      paypal = status?.account?.status === 'active' && (status.account.methods ?? []).includes('paypal');
+    }
+    return { paypal, paypalCurrencies: PAYPAL_CURRENCIES };
+  }
 
   async getCustomerByExternalId(db: PrismaClient, externalId: string) {
     const customer = await db.customer.findUnique({
@@ -144,7 +163,7 @@ export class PortalService {
     };
   }
 
-  async getInvoiceCheckout(db: PrismaClient, customerId: string, invoiceId: string, callbackUrl?: string, tenantId?: string) {
+  async getInvoiceCheckout(db: PrismaClient, customerId: string, invoiceId: string, callbackUrl?: string, tenantId?: string, method?: CheckoutMethod) {
     const invoice = await db.invoice.findUnique({
       where: { id: invoiceId },
       include: { customer: true },
@@ -157,7 +176,7 @@ export class PortalService {
     if (amountDue(invoice).lte(0)) throw new BadRequestException('Nothing to pay on this invoice');
 
     // The same checkout as the API: providers in priority order, managed payments last.
-    const result = await this.invoices.createCheckout(db, invoiceId, callbackUrl, undefined, tenantId);
+    const result = await this.invoices.createCheckout(db, invoiceId, callbackUrl, undefined, tenantId, undefined, method);
 
     return {
       checkoutUrl: result.checkoutUrl,

@@ -52,7 +52,7 @@ export class ManagedCheckoutProvider extends BasePaymentProvider {
           amount: String(params.amount),
           currency: params.currency,
           description: typeof params.metadata?.description === 'string' ? params.metadata.description : 'Invoice payment',
-          method: 'card',
+          method: params.method ?? 'card',
           customer: { email: params.email, ...(params.customerName && { name: params.customerName }) },
           redirectUrl: params.callbackUrl,
           ...(this.credentials.tenantId && { notificationUrl: notificationUrls('managed', this.credentials.tenantId).notificationUrl }),

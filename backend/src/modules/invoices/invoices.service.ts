@@ -8,6 +8,7 @@ import { EncryptionService } from '../../services/encryption.service';
 import { PdfService } from '../../services/pdf.service';
 import { CentralPrismaService } from '../../database/central-prisma.service';
 import { CHECKOUT_PROVIDER_NAMES, ProviderFactory } from '../../providers/provider.factory';
+import { CHECKOUT_METHODS, CheckoutMethod, PAYPAL_CURRENCIES } from '../../providers/base-payment.provider';
 import { WalletsService } from '../wallets/wallets.service';
 import { nextInvoiceNumber } from '../billing/invoice-number';
 import { dec, Dec, roundMoney } from '../billing/pricing';
@@ -20,6 +21,15 @@ import {
   EmailJobType,
   WebhookJobType,
 } from '../../queues/billing.queue';
+
+/** A checkout method from a request body: one of CHECKOUT_METHODS, or none. */
+export function checkoutMethod(value: unknown): CheckoutMethod | undefined {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (!(CHECKOUT_METHODS as readonly unknown[]).includes(value)) {
+    throw new BadRequestException(`method must be one of ${CHECKOUT_METHODS.join(', ')}`);
+  }
+  return value as CheckoutMethod;
+}
 
 @Injectable()
 export class InvoicesService {
@@ -512,7 +522,7 @@ export class InvoicesService {
    * A payment link for the invoice: for what is left to pay, or for `amount`
    * (a deposit or an instalment), which must not be more than what is left.
    */
-  async createCheckout(db: PrismaClient, id: string, callbackUrl?: string, providerName?: string, tenantId?: string, amount?: number) {
+  async createCheckout(db: PrismaClient, id: string, callbackUrl?: string, providerName?: string, tenantId?: string, amount?: number, method?: CheckoutMethod) {
     const invoice = await db.invoice.findUnique({
       where: { id },
       include: { customer: true },
@@ -537,11 +547,16 @@ export class InvoicesService {
     const charge = amount !== undefined ? roundMoney(dec(amount), invoice.currency) : due;
     if (charge.lte(0)) throw new BadRequestException('The amount must be above zero');
     if (charge.gt(due)) throw new BadRequestException(`Only ${due.toString()} ${invoice.currency} is left to pay on this invoice`);
+    if (method === 'paypal' && !PAYPAL_CURRENCIES.includes(invoice.currency)) {
+      throw new BadRequestException(`PayPal does not take ${invoice.currency}. Bill in a currency it takes, such as USD, EUR or GBP, to offer PayPal.`);
+    }
 
     // The requested provider, or every active one in priority order: when one cannot start a
-    // checkout (a revoked key, an outage) the next is tried, managed payments last.
+    // checkout (a revoked key, an outage) the next is tried, managed payments last. Paying by
+    // PayPal leaves only your own PayPal and managed payments.
+    const names = method === 'paypal' ? CHECKOUT_PROVIDER_NAMES.filter((n) => n === 'paypal' || n === 'managed') : CHECKOUT_PROVIDER_NAMES;
     const candidates = await db.paymentProvider.findMany({
-      where: { isActive: true, providerName: providerName ? providerName : { in: CHECKOUT_PROVIDER_NAMES } },
+      where: { isActive: true, providerName: providerName ? providerName : { in: names } },
       orderBy: { priority: 'asc' },
     });
 
@@ -587,6 +602,7 @@ export class InvoicesService {
           reference: payment.id,
           callbackUrl,
           paymentOptions: 'card',
+          ...(method && { method }),
           metadata: { invoiceId: id, paymentId: payment.id, description: `Invoice ${invoice.invoiceNumber}` },
         })
         .catch((error: Error) => ({ success: false, error: error.message, transactionId: undefined, paymentUrl: undefined }));

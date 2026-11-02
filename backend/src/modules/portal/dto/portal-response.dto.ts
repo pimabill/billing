@@ -139,7 +139,18 @@ export class PortalSummaryResponse {
   pendingInvoices: number;
 }
 
+export class PortalPaymentOptionsResponse {
+  @ApiProperty({ description: 'Customers can choose PayPal at checkout (for invoices in paypalCurrencies)' })
+  paypal: boolean;
+
+  @ApiProperty({ type: [String], example: ['USD', 'EUR', 'GBP'], description: 'Currencies PayPal takes' })
+  paypalCurrencies: string[];
+}
+
 export class PortalBillingResponse {
+  @ApiProperty({ type: PortalPaymentOptionsResponse })
+  paymentOptions: PortalPaymentOptionsResponse;
+
   @ApiProperty({ type: PortalCustomerResponse })
   customer: PortalCustomerResponse;
 

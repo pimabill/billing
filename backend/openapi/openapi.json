@@ -2677,6 +2677,16 @@
             "example": "https://shop.example.com/paid",
             "type": "string"
           },
+          "method": {
+            "description": "How the customer wants to pay, where the provider offers a choice (managed payments). Defaults to card.",
+            "enum": [
+              "card",
+              "mobile_money",
+              "paypal"
+            ],
+            "example": "paypal",
+            "type": "string"
+          },
           "providerName": {
             "description": "A specific active provider; otherwise the highest-priority one that can take it",
             "example": "flutterwave",
@@ -4956,6 +4966,15 @@
             "example": "UGX",
             "type": "string"
           },
+          "method": {
+            "description": "How to pay; PayPal needs a currency it takes (USD, EUR, GBP). Defaults to card.",
+            "enum": [
+              "card",
+              "mobile_money",
+              "paypal"
+            ],
+            "type": "string"
+          },
           "plan": {
             "enum": [
               "cloud_growth_monthly",
@@ -5174,6 +5193,9 @@
             },
             "type": "array"
           },
+          "paymentOptions": {
+            "$ref": "#/components/schemas/PortalPaymentOptionsResponse"
+          },
           "payments": {
             "description": "Latest 20",
             "items": {
@@ -5193,6 +5215,7 @@
           }
         },
         "required": [
+          "paymentOptions",
           "customer",
           "subscriptions",
           "invoices",
@@ -5287,6 +5310,31 @@
           "status",
           "dueDate",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "PortalPaymentOptionsResponse": {
+        "properties": {
+          "paypal": {
+            "description": "Customers can choose PayPal at checkout (for invoices in paypalCurrencies)",
+            "type": "boolean"
+          },
+          "paypalCurrencies": {
+            "description": "Currencies PayPal takes",
+            "example": [
+              "USD",
+              "EUR",
+              "GBP"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "paypal",
+          "paypalCurrencies"
         ],
         "type": "object"
       },
@@ -10977,6 +11025,16 @@
                   "callbackUrl": {
                     "description": "URL to redirect customer after payment",
                     "example": "https://myapp.com/payment/complete",
+                    "type": "string"
+                  },
+                  "method": {
+                    "description": "How the customer wants to pay, where the provider offers a choice (managed payments). `paypal` uses your own PayPal or managed payments. Defaults to card.",
+                    "enum": [
+                      "card",
+                      "mobile_money",
+                      "paypal"
+                    ],
+                    "example": "paypal",
                     "type": "string"
                   },
                   "providerName": {

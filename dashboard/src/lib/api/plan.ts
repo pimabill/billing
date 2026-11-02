@@ -22,8 +22,8 @@ export interface PlanStatus {
 
 export const planApi = {
   status: () => apiFetch<PlanStatus>("/tenants/me/plan"),
-  checkout: (plan: string, currency: string) =>
-    apiFetch<{ url: string }>("/tenants/me/plan/checkout", { method: "POST", body: JSON.stringify({ plan, currency }) }),
+  checkout: (plan: string, currency: string, method?: "paypal") =>
+    apiFetch<{ url: string }>("/tenants/me/plan/checkout", { method: "POST", body: JSON.stringify({ plan, currency, ...(method && { method }) }) }),
   sync: () => apiFetch<PlanStatus>("/tenants/me/plan/sync", { method: "POST" }),
   cancel: () => apiFetch<PlanStatus>("/tenants/me/plan/cancel", { method: "POST" }),
 };

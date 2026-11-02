@@ -13,7 +13,7 @@ import { TenantGuard } from '../../common/guards/tenant.guard';
 import { TenantDb } from '../../common/decorators/tenant-db.decorator';
 import { Tenant } from '../../common/decorators/tenant.decorator';
 import { Public } from '../../common/decorators/public.decorator';
-import { InvoicesService } from './invoices.service';
+import { InvoicesService, checkoutMethod } from './invoices.service';
 import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
 import { InvoiceResponse, PaginatedInvoiceResponse, CheckoutResponse } from './dto/invoice-response.dto';
@@ -70,7 +70,7 @@ export class InvoicesController {
     const invoice = await this.invoicesService.create(db, tenant.id, fields as CreateInvoiceDto);
     if (!checkout) return invoice;
     // A one-time charge: the invoice and the link to pay it, in one call.
-    const link = await this.invoicesService.createCheckout(db, (invoice as { id: string }).id, checkout.callbackUrl, checkout.providerName, tenant.id, checkout.amount);
+    const link = await this.invoicesService.createCheckout(db, (invoice as { id: string }).id, checkout.callbackUrl, checkout.providerName, tenant.id, checkout.amount, checkout.method);
     return { ...invoice, checkout: link };
   }
 
@@ -173,6 +173,12 @@ export class InvoicesController {
           description: 'Charge part of the invoice, for a deposit or an instalment. Defaults to everything still due.',
           example: 50,
         },
+        method: {
+          type: 'string',
+          enum: ['card', 'mobile_money', 'paypal'],
+          description: 'How the customer wants to pay, where the provider offers a choice (managed payments). `paypal` uses your own PayPal or managed payments. Defaults to card.',
+          example: 'paypal',
+        },
       },
     },
   })
@@ -190,9 +196,9 @@ export class InvoicesController {
     @TenantDb() db: PrismaClient,
     @Req() req: { tenant: { id: string } },
     @Param('id') id: string,
-    @Body() body: { callbackUrl?: string; providerName?: string; amount?: number },
+    @Body() body: { callbackUrl?: string; providerName?: string; amount?: number; method?: string },
   ) {
-    return this.invoicesService.createCheckout(db, id, body.callbackUrl, body.providerName, req.tenant.id, body.amount);
+    return this.invoicesService.createCheckout(db, id, body.callbackUrl, body.providerName, req.tenant.id, body.amount, checkoutMethod(body.method));
   }
 
   @Post(':id/send-email')

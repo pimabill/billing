@@ -44,6 +44,7 @@ import type { Invoice, Customer, PaymentProvider } from "@/types";
 import { toast } from "sonner";
 import { useCan } from "@/lib/permissions";
 import { ChargeDialog } from "@/components/charge-dialog";
+import { PAYPAL_CURRENCIES, type CheckoutMethod } from "@/lib/paypal";
 import { BrandMark } from "@/components/brand-mark";
 
 const statusColors = {
@@ -99,6 +100,8 @@ export default function InvoicesPage() {
   const [checkoutInvoice, setCheckoutInvoice] = useState<Invoice | null>(null);
   const [configuredProviders, setConfiguredProviders] = useState<PaymentProvider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>("");
+  // With managed payments the payer can go to PayPal instead of the card and mobile money checkout.
+  const [checkoutMethod, setCheckoutMethod] = useState<CheckoutMethod>("card");
   const [isGeneratingCheckout, setIsGeneratingCheckout] = useState(false);
 
   useEffect(() => {
@@ -248,6 +251,7 @@ export default function InvoicesPage() {
       setCheckoutInvoice(invoice);
       setConfiguredProviders(active);
       setSelectedProvider(active[0]?.code ?? "");
+      setCheckoutMethod("card");
       setCheckoutDialogOpen(true);
     } catch {
       // If loading providers fails, fall back to default provider
@@ -255,10 +259,10 @@ export default function InvoicesPage() {
     }
   }
 
-  async function runCheckout(invoice: Invoice, providerName: string | undefined) {
+  async function runCheckout(invoice: Invoice, providerName: string | undefined, method?: CheckoutMethod) {
     setIsGeneratingCheckout(true);
     try {
-      const result = await apiClient.invoices.checkout(invoice.id, undefined, providerName);
+      const result = await apiClient.invoices.checkout(invoice.id, undefined, providerName, method);
       if (result.checkoutUrl) {
         toast.success(`Checkout URL generated via ${result.provider}`);
         window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
@@ -800,6 +804,22 @@ export default function InvoicesPage() {
                   ))}
                 </SelectContent>
               </Select>
+              {selectedProvider === "managed" && checkoutInvoice && (
+                <div className="mt-3">
+                  <Label htmlFor="checkout-method">The customer pays by</Label>
+                  <Select value={checkoutMethod} onValueChange={(v) => setCheckoutMethod(v as CheckoutMethod)}>
+                    <SelectTrigger id="checkout-method" className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="card">Card or mobile money</SelectItem>
+                      <SelectItem value="paypal" disabled={!PAYPAL_CURRENCIES.has(checkoutInvoice.currency)}>
+                        PayPal{PAYPAL_CURRENCIES.has(checkoutInvoice.currency) ? "" : ` (not available in ${checkoutInvoice.currency})`}
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               {checkoutInvoice && (
                 <p className="text-sm text-muted-foreground mt-2">
                   Invoice {checkoutInvoice.invoiceNumber} —{" "}
@@ -815,7 +835,10 @@ export default function InvoicesPage() {
             </Button>
             {configuredProviders.length > 0 && (
               <Button
-                onClick={() => checkoutInvoice && runCheckout(checkoutInvoice, selectedProvider || undefined)}
+                onClick={() =>
+                  checkoutInvoice &&
+                  runCheckout(checkoutInvoice, selectedProvider || undefined, selectedProvider === "managed" && checkoutMethod === "paypal" ? "paypal" : undefined)
+                }
                 disabled={isGeneratingCheckout || !selectedProvider}
               >
                 {isGeneratingCheckout && <BrandMark animated tight className="mr-2 h-4 w-4" />}

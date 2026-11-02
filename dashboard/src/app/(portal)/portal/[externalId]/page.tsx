@@ -16,9 +16,12 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/currency";
 import { brand } from "@/lib/brand";
+import { PAYPAL_CURRENCIES } from "@/lib/paypal";
 import { BrandMark } from "@/components/brand-mark";
 
 interface BillingData {
+  /** Whether this business takes PayPal (for invoices in a currency PayPal takes). */
+  paymentOptions?: { paypal: boolean };
   customer: {
     id: string;
     externalId: string;
@@ -161,12 +164,12 @@ export default function CustomerBillingPortal() {
     }
   }
 
-  async function handleCheckout(invoiceId: string) {
-    setCheckoutLoading(invoiceId);
+  async function handleCheckout(invoiceId: string, method?: "paypal") {
+    setCheckoutLoading(method ? `${invoiceId}:paypal` : invoiceId);
     try {
       const res = await fetch(
         `/api/portal/${encodeURIComponent(externalId)}?invoiceId=${encodeURIComponent(invoiceId)}`,
-        { method: "POST", headers: { ...authHeaders, "Content-Type": "application/json" }, body: JSON.stringify({ callbackUrl: window.location.href }) },
+        { method: "POST", headers: { ...authHeaders, "Content-Type": "application/json" }, body: JSON.stringify({ callbackUrl: window.location.href, ...(method && { method }) }) },
       );
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -356,6 +359,16 @@ export default function CustomerBillingPortal() {
                         <ExternalLink className="h-3 w-3" />
                       )}
                       Pay Now
+                    </button>
+                  )}
+                  {inv.status === "PENDING" && data?.paymentOptions?.paypal && PAYPAL_CURRENCIES.has(inv.currency) && (
+                    <button
+                      onClick={() => handleCheckout(inv.id, "paypal")}
+                      disabled={checkoutLoading !== null}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border hover:bg-muted transition-colors disabled:opacity-50"
+                    >
+                      {checkoutLoading === `${inv.id}:paypal` && <BrandMark animated tight className="h-3 w-3" />}
+                      PayPal
                     </button>
                   )}
                 </div>
