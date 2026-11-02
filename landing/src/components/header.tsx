@@ -4,10 +4,10 @@ import { site } from "@/lib/site";
 import { BrandLockup } from "@/components/brand-mark";
 
 const navLinks = [
-  { label: "Product", href: "#product" },
-  { label: "Developers", href: "#developers" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "FAQ", href: "#faq" },
+  { label: "Product", href: "/#product" },
+  { label: "Developers", href: "/#developers" },
+  { label: "Pricing", href: "/pricing" },
+  { label: "FAQ", href: "/#faq" },
   { label: "Docs", href: site.docsUrl },
 ];
 

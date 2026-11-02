@@ -2,7 +2,7 @@ import { ArrowRight, Check, Code2, Landmark, Layers, Minus, Server, Smartphone, 
 import Image from "next/image";
 
 import Header from "@/components/header";
-import { BrandLockup } from "@/components/brand-mark";
+import Footer from "@/components/footer";
 import { rails, site } from "@/lib/site";
 import { faq } from "./faq";
 
@@ -15,6 +15,17 @@ export default function Home() {
         Skip to content
       </a>
       <Header />
+      {/* The FAQ shown on this page, as structured data. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: faq.map((q) => ({ "@type": "Question", name: q.question, acceptedAnswer: { "@type": "Answer", text: q.answer } })),
+          }).replace(/</g, "\\u003c"),
+        }}
+      />
       <main id="main">
         <Hero />
         <Proof />
@@ -681,58 +692,3 @@ function ClosingCta() {
   );
 }
 
-function Footer() {
-  const columns = [
-    {
-      title: "Product",
-      links: [
-        ["How it works", "#product"],
-        ["Pricing", "#pricing"],
-        ["FAQ", "#faq"],
-      ],
-    },
-    {
-      title: "Developers",
-      links: [
-        ["Documentation", site.docsUrl],
-        ["API reference", site.apiRefUrl],
-        ["GitHub", site.githubUrl],
-      ],
-    },
-    {
-      title: "Company",
-      links: [
-        ["Contact", `mailto:${site.contactEmail}`],
-        ["Security", `${site.githubUrl}/security/policy`],
-        ["Licence", `${site.githubUrl}/blob/main/LICENSE`],
-      ],
-    },
-  ];
-  return (
-    <footer className="border-t border-line">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-14 sm:px-6 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))]">
-        <div>
-          <BrandLockup />
-          <p className="mt-4 max-w-xs text-sm text-ink-2">{site.tagline}.</p>
-        </div>
-        {columns.map((c) => (
-          <nav key={c.title} aria-label={c.title}>
-            <h2 className="font-mono text-xs uppercase tracking-[0.08em] text-ink-2">{c.title}</h2>
-            <ul className="mt-4 grid gap-2.5 text-sm">
-              {c.links.map(([label, href]) => (
-                <li key={label}>
-                  <a href={href} className="hover:text-teal">
-                    {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        ))}
-      </div>
-      <p className="mx-auto max-w-6xl px-4 pb-10 text-sm text-ink-2 sm:px-6">
-        © {new Date().getFullYear()} {site.name}. Open source under {site.license}.
-      </p>
-    </footer>
-  );
-}

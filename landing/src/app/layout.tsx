@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/unbounded";
 import "@fontsource-variable/schibsted-grotesk";
 import "@fontsource-variable/jetbrains-mono";
-import { faq } from "./faq";
+import { growthMonthly } from "@/lib/pages";
 import { keywords, site } from "@/lib/site";
 import "./globals.css";
 
@@ -32,7 +32,9 @@ export const metadata: Metadata = {
     description: site.description,
     ...(site.twitter && { site: site.twitter, creator: site.twitter }),
   },
-  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+  robots: site.noindex
+    ? { index: false, follow: false }
+    : { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
   icons: { icon: [{ url: site.logo, type: "image/svg+xml" }, { url: "/logo.png", type: "image/png" }], apple: "/logo.png" },
 };
 
@@ -43,7 +45,7 @@ export const viewport: Viewport = {
   ],
 };
 
-/** Structured data: who we are, what the software is, and the FAQ shown on the page. */
+/** Structured data on every page: who we are and what the software is. */
 const jsonLd = [
   {
     "@context": "https://schema.org",
@@ -53,6 +55,8 @@ const jsonLd = [
     logo: `${site.url}/logo.png`,
     sameAs: [site.githubUrl],
     email: site.contactEmail,
+    contactPoint: { "@type": "ContactPoint", contactType: "sales", email: site.contactEmail, availableLanguage: ["English"] },
+    areaServed: ["Uganda", "Kenya", "Tanzania", "Rwanda", "Nigeria", "Ghana", "South Africa", "Africa"].map((name) => ({ "@type": name === "Africa" ? "Continent" : "Country", name })),
   },
   {
     "@context": "https://schema.org",
@@ -72,16 +76,27 @@ const jsonLd = [
     operatingSystem: "Linux, Docker, Web",
     license: `https://spdx.org/licenses/${site.license}.html`,
     codeRepository: site.githubUrl,
+    featureList: [
+      "Subscription and usage-based billing",
+      "MTN MoMo and Airtel Money collections",
+      "M-Pesa, cards and bank transfers through Flutterwave, Paystack, Pesapal and DPO",
+      "Instalments and partial payments",
+      "Payouts to mobile money and bank accounts",
+      "Double-entry ledger",
+      "Customer portal",
+      "REST API, webhooks and SDKs",
+    ],
     offers: [
       { "@type": "Offer", name: "Self-hosted", price: "0", priceCurrency: "USD", description: "Open source, on your own servers" },
       { "@type": "Offer", name: "Cloud Free", price: "0", priceCurrency: "USD", description: "Hosted: 1,000 customers, 2,500 invoices a month" },
-      { "@type": "Offer", name: "Cloud Growth", price: "15", priceCurrency: "USD", description: "Hosted, no limits, billed monthly; also payable in UGX, KES, NGN, GHS and other African currencies" },
+      ...Object.entries(growthMonthly).map(([currency, amount]) => ({
+        "@type": "Offer",
+        name: "Cloud Growth",
+        price: String(amount),
+        priceCurrency: currency,
+        description: "Hosted, no limits, billed monthly",
+      })),
     ],
-  },
-  {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faq.map((q) => ({ "@type": "Question", name: q.question, acceptedAnswer: { "@type": "Answer", text: q.answer } })),
   },
 ];
 
