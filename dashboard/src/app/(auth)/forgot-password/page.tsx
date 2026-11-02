@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const res = await fetch("/api/proxy/auth/forgot-password", {
+      const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, ...(captchaToken && { captchaToken }) }),
