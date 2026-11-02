@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,11 +12,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const captcha = useRef<TurnstileHandle>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,8 +30,17 @@ export default function ForgotPasswordPage() {
       const res = await fetch("/api/proxy/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, ...(captchaToken && { captchaToken }) }),
       });
+      // The bot check failed: say so, rather than claim an email was sent.
+      if (res.status === 400) {
+        const body = await res.json().catch(() => ({}));
+        if (/CAPTCHA/.test(body.code ?? "")) {
+          toast.error(body.message || "Please complete the check that you are human.");
+          captcha.current?.reset();
+          return;
+        }
+      }
 
       // Always show success to prevent email enumeration
       setSubmitted(true);
@@ -88,7 +101,9 @@ export default function ForgotPasswordPage() {
                   />
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
+                <Turnstile ref={captcha} onToken={setCaptchaToken} onReady={setCaptchaRequired} />
+
+                <Button type="submit" className="w-full" disabled={isLoading || (captchaRequired && !captchaToken)}>
                   {isLoading ? "Sending..." : "Send Reset Link"}
                 </Button>
               </form>

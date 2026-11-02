@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useAuthStore } from "@/lib/stores/auth";
 import { toast } from "sonner";
 import { brand } from "@/lib/brand";
+import { Turnstile, type TurnstileHandle } from "@/components/turnstile";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -28,13 +29,17 @@ export default function LoginPage() {
   const [mfaToken, setMfaToken] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [useRecovery, setUseRecovery] = useState(false);
+  // Bot check (Cloudflare Turnstile), when the API has it on.
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaRequired, setCaptchaRequired] = useState(false);
+  const captcha = useRef<TurnstileHandle>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      const next = await login(email, password);
+      const next = await login(email, password, captchaToken ?? undefined);
       if (next) {
         setMfaToken(next.mfaToken);
         return;
@@ -42,7 +47,10 @@ export default function LoginPage() {
       toast.success("Welcome back!");
       router.push("/dashboard");
     } catch (error) {
-      toast.error("Invalid credentials");
+      const message = error instanceof Error ? error.message : "";
+      toast.error(/human/.test(message) ? message : "Invalid credentials");
+      // A token works once: get a new one for the next try.
+      captcha.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -178,7 +186,9 @@ export default function LoginPage() {
               </Label>
             </div>
 
-            <Button type="submit" className="w-full" isLoading={isLoading}>
+            <Turnstile ref={captcha} onToken={setCaptchaToken} onReady={setCaptchaRequired} />
+
+            <Button type="submit" className="w-full" isLoading={isLoading} disabled={captchaRequired && !captchaToken}>
               Sign In
             </Button>
           </form>

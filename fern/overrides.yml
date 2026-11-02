@@ -18,6 +18,10 @@ paths:
     post:
       x-fern-sdk-group-name: auth
       x-fern-sdk-method-name: register
+  /api/auth/captcha:
+    get:
+      x-fern-sdk-group-name: auth
+      x-fern-sdk-method-name: getCaptcha
   /api/auth/refresh:
     post:
       x-fern-sdk-group-name: auth

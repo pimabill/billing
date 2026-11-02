@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsNotEmpty, IsEmail, MinLength, MaxLength, IsOptional } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class RegisterDto {
@@ -27,4 +27,9 @@ export class RegisterDto {
   @MinLength(2)
   @MaxLength(200)
   companyName: string;
+
+  @ApiProperty({ required: false, description: 'Cloudflare Turnstile token, when the server has Turnstile on (see GET /auth/captcha)' })
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }

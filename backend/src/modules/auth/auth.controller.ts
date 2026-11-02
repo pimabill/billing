@@ -5,6 +5,7 @@ import { AuthService, TokenPair } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { AcceptInvitationDto, AcceptSandboxLinkDto, CreateOrganisationDto, LoginDto, SwitchOrganisationDto } from './dto/login.dto';
 import { TenantGuard } from '../../common/guards/tenant.guard';
+import { turnstileSiteKey, verifyTurnstile } from '../../common/security/turnstile';
 import { RequirePermission } from '../../common/auth/permissions';
 import { RequestWithTenant } from '../../common/interfaces/request-with-tenant.interface';
 import { RefreshTokenDto, ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
@@ -33,7 +34,8 @@ export class AuthController {
   })
   @ApiResponse({ status: 201, description: 'Tenant registered successfully.', type: RegisterResponse })
   @ApiResponse({ status: 409, description: 'Email already registered' })
-  async register(@Body() dto: RegisterDto) {
+  async register(@Body() { captchaToken, ...dto }: RegisterDto) {
+    await verifyTurnstile(captchaToken);
     return this.authService.register(dto);
   }
 
@@ -48,8 +50,20 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'Login successful.', type: LoginResponse })
   @ApiResponse({ status: 401, description: 'Invalid email or password' })
-  async login(@Body() dto: LoginDto) {
+  async login(@Body() { captchaToken, ...dto }: LoginDto) {
+    await verifyTurnstile(captchaToken);
     return this.authService.login(dto);
+  }
+
+  @Public()
+  @Get('captcha')
+  @ApiOperation({
+    summary: 'Bot protection for the sign-in pages',
+    description: 'The Cloudflare Turnstile site key to show on sign-in, sign-up and password reset forms, or null when Turnstile is off. When it is on, those requests need `captchaToken`.',
+  })
+  @ApiResponse({ status: 200, description: 'The site key, or null' })
+  captcha() {
+    return { turnstileSiteKey: turnstileSiteKey() };
   }
 
   @Public()
@@ -150,6 +164,7 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'Reset email sent if account exists', type: MessageResponse })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await verifyTurnstile(dto.captchaToken);
     await this.authService.forgotPassword(dto.email);
     return { message: 'If an account exists with this email, a reset link has been sent' };
   }
