@@ -690,6 +690,14 @@ export const apiClient = {
       });
     },
 
+    /** A link to the hosted checkout, where the customer chooses how to pay. */
+    async hostedCheckout(id: string): Promise<{ checkoutUrl: string; expiresAt: string }> {
+      return apiFetch<{ checkoutUrl: string; expiresAt: string }>(`/invoices/${id}/checkout`, {
+        method: "POST",
+        body: JSON.stringify({ hosted: true }),
+      });
+    },
+
     getPdfUrl(id: string): string {
       return `/api/proxy/invoices/${id}/pdf`;
     },

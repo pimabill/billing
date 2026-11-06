@@ -116,7 +116,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
             currency,
             items: [{ description: description || "Payment", quantity: 1, unitAmount: value }],
             dueDate: today(7),
-            ...(how === "link" && { checkout: { callbackUrl: window.location.origin, ...(payWith !== "auto" && { providerName: payWith }) } }),
+            ...(how === "link" && { checkout: payWith === "auto" ? { hosted: true } : { callbackUrl: window.location.origin, providerName: payWith } }),
           }),
         });
         if (how === "paid") await apiClient.invoices.markPaid(invoice.id, method);
@@ -143,7 +143,10 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
             if (!invoiceId) await sleep(1500);
           }
           let url: string | null = null;
-          if (invoiceId && how === "link") url = (await apiClient.invoices.checkout(invoiceId, window.location.origin, payWith !== "auto" ? payWith : undefined).catch(() => null))?.checkoutUrl ?? null;
+          if (invoiceId && how === "link") {
+            const link = payWith === "auto" ? apiClient.invoices.hostedCheckout(invoiceId) : apiClient.invoices.checkout(invoiceId, window.location.origin, payWith);
+            url = (await link.catch(() => null))?.checkoutUrl ?? null;
+          }
           if (invoiceId && how === "paid") await apiClient.invoices.markPaid(invoiceId, method);
           setResult({
             invoiceId,
@@ -331,7 +334,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
                 </div>
               )}
               {how === "link" && payOptions && payOptions.length === 1 && (
-                <p className="text-xs text-muted-foreground">Customers pay through {payOptions[0].label}.</p>
+                <p className="text-xs text-muted-foreground">Customers choose how to pay on your checkout page, through {payOptions[0].label}.</p>
               )}
               {how === "link" && payOptions && payOptions.length > 1 && (
                 <div className="space-y-1.5">
@@ -343,7 +346,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="auto">The first that can take it, in your priority order</SelectItem>
+                      <SelectItem value="auto">Let the customer choose</SelectItem>
                       {payOptions.map((o) => (
                         <SelectItem key={o.code} value={o.code}>
                           {o.label}

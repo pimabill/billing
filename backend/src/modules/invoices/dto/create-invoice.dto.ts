@@ -8,6 +8,7 @@ import {
   IsNumber,
   Min,
   IsIn,
+  IsBoolean,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -30,10 +31,15 @@ export class InvoiceCheckoutOptionsDto {
   @Min(0.01)
   amount?: number;
 
-  @ApiProperty({ required: false, enum: ['card', 'mobile_money', 'paypal'], example: 'paypal', description: 'How the customer wants to pay, where the provider offers a choice (managed payments). Defaults to card.' })
+  @ApiProperty({ required: false, enum: ['card', 'mobile_money', 'paypal'], example: 'paypal', description: 'How the customer pays: only providers that take it are tried. Defaults to card.' })
   @IsOptional()
   @IsIn(['card', 'mobile_money', 'paypal'])
   method?: 'card' | 'mobile_money' | 'paypal';
+
+  @ApiProperty({ required: false, example: true, description: 'Send the customer to the hosted checkout, where they choose how to pay from what you take. Not used with `providerName` or `method`.' })
+  @IsOptional()
+  @IsBoolean()
+  hosted?: boolean;
 }
 
 export class CreateInvoiceDto {

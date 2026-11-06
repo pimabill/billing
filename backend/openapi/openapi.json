@@ -836,18 +836,18 @@
             "type": "string"
           },
           "paymentId": {
+            "description": "Absent for a hosted checkout: the payment starts when the customer chooses how to pay.",
             "example": "clxpay123",
             "type": "string"
           },
           "provider": {
+            "description": "Absent for a hosted checkout.",
             "example": "paystack",
             "type": "string"
           }
         },
         "required": [
           "checkoutUrl",
-          "paymentId",
-          "provider",
           "expiresAt"
         ],
         "type": "object"
@@ -2677,8 +2677,13 @@
             "example": "https://shop.example.com/paid",
             "type": "string"
           },
+          "hosted": {
+            "description": "Send the customer to the hosted checkout, where they choose how to pay from what you take. Not used with `providerName` or `method`.",
+            "example": true,
+            "type": "boolean"
+          },
           "method": {
-            "description": "How the customer wants to pay, where the provider offers a choice (managed payments). Defaults to card.",
+            "description": "How the customer pays: only providers that take it are tried. Defaults to card.",
             "enum": [
               "card",
               "mobile_money",
@@ -5193,6 +5198,9 @@
             },
             "type": "array"
           },
+          "merchant": {
+            "$ref": "#/components/schemas/PortalMerchantResponse"
+          },
           "paymentOptions": {
             "$ref": "#/components/schemas/PortalPaymentOptionsResponse"
           },
@@ -5215,6 +5223,7 @@
           }
         },
         "required": [
+          "merchant",
           "paymentOptions",
           "customer",
           "subscriptions",
@@ -5264,6 +5273,11 @@
             "example": 49.99,
             "type": "number"
           },
+          "amountDue": {
+            "description": "What is left to pay",
+            "example": 19.99,
+            "type": "number"
+          },
           "createdAt": {
             "format": "date-time",
             "type": "string"
@@ -5306,10 +5320,23 @@
           "id",
           "invoiceNumber",
           "amount",
+          "amountDue",
           "currency",
           "status",
           "dueDate",
           "createdAt"
+        ],
+        "type": "object"
+      },
+      "PortalMerchantResponse": {
+        "properties": {
+          "name": {
+            "example": "Acme Internet",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
         ],
         "type": "object"
       },

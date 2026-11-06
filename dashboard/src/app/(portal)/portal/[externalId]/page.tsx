@@ -2,26 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import {
-  CreditCard,
-  Receipt,
-  Download,
-  ExternalLink,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-} from "lucide-react";
+import { AlertCircle, Download } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/currency";
 import { brand } from "@/lib/brand";
-import { PAYPAL_CURRENCIES } from "@/lib/paypal";
 import { BrandMark } from "@/components/brand-mark";
 
 interface BillingData {
-  /** Whether this business takes PayPal (for invoices in a currency PayPal takes). */
-  paymentOptions?: { paypal: boolean };
+  merchant?: { name: string };
   customer: {
     id: string;
     externalId: string;
@@ -43,6 +30,7 @@ interface BillingData {
     id: string;
     invoiceNumber: string;
     amount: number;
+    amountDue?: number;
     currency: string;
     status: string;
     dueDate: string;
@@ -66,27 +54,39 @@ interface BillingData {
   };
 }
 
-const statusConfig: Record<string, { icon: React.ElementType; color: string; bg: string; label: string }> = {
-  ACTIVE: { icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50", label: "Active" },
-  TRIALING: { icon: Clock, color: "text-blue-700", bg: "bg-blue-50", label: "Trial" },
-  PAUSED: { icon: Clock, color: "text-amber-700", bg: "bg-amber-50", label: "Paused" },
-  PAST_DUE: { icon: AlertCircle, color: "text-red-700", bg: "bg-red-50", label: "Past Due" },
-  CANCELED: { icon: XCircle, color: "text-gray-500", bg: "bg-gray-100", label: "Canceled" },
-  PENDING: { icon: Clock, color: "text-amber-700", bg: "bg-amber-50", label: "Pending" },
-  PAID: { icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50", label: "Paid" },
-  FAILED: { icon: XCircle, color: "text-red-700", bg: "bg-red-50", label: "Failed" },
-  SUCCEEDED: { icon: CheckCircle2, color: "text-emerald-700", bg: "bg-emerald-50", label: "Succeeded" },
+const STATUS: Record<string, { label: string; className: string }> = {
+  ACTIVE: { label: "Active", className: "bg-emerald-50 text-emerald-700" },
+  TRIALING: { label: "Trial", className: "bg-blue-50 text-blue-700" },
+  PAUSED: { label: "Paused", className: "bg-amber-50 text-amber-800" },
+  PAST_DUE: { label: "Past due", className: "bg-red-50 text-red-700" },
+  CANCELED: { label: "Cancelled", className: "bg-muted text-muted-foreground" },
+  DRAFT: { label: "Draft", className: "bg-muted text-muted-foreground" },
+  PENDING: { label: "Due", className: "bg-amber-50 text-amber-800" },
+  PROCESSING: { label: "Processing", className: "bg-amber-50 text-amber-800" },
+  PAID: { label: "Paid", className: "bg-emerald-50 text-emerald-700" },
+  SUCCEEDED: { label: "Paid", className: "bg-emerald-50 text-emerald-700" },
+  FAILED: { label: "Failed", className: "bg-red-50 text-red-700" },
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const config = statusConfig[status] || statusConfig.PENDING;
-  const Icon = config.icon;
+  const config = STATUS[status] ?? { label: status.toLowerCase(), className: "bg-muted text-muted-foreground" };
+  return <span className={`inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${config.className}`}>{config.label}</span>;
+}
+
+const OPEN = new Set(["PENDING", "FAILED"]);
+const shortDate = (value: string) => new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.color} ${config.bg}`}>
-      <Icon className="h-3 w-3" />
-      {config.label}
-    </span>
+    <section className="mt-10">
+      <h2 className="text-sm font-semibold">{title}</h2>
+      <div className="mt-3 divide-y rounded-xl border bg-card">{children}</div>
+    </section>
   );
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="p-5 text-sm text-muted-foreground">{children}</p>;
 }
 
 export default function CustomerBillingPortal() {
@@ -121,9 +121,8 @@ export default function CustomerBillingPortal() {
   const [data, setData] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"overview" | "invoices" | "payments">("overview");
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
-  const [expandedSub, setExpandedSub] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     if (!tokenChecked) return;
@@ -138,7 +137,7 @@ export default function CustomerBillingPortal() {
 
   async function downloadPdf(invoiceId: string, invoiceNumber: string) {
     const res = await fetch(`/api/portal/${encodeURIComponent(externalId)}?resource=pdf&invoiceId=${encodeURIComponent(invoiceId)}`, { headers: authHeaders });
-    if (!res.ok) return setError("Could not download the invoice");
+    if (!res.ok) return setNotice("We could not download that invoice. Try again.");
     const url = URL.createObjectURL(await res.blob());
     const a = document.createElement("a");
     a.href = url;
@@ -164,25 +163,22 @@ export default function CustomerBillingPortal() {
     }
   }
 
-  async function handleCheckout(invoiceId: string, method?: "paypal") {
-    setCheckoutLoading(method ? `${invoiceId}:paypal` : invoiceId);
+  /** Open the hosted checkout, where the customer chooses how to pay. */
+  async function pay(invoiceId: string) {
+    setCheckoutLoading(invoiceId);
+    setNotice(null);
     try {
-      const res = await fetch(
-        `/api/portal/${encodeURIComponent(externalId)}?invoiceId=${encodeURIComponent(invoiceId)}`,
-        { method: "POST", headers: { ...authHeaders, "Content-Type": "application/json" }, body: JSON.stringify({ callbackUrl: window.location.href, ...(method && { method }) }) },
-      );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message || "Failed to create checkout");
-      }
-      const result = await res.json();
-      const checkout = result.data || result;
-      if (checkout.checkoutUrl) {
-        window.location.href = checkout.checkoutUrl;
-      }
-    } catch (e: any) {
-      alert(e.message || "Payment failed");
-    } finally {
+      const res = await fetch(`/api/portal/${encodeURIComponent(externalId)}?invoiceId=${encodeURIComponent(invoiceId)}`, {
+        method: "POST",
+        headers: { ...authHeaders, "Content-Type": "application/json" },
+        body: JSON.stringify({ callbackUrl: window.location.href, hosted: true }),
+      });
+      const body = await res.json().catch(() => ({}));
+      const url = (body.data ?? body).checkoutUrl;
+      if (!res.ok || !url) throw new Error(body.message || "We could not start the payment.");
+      window.location.href = url;
+    } catch (e) {
+      setNotice(e instanceof Error ? e.message : "We could not start the payment.");
       setCheckoutLoading(null);
     }
   }
@@ -212,204 +208,154 @@ export default function CustomerBillingPortal() {
 
   if (!data) return null;
 
+  const open = data.invoices.filter((inv) => OPEN.has(inv.status));
+  const dueOf = (inv: BillingData["invoices"][number]) => inv.amountDue ?? inv.amount;
+  const currencies = new Set(open.map((inv) => inv.currency));
+  const merchantName = data.merchant?.name ?? "Billing";
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-[22px] font-semibold tracking-tight">Billing</h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your subscriptions, view invoices, and make payments.
-        </p>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Active Subscriptions</p>
-          <p className="text-[22px] font-semibold tracking-tight mt-1">{data.summary.activeSubscriptions}</p>
+    <div className="min-h-screen bg-background">
+      <header className="border-b">
+        <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground" aria-hidden>
+            {merchantName.trim().charAt(0).toUpperCase()}
+          </span>
+          <span className="min-w-0 truncate font-medium">{merchantName}</span>
+          <span className="ml-auto min-w-0 truncate text-sm text-muted-foreground">{data.customer.name || data.customer.email}</span>
         </div>
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Total Spent</p>
-          <p className="text-[22px] font-semibold tracking-tight mt-1">
-            {formatCurrency(data.summary.totalSpent, data.summary.currency)}
+      </header>
+
+      <main className="mx-auto max-w-3xl px-4 py-8 sm:py-12">
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Your billing</h1>
+
+        {notice && (
+          <p role="alert" className="mt-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            {notice}
           </p>
-        </div>
-        <div className="bg-card rounded-lg border p-4">
-          <p className="text-sm text-muted-foreground">Pending Invoices</p>
-          <p className="text-[22px] font-semibold tracking-tight mt-1">{data.summary.pendingInvoices}</p>
-        </div>
-      </div>
+        )}
 
-      {/* Tab Navigation */}
-      <div className="flex border-b mb-6">
-        {(["overview", "invoices", "payments"] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-              activeTab === tab
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {tab === "overview" ? "Subscriptions" : tab === "invoices" ? "Invoices" : "Payments"}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
-      {activeTab === "overview" && (
-        <div className="space-y-4">
-          {data.subscriptions.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <Receipt className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p>No active subscriptions</p>
+        <div className="mt-6 rounded-xl bg-muted/70 p-5 sm:p-6">
+          {open.length === 0 ? (
+            <>
+              <p className="text-sm text-muted-foreground">Amount due</p>
+              <p className="mt-1 text-3xl font-semibold tracking-tight">Nothing to pay</p>
+              <p className="mt-1 text-sm text-muted-foreground">You&apos;re all paid up.</p>
+            </>
+          ) : (
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="text-sm text-muted-foreground">Amount due</p>
+                <p className="mt-1 text-3xl font-semibold tracking-tight">
+                  {currencies.size === 1 ? formatCurrency(open.reduce((sum, inv) => sum + dueOf(inv), 0), open[0].currency) : `${open.length} invoices`}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {open.length === 1 ? `Invoice ${open[0].invoiceNumber}, due ${shortDate(open[0].dueDate)}` : `Across ${open.length} invoices`}
+                </p>
+              </div>
+              {open.length === 1 && (
+                <button
+                  type="button"
+                  onClick={() => pay(open[0].id)}
+                  disabled={checkoutLoading !== null}
+                  className="flex h-11 min-w-28 items-center justify-center rounded-full bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
+                >
+                  {checkoutLoading === open[0].id ? <BrandMark animated tight className="h-4 w-4" /> : "Pay now"}
+                </button>
+              )}
             </div>
+          )}
+        </div>
+
+        <Section title="Subscriptions">
+          {data.subscriptions.length === 0 ? (
+            <Empty>You have no active subscriptions.</Empty>
           ) : (
             data.subscriptions.map((sub) => {
               const price = sub.plan.prices.find((p) => p.currency === sub.currency);
-              const isExpanded = expandedSub === sub.id;
               return (
-                <div key={sub.id} className="bg-card rounded-lg border">
-                  <button
-                    onClick={() => setExpandedSub(isExpanded ? null : sub.id)}
-                    className="w-full flex items-center justify-between p-4 text-left"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <p className="font-medium">{sub.plan.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {price ? formatCurrency(Number(price.amount), sub.currency) : "N/A"} / {sub.plan.billingInterval.toLowerCase()}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <StatusBadge status={sub.status} />
-                      {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                    </div>
-                  </button>
-                  {isExpanded && (
-                    <div className="px-4 pb-4 border-t pt-3 text-sm space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Current Period</span>
-                        <span>
-                          {new Date(sub.currentPeriodStart).toLocaleDateString()} — {new Date(sub.currentPeriodEnd).toLocaleDateString()}
-                        </span>
-                      </div>
-                      {sub.trialEnd && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Trial Ends</span>
-                          <span>{new Date(sub.trialEnd).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                      {sub.cancelAt && (
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">Cancels At</span>
-                          <span className="text-red-600">{new Date(sub.cancelAt).toLocaleDateString()}</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                <div key={sub.id} className="flex items-center justify-between gap-4 p-4 sm:p-5">
+                  <div className="min-w-0">
+                    <p className="truncate font-medium">{sub.plan.name}</p>
+                    <p className="mt-0.5 text-sm text-muted-foreground">
+                      {price && `${formatCurrency(Number(price.amount), sub.currency)} / ${sub.plan.billingInterval.toLowerCase()} · `}
+                      {sub.cancelAt
+                        ? `Ends ${shortDate(sub.cancelAt)}`
+                        : sub.trialEnd && new Date(sub.trialEnd) > new Date()
+                          ? `Trial ends ${shortDate(sub.trialEnd)}`
+                          : `Renews ${shortDate(sub.currentPeriodEnd)}`}
+                    </p>
+                  </div>
+                  <StatusBadge status={sub.status} />
                 </div>
               );
             })
           )}
-        </div>
-      )}
+        </Section>
 
-      {activeTab === "invoices" && (
-        <div className="space-y-3">
+        <Section title="Invoices">
           {data.invoices.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <CreditCard className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p>No invoices yet</p>
-            </div>
+            <Empty>No invoices yet.</Empty>
           ) : (
             data.invoices.map((inv) => (
-              <div key={inv.id} className="bg-card rounded-lg border p-4 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{inv.invoiceNumber}</p>
+              <div key={inv.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 p-4 sm:px-5">
+                <div className="min-w-0 flex-1">
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    <span className="truncate">{inv.invoiceNumber}</span>
                     <StatusBadge status={inv.status} />
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Due {new Date(inv.dueDate).toLocaleDateString()} &middot; {formatCurrency(inv.amount, inv.currency)}
                   </p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">{inv.paidAt ? `Paid ${shortDate(inv.paidAt)}` : `Due ${shortDate(inv.dueDate)}`}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <p className="text-sm font-medium">{formatCurrency(inv.amount, inv.currency)}</p>
+                <div className="flex items-center gap-1.5">
                   {inv.pdfUrl && (
                     <button
                       type="button"
                       onClick={() => downloadPdf(inv.id, inv.invoiceNumber)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border hover:bg-muted transition-colors"
+                      aria-label={`Download invoice ${inv.invoiceNumber}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     >
-                      <Download className="h-3 w-3" />
-                      PDF
+                      <Download className="h-4 w-4" aria-hidden />
                     </button>
                   )}
-                  {inv.status === "PENDING" && (
+                  {OPEN.has(inv.status) && open.length > 1 && (
                     <button
-                      onClick={() => handleCheckout(inv.id)}
-                      disabled={checkoutLoading === inv.id}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50"
-                    >
-                      {checkoutLoading === inv.id ? (
-                        <BrandMark animated tight className="h-3 w-3" />
-                      ) : (
-                        <ExternalLink className="h-3 w-3" />
-                      )}
-                      Pay Now
-                    </button>
-                  )}
-                  {inv.status === "PENDING" && data?.paymentOptions?.paypal && PAYPAL_CURRENCIES.has(inv.currency) && (
-                    <button
-                      onClick={() => handleCheckout(inv.id, "paypal")}
+                      type="button"
+                      onClick={() => pay(inv.id)}
                       disabled={checkoutLoading !== null}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md border hover:bg-muted transition-colors disabled:opacity-50"
+                      className="flex h-9 min-w-16 items-center justify-center rounded-full bg-primary px-4 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
                     >
-                      {checkoutLoading === `${inv.id}:paypal` && <BrandMark animated tight className="h-3 w-3" />}
-                      PayPal
+                      {checkoutLoading === inv.id ? <BrandMark animated tight className="h-3.5 w-3.5" /> : "Pay"}
                     </button>
                   )}
                 </div>
               </div>
             ))
           )}
-        </div>
-      )}
+        </Section>
 
-      {activeTab === "payments" && (
-        <div className="space-y-3">
+        <Section title="Payments">
           {data.payments.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              <CreditCard className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p>No payments yet</p>
-            </div>
+            <Empty>No payments yet.</Empty>
           ) : (
             data.payments.map((p) => (
-              <div key={p.id} className="bg-card rounded-lg border p-4 flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-medium">{formatCurrency(p.amount, p.currency)}</p>
+              <div key={p.id} className="flex items-center justify-between gap-4 p-4 sm:px-5">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 text-sm font-medium">
+                    {formatCurrency(p.amount, p.currency)}
                     <StatusBadge status={p.status} />
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-0.5">
+                  </p>
+                  <p className="mt-0.5 truncate text-sm text-muted-foreground">
                     {p.invoiceNumber && `${p.invoiceNumber} · `}
-                    {p.provider} &middot; {new Date(p.createdAt).toLocaleDateString()}
+                    {shortDate(p.createdAt)}
                   </p>
                 </div>
               </div>
             ))
           )}
-        </div>
-      )}
+        </Section>
 
-      {/* Footer */}
-      <div className="mt-12 pt-6 border-t text-center">
-        <p className="text-xs text-muted-foreground">
-          Powered by <span className="font-medium">{brand.name}</span>
-        </p>
-      </div>
+        <p className="mt-12 text-center text-xs text-muted-foreground">Powered by {brand.name}</p>
+      </main>
     </div>
   );
 }

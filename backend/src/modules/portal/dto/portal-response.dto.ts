@@ -70,6 +70,11 @@ export class PortalSubscriptionResponse {
   createdAt: string;
 }
 
+export class PortalMerchantResponse {
+  @ApiProperty({ example: 'Acme Internet' })
+  name: string;
+}
+
 export class PortalInvoiceResponse {
   @ApiProperty()
   id: string;
@@ -79,6 +84,9 @@ export class PortalInvoiceResponse {
 
   @ApiProperty({ example: 49.99 })
   amount: number;
+
+  @ApiProperty({ example: 19.99, description: 'What is left to pay' })
+  amountDue: number;
 
   @ApiProperty({ example: 'USD' })
   currency: string;
@@ -148,6 +156,9 @@ export class PortalPaymentOptionsResponse {
 }
 
 export class PortalBillingResponse {
+  @ApiProperty({ type: PortalMerchantResponse })
+  merchant: PortalMerchantResponse;
+
   @ApiProperty({ type: PortalPaymentOptionsResponse })
   paymentOptions: PortalPaymentOptionsResponse;
 

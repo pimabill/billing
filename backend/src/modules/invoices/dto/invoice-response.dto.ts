@@ -16,11 +16,11 @@ export class CheckoutResponse {
   @ApiProperty({ example: 'https://paystack.com/pay/abc123' })
   checkoutUrl: string;
 
-  @ApiProperty({ example: 'clxpay123' })
-  paymentId: string;
+  @ApiPropertyOptional({ example: 'clxpay123', description: 'Absent for a hosted checkout: the payment starts when the customer chooses how to pay.' })
+  paymentId?: string;
 
-  @ApiProperty({ example: 'paystack' })
-  provider: string;
+  @ApiPropertyOptional({ example: 'paystack', description: 'Absent for a hosted checkout.' })
+  provider?: string;
 
   @ApiProperty()
   expiresAt: string;

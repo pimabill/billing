@@ -61,6 +61,9 @@ interface LineItemForm {
   unitPrice: string;
 }
 
+/** In the provider list: the hosted checkout, where the customer picks how to pay. */
+const CUSTOMER_CHOOSES = "customer-chooses";
+
 export default function InvoicesPage() {
   const [charging, setCharging] = useState(false);
   const canWrite = useCan("billing.write");
@@ -250,7 +253,7 @@ export default function InvoicesPage() {
       const active = providers.filter((p) => p.isConfigured && p.isActive);
       setCheckoutInvoice(invoice);
       setConfiguredProviders(active);
-      setSelectedProvider(active[0]?.code ?? "");
+      setSelectedProvider(active.length ? CUSTOMER_CHOOSES : "");
       setCheckoutMethod("card");
       setCheckoutDialogOpen(true);
     } catch {
@@ -262,9 +265,10 @@ export default function InvoicesPage() {
   async function runCheckout(invoice: Invoice, providerName: string | undefined, method?: CheckoutMethod) {
     setIsGeneratingCheckout(true);
     try {
-      const result = await apiClient.invoices.checkout(invoice.id, undefined, providerName, method);
+      const hosted = providerName === CUSTOMER_CHOOSES;
+      const result = hosted ? await apiClient.invoices.hostedCheckout(invoice.id) : await apiClient.invoices.checkout(invoice.id, undefined, providerName, method);
       if (result.checkoutUrl) {
-        toast.success(`Checkout URL generated via ${result.provider}`);
+        toast.success("Checkout link ready");
         window.open(result.checkoutUrl, "_blank", "noopener,noreferrer");
       }
     } catch (error: any) {
@@ -778,11 +782,9 @@ export default function InvoicesPage() {
           <DialogHeader>
             <DialogTitle>Generate Checkout URL</DialogTitle>
             <DialogDescription>
-              {configuredProviders.length > 1
-                ? "Select a payment provider to use for this invoice."
-                : configuredProviders.length === 1
-                  ? `Will use ${configuredProviders[0].name} as the payment provider.`
-                  : "No active payment providers configured. Please configure one first."}
+              {configuredProviders.length > 0
+                ? "Let the customer choose how to pay, or send them straight to one provider."
+                : "No active payment providers configured. Please configure one first."}
             </DialogDescription>
           </DialogHeader>
 
@@ -797,6 +799,7 @@ export default function InvoicesPage() {
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={CUSTOMER_CHOOSES}>Let the customer choose</SelectItem>
                   {configuredProviders.map((p) => (
                     <SelectItem key={p.code} value={p.code}>
                       {p.name}

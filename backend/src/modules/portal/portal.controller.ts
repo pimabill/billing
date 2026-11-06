@@ -91,7 +91,7 @@ export class PortalController {
   @ApiResponse({ status: 404, description: 'Customer not found' })
   async getBillingOverview(
     @TenantDb() db: PrismaClient,
-    @Req() req: { tenant: { id: string } },
+    @Req() req: { tenant: { id: string; name: string } },
     @Param('externalId') externalId: string,
   ) {
     const customerId = await this.resolveCustomerId(db, externalId);
@@ -99,7 +99,7 @@ export class PortalController {
       this.portalService.getBillingOverview(db, customerId),
       this.portalService.paymentOptions(db, req.tenant.id),
     ]);
-    return { ...overview, paymentOptions };
+    return { ...overview, merchant: { name: req.tenant.name }, paymentOptions };
   }
 
   @Get(':externalId/subscriptions')
@@ -156,13 +156,13 @@ export class PortalController {
     @Req() req: { tenant: { id: string } },
     @Param('externalId') externalId: string,
     @Param('invoiceId') invoiceId: string,
-    @Body() body: { callbackUrl?: string; method?: string },
+    @Body() body: { callbackUrl?: string; method?: string; hosted?: boolean },
   ) {
     const customerId = await this.resolveCustomerId(db, externalId);
     if (body?.callbackUrl !== undefined && !/^https?:\/\//i.test(String(body.callbackUrl))) {
       throw new BadRequestException('callbackUrl must be an http(s) URL');
     }
-    return this.portalService.getInvoiceCheckout(db, customerId, invoiceId, body?.callbackUrl, req.tenant.id, checkoutMethod(body?.method));
+    return this.portalService.getInvoiceCheckout(db, customerId, invoiceId, body?.callbackUrl, req.tenant.id, checkoutMethod(body?.method), body?.hosted === true);
   }
 
   @Get(':externalId/invoices/:invoiceId/pdf')
