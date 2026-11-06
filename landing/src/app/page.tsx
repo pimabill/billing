@@ -344,8 +344,8 @@ function Pillars() {
           <BentoCard
             className="lg:col-span-3"
             stage="bg-wash"
-            title="Start without a merchant account"
-            body="On the cloud, managed payments let you get paid before you have payment provider contracts of your own, with payouts to your mobile money, bank or PayPal."
+            title="Your providers, your money"
+            body="Customers pay through the provider accounts you connect, so the money goes straight to you, and every movement is recorded in your ledger."
           >
             <PayoutFlow />
           </BentoCard>
@@ -370,7 +370,7 @@ function Money() {
         <SectionHeading
           eyebrow="Money movement"
           title="Collect, pay out and reconcile in one place"
-          lede="With your own provider accounts, every rail moves money between your payers and accounts you own. Without them, managed payments collects for you and pays you out."
+          lede="Every rail moves money between your payers and accounts you own."
         />
         <dl className="mt-14 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {items.map(([title, body]) => (
@@ -463,7 +463,6 @@ const tiers = [
       "500 customers and 500 active subscriptions",
       "2,500 invoices a month, 5 team members",
       "Every feature: usage billing, wallets, the ledger",
-      "Managed payments: get paid without setting up a payment provider",
       "Sandbox with test keys",
       "Community support",
     ],

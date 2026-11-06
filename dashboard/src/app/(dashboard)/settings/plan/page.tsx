@@ -235,7 +235,7 @@ function PlanPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <ul className="space-y-1.5 text-sm">
-              {["No limits", "Every feature, including managed payments", "Negotiated managed payments fee", "Service level agreement", "A named account manager"].map((f) => (
+              {["No limits", "Every feature", "Service level agreement", "A named account manager"].map((f) => (
                 <li key={f} className="flex gap-2">
                   <Check className="mt-0.5 h-4 w-4 flex-shrink-0 text-primary" aria-hidden />
                   {f}

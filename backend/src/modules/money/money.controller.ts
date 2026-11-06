@@ -12,7 +12,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiExtraModels, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiExcludeEndpoint, ApiExtraModels, ApiHeader, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { PARTY_MODELS } from './dto/party.dto';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { Public } from '../../common/decorators/public.decorator';
@@ -249,6 +249,7 @@ export class MoneySettingsController {
   ) {}
 
   @Get('managed')
+  @ApiExcludeEndpoint()
   @ApiOperation({ summary: 'Whether managed payments are offered here, and this account\'s managed account if it has one' })
   @ApiResponse({ status: 200, description: 'Availability and account', type: ManagedStatusResponse })
   managedStatus(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant) {
@@ -256,6 +257,7 @@ export class MoneySettingsController {
   }
 
   @Post('managed')
+  @ApiExcludeEndpoint()
   @ApiOperation({
     summary: 'Open a managed payments account (no provider account of your own needed)',
     description:
@@ -269,6 +271,7 @@ export class MoneySettingsController {
   }
 
   @Patch('managed')
+  @ApiExcludeEndpoint()
   @ApiOperation({
     summary: 'Change your managed account\'s contact details or payout destination',
     description: 'Anything left out stays as it is. Every change is recorded by the platform.',

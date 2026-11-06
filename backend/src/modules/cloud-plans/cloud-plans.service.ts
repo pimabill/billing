@@ -123,8 +123,9 @@ export class CloudPlansService implements OnApplicationBootstrap {
         (old) => Object.keys(old).length === Object.keys(current).length && Object.entries(old).every(([c, a]) => current[c] === a),
       );
       if (!superseded) {
-        // Free's features state its limits, which live in code, so they always follow it.
-        if (plan.tier === 'free') await db.plan.update({ where: { id: existing.id }, data: { features: plan.features } });
+        // Free's features state its limits, which live in code, so they always follow it,
+        // and no plan may go on offering managed payments, which are by invitation.
+        if (plan.tier === 'free' || JSON.stringify(existing.features ?? '').includes('managed payments')) await db.plan.update({ where: { id: existing.id }, data: { features: plan.features } });
         continue;
       }
       await db.$transaction([

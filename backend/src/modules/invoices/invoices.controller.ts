@@ -185,7 +185,7 @@ export class InvoicesController {
         method: {
           type: 'string',
           enum: ['card', 'mobile_money', 'paypal'],
-          description: 'How the customer wants to pay, where the provider offers a choice (managed payments). `paypal` uses your own PayPal or managed payments. Defaults to card.',
+          description: 'How the customer wants to pay, where the provider offers a choice. Defaults to card.',
           example: 'paypal',
         },
       },

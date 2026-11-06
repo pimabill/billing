@@ -200,12 +200,12 @@ export function TeamCard() {
   );
 }
 
-/** Money in, held, money out: managed payments as a flow. */
+/** From the payer to the merchant's own account, as a flow. */
 export function PayoutFlow() {
   const steps: [string, string][] = [
     ["Customer pays", "UGX 120,000"],
-    ["We collect for you", "No provider contract"],
-    ["Paid out to you", "Mobile money, bank or PayPal"],
+    ["Your provider collects", "Flutterwave, Paystack, Stripe"],
+    ["In your account", "Recorded in your ledger"],
   ];
   return (
     <ol className="flex flex-col gap-3 md:flex-row md:items-center" aria-hidden>

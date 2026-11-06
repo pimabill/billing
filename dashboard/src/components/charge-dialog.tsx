@@ -326,11 +326,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
                   <a href="/providers" className="font-medium underline">
                     Payment providers
                   </a>
-                  , or{" "}
-                  <a href="/money?tab=managed" className="font-medium underline">
-                    apply for managed payments
-                  </a>{" "}
-                  to get paid without one. You can still record a payment as already paid.
+                  . You can still record a payment as already paid.
                 </div>
               )}
               {how === "link" && payOptions && payOptions.length === 1 && (

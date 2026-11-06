@@ -121,6 +121,9 @@ describe('ManagedAccountsService', () => {
   const tenants: Record<string, { isPlatformOperator: boolean; tenantBilling: { planId: string | null } | null }> = {
     operator: { isPlatformOperator: true, tenantBilling: null },
     free: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_free' } },
+    growth: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_growth_monthly' } },
+    partner: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_partner' } },
+    enterprise: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_enterprise' } },
     none: { isPlatformOperator: false, tenantBilling: { planId: null } },
   };
   const central = { client: { tenant: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => tenants[where.id] ?? null) } } };
@@ -142,12 +145,15 @@ describe('ManagedAccountsService', () => {
     expect(await service.status({} as never, 'free')).toEqual({ available: false, account: null });
   });
 
-  it('offers managed payments only to organisations on a cloud plan, and the operator', async () => {
+  it('offers managed payments only to partners, Enterprise and the operator', async () => {
     process.env.MANAGED_PAYMENTS_URL = 'https://managed.example.com';
     process.env.MANAGED_PAYMENTS_API_KEY = 'inst_key';
     delete process.env.CLOUD_PLANS;
     try {
-      expect(await service.allowedFor('free')).toBe(true);
+      expect(await service.allowedFor('free')).toBe(false);
+      expect(await service.allowedFor('growth')).toBe(false);
+      expect(await service.allowedFor('partner')).toBe(true);
+      expect(await service.allowedFor('enterprise')).toBe(true);
       expect(await service.allowedFor('operator')).toBe(true);
       expect(await service.allowedFor('none')).toBe(false);
       expect(await service.allowedFor('missing')).toBe(false);
