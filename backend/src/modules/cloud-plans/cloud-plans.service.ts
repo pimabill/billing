@@ -311,7 +311,8 @@ export class CloudPlansService implements OnApplicationBootstrap {
   /**
    * Start paying for Growth: the organisation becomes a customer of the
    * operator, gets a subscription to the plan, and is sent to checkout for its
-   * first invoice. Asking again reuses the open invoice.
+   * first invoice, where it chooses how to pay unless `method` says. Asking again
+   * reuses the open invoice.
    */
   async checkout(tenantId: string, planCode: string, currency: string, returnUrl?: string, method?: CheckoutMethod): Promise<{ url: string }> {
     if (!this.enabled) throw new BadRequestException('Plans are not offered on this deployment');
@@ -363,6 +364,11 @@ export class CloudPlansService implements OnApplicationBootstrap {
     if (!invoice) throw new BadRequestException('Your invoice is still being prepared; try again in a minute');
 
     const back = returnUrl ?? `${this.manageUrl()}?checkout=done`;
+    if (!method) {
+      // The organisation chooses how to pay on the hosted checkout.
+      const link = await this.invoices.createHostedCheckout(db, invoice.id, operator.id, { callbackUrl: back });
+      return { url: link.checkoutUrl };
+    }
     const provider = process.env.CLOUD_BILLING_PROVIDER || 'managed';
     const result = await this.invoices.createCheckout(db, invoice.id, back, provider, operator.id, undefined, method);
     return { url: result.checkoutUrl! };

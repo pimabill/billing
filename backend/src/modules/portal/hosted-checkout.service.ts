@@ -74,21 +74,21 @@ export class HostedCheckoutService {
         items,
       },
       amount,
-      methods: amount > 0 ? await this.portal.checkoutMethods(db, tenant.id, invoice.currency) : [],
+      providers: amount > 0 ? await this.portal.checkoutOptions(db, tenant.id, invoice.currency) : [],
       returnUrl: claims.ret ?? null,
       sandbox: isSandbox(),
     };
   }
 
   /** Start the payment the customer chose; the address is built here, never taken from the page. */
-  async pay(token: string, method: CheckoutMethod) {
+  async pay(token: string, method: CheckoutMethod, provider?: string) {
     const { claims, tenant, db, invoice } = await this.open(token);
     const amount = this.amountNow(claims, invoice);
     if (amount <= 0) throw new BadRequestException('This has already been paid');
-    const methods = await this.portal.checkoutMethods(db, tenant.id, invoice.currency);
-    if (!methods.includes(method)) throw new BadRequestException('That way of paying is not available for this payment');
+    const options = await this.portal.checkoutOptions(db, tenant.id, invoice.currency);
+    if (!options.some((o) => (!provider || o.provider === provider) && o.methods.some((m) => m.method === method))) throw new BadRequestException('That way of paying is not available for this payment');
     const dashboardUrl = (process.env.DASHBOARD_URL || 'http://localhost:4002').replace(/\/$/, '');
-    const result = await this.invoices.createCheckout(db, invoice.id, `${dashboardUrl}/pay/${token}?returned=1`, undefined, tenant.id, claims.amt === undefined ? undefined : amount, method);
+    const result = await this.invoices.createCheckout(db, invoice.id, `${dashboardUrl}/pay/${token}?returned=1`, provider, tenant.id, claims.amt === undefined ? undefined : amount, method);
     return { checkoutUrl: result.checkoutUrl };
   }
 }

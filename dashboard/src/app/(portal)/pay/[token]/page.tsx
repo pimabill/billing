@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import { AlertCircle, Check, Lock, Smartphone } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
+import { ProviderLogo } from "@/components/provider-logo";
 import { brand } from "@/lib/brand";
 import { cn } from "@/lib/utils/cn";
 import { formatCurrency } from "@/lib/utils/currency";
@@ -22,7 +23,7 @@ interface Checkout {
     items: { description: string; quantity: number; unitAmount: number }[];
   };
   amount: number;
-  methods: CheckoutMethod[];
+  providers: { provider: string; methods: { method: CheckoutMethod; brands: string[] }[] }[];
   returnUrl: string | null;
   sandbox: boolean;
 }
@@ -33,10 +34,17 @@ const CONFIRM_EVERY_MS = 5000;
 
 interface PayOption {
   key: string;
+  provider: string;
   method: CheckoutMethod;
   name: string;
   hint: string;
   art: React.ReactNode;
+}
+
+interface PayGroup {
+  provider: string;
+  name: string;
+  options: PayOption[];
 }
 
 function Logo({ src, background = "bg-white" }: { src: string; background?: string }) {
@@ -59,32 +67,57 @@ function CardMarks() {
   );
 }
 
-/** Currencies where MTN and Airtel are the wallets people know by name. */
-const MTN_AND_AIRTEL = new Set(["UGX", "RWF", "ZMW"]);
+const PROVIDER_NAMES: Record<string, string> = {
+  stripe: "Stripe",
+  paystack: "Paystack",
+  flutterwave: "Flutterwave",
+  dpo: "DPO Pay",
+  "dpo-group": "DPO Pay",
+  payu: "PayU",
+  pesapal: "Pesapal",
+  paypal: "PayPal",
+  managed: brand.name,
+};
 
-/** What the customer sees: wallets and brands by name, each paying through its method. */
-function payOptions(methods: CheckoutMethod[], currency: string): PayOption[] {
-  const wallet = { method: "mobile_money" as const, hint: "Approve the payment on your phone" };
-  return methods.flatMap((method): PayOption[] => {
-    if (method === "paypal") {
-      return [{ key: "paypal", method, name: "PayPal", hint: "Your PayPal account, or a card through PayPal", art: <Logo src="/providers/paypal.svg" /> }];
-    }
-    if (method === "card") {
-      return [{ key: "card", method, name: "Visa or Mastercard", hint: "Pay with your debit or credit card", art: <CardMarks /> }];
-    }
-    if (MTN_AND_AIRTEL.has(currency)) {
-      return [
-        { ...wallet, key: "mtn", name: "MTN Mobile Money", art: <Logo src="/providers/mtn_momo.svg" background="bg-[#ffcb05]" /> },
-        { ...wallet, key: "airtel", name: "Airtel Money", art: <Logo src="/providers/airtel_money.svg" /> },
-      ];
-    }
-    const art = (
+/** Wallets with a logo of their own. */
+const WALLET_LOGOS: Record<string, React.ReactNode> = {
+  MTN: <Logo src="/providers/mtn_momo.svg" background="bg-[#ffcb05]" />,
+  Airtel: <Logo src="/providers/airtel_money.svg" />,
+  "Airtel Money": <Logo src="/providers/airtel_money.svg" />,
+};
+
+function WalletMarks({ brands }: { brands: string[] }) {
+  const logos = brands.filter((b) => WALLET_LOGOS[b]);
+  if (logos.length === 0) {
+    return (
       <span className="flex h-8 w-8 items-center justify-center rounded-lg border bg-white">
         <Smartphone className="h-4 w-4 text-muted-foreground" aria-hidden />
       </span>
     );
-    return [{ ...wallet, key: "wallet", name: currency === "KES" ? "M-Pesa" : "Mobile money", art }];
-  });
+  }
+  return (
+    <span className="flex gap-1">
+      {logos.map((b) => (
+        <span key={b}>{WALLET_LOGOS[b]}</span>
+      ))}
+    </span>
+  );
+}
+
+/** Each provider with what it takes in this currency; wallets first, as they are how most people pay. */
+function payGroups(providers: Checkout["providers"]): PayGroup[] {
+  return providers.map(({ provider, methods }) => ({
+    provider,
+    name: PROVIDER_NAMES[provider] ?? provider,
+    options: [...methods]
+      .sort((x, y) => Number(y.method === "mobile_money") - Number(x.method === "mobile_money"))
+      .map(({ method, brands }): PayOption => {
+        const base = { key: `${provider}:${method}`, provider, method };
+        if (method === "paypal") return { ...base, name: "PayPal", hint: "Your PayPal account, or a card through PayPal", art: <Logo src="/providers/paypal.svg" /> };
+        if (method === "card") return { ...base, name: "Card", hint: brands.join(", "), art: <CardMarks /> };
+        return { ...base, name: "Mobile money", hint: brands.join(", ") || "Approve the payment on your phone", art: <WalletMarks brands={brands} /> };
+      }),
+  }));
 }
 
 function Centered({ children }: { children: React.ReactNode }) {
@@ -107,8 +140,6 @@ export default function HostedCheckout() {
     const body = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(body.message || "This payment link is not available.");
     const checkout = (body.data ?? body) as Checkout;
-    // Where wallets are an option they are how most people pay, so they come first.
-    checkout.methods = [...checkout.methods].sort((x, y) => Number(y === "mobile_money") - Number(x === "mobile_money"));
     setData(checkout);
     return checkout;
   }, [token]);
@@ -129,7 +160,8 @@ export default function HostedCheckout() {
     return () => clearTimeout(timer);
   }, [returned, data, settled, gaveUp, load]);
 
-  const options = data ? payOptions(data.methods, data.invoice.currency) : [];
+  const groups = data ? payGroups(data.providers) : [];
+  const options = groups.flatMap((g) => g.options);
   const chosen = options.find((o) => o.key === choice) ?? options[0];
 
   async function pay() {
@@ -140,7 +172,7 @@ export default function HostedCheckout() {
       const res = await fetch(`/api/pay/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method: chosen.method }),
+        body: JSON.stringify({ method: chosen.method, provider: chosen.provider }),
       });
       const body = await res.json().catch(() => ({}));
       const url = (body.data ?? body).checkoutUrl;
@@ -240,17 +272,17 @@ export default function HostedCheckout() {
               {adjustment !== 0 && (
                 <div className="flex justify-between gap-6 text-muted-foreground">
                   <dt>Tax and discounts</dt>
-                  <dd className="tabular-nums">{money(adjustment)}</dd>
+                  <dd>{money(adjustment)}</dd>
                 </div>
               )}
               <div className="flex justify-between gap-6 border-t pt-3 font-medium">
                 <dt>Invoice total</dt>
-                <dd className="tabular-nums">{money(invoice.total)}</dd>
+                <dd>{money(invoice.total)}</dd>
               </div>
               {partial && (
                 <div className="flex justify-between gap-6 text-muted-foreground">
                   <dt>{invoice.paid > 0 ? "Paid so far" : "Paying now"}</dt>
-                  <dd className="tabular-nums">{money(invoice.paid > 0 ? invoice.paid : data.amount)}</dd>
+                  <dd>{money(invoice.paid > 0 ? invoice.paid : data.amount)}</dd>
                 </div>
               )}
             </dl>
@@ -274,34 +306,44 @@ export default function HostedCheckout() {
                 </p>
               )}
               <h1 className="text-lg font-semibold tracking-tight">How would you like to pay?</h1>
-              {data.methods.length === 0 ? (
+              {options.length === 0 ? (
                 <p className="mt-3 text-sm text-muted-foreground">
                   {merchant.name} can&apos;t take this payment online right now. Contact them to pay another way.
                 </p>
               ) : (
                 <>
-                  <div role="radiogroup" aria-label="Payment method" className="mt-4 grid gap-2.5">
-                    {options.map((option) => (
-                      <button
-                        key={option.key}
-                        type="button"
-                        role="radio"
-                        aria-checked={chosen?.key === option.key}
-                        onClick={() => setChoice(option.key)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-colors",
-                          chosen?.key === option.key ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/60",
-                        )}
-                      >
-                        <span className="shrink-0">{option.art}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium">{option.name}</span>
-                          <span className="block text-xs text-muted-foreground">{option.hint}</span>
-                        </span>
-                        <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border", chosen?.key === option.key && "border-primary")} aria-hidden>
-                          {chosen?.key === option.key && <span className="h-2 w-2 rounded-full bg-primary" />}
-                        </span>
-                      </button>
+                  <div role="radiogroup" aria-label="Payment method" className="mt-4 space-y-5">
+                    {groups.map((group) => (
+                      <div key={group.provider}>
+                        <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                          {group.provider === "managed" ? <BrandMark tight className="h-5 w-5" /> : <ProviderLogo code={group.provider} name={group.name} size="sm" className="h-5 w-5 rounded p-0.5 text-[8px] shadow-none" />}
+                          {group.name}
+                        </p>
+                        <div className="grid gap-2.5">
+                          {group.options.map((option) => (
+                            <button
+                              key={option.key}
+                              type="button"
+                              role="radio"
+                              aria-checked={chosen?.key === option.key}
+                              onClick={() => setChoice(option.key)}
+                              className={cn(
+                                "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-colors",
+                                chosen?.key === option.key ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/60",
+                              )}
+                            >
+                              <span className="shrink-0">{option.art}</span>
+                              <span className="min-w-0 flex-1">
+                                <span className="block text-sm font-medium">{option.name}</span>
+                                <span className="block text-xs text-muted-foreground">{option.hint}</span>
+                              </span>
+                              <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border", chosen?.key === option.key && "border-primary")} aria-hidden>
+                                {chosen?.key === option.key && <span className="h-2 w-2 rounded-full bg-primary" />}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                   {problem && (
