@@ -214,8 +214,8 @@ export default function SubscriptionsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Subscriptions</h1>
-          <p className="text-muted-foreground">Manage customer subscriptions</p>
+          <h1 className="text-[22px] font-semibold tracking-tight">Subscriptions</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">Manage customer subscriptions</p>
           {!canWrite && (
             <p className="text-sm text-muted-foreground">You have view-only access.</p>
           )}
@@ -261,25 +261,25 @@ export default function SubscriptionsPage() {
               <table className="w-full">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Customer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Plan
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Next Billing
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Current Period
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                       Actions
                     </th>
                   </tr>
@@ -295,7 +295,7 @@ export default function SubscriptionsPage() {
                         key={subscription.id}
                         className="hover:bg-muted/50 transition-colors"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-2.5">
                           <div>
                             <p className="text-sm font-medium">
                               {subscription.customerName}
@@ -305,7 +305,7 @@ export default function SubscriptionsPage() {
                             </p>
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-2.5">
                           <div>
                             <p className="text-sm font-medium">
                               {subscription.planName}
@@ -315,14 +315,14 @@ export default function SubscriptionsPage() {
                             </Badge>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           <Badge
                             variant={statusColors[subscription.status] as any}
                           >
                             {subscription.status.replace("_", " ")}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           <span className="text-sm font-medium">
                             {formatCurrency(
                               subscription.amount,
@@ -330,7 +330,7 @@ export default function SubscriptionsPage() {
                             )}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-2.5">
                           <div>
                             <p className="text-sm">
                               {formatDate(subscription.nextBillingDate)}
@@ -342,13 +342,13 @@ export default function SubscriptionsPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-2.5">
                           <p className="text-sm text-muted-foreground">
                             {formatDate(subscription.currentPeriodStart)} -{" "}
                             {formatDate(subscription.currentPeriodEnd)}
                           </p>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 py-2.5 text-right">
                           {canWrite && (
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>

@@ -220,8 +220,8 @@ export default function AddOnsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Add-ons</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Add-ons</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Manage one-time charge add-ons for your customers
           </p>
           {!canWrite && (

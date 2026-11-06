@@ -1,7 +1,7 @@
 "use client";
 
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils/cn";
 
 interface KPICardProps {
@@ -11,64 +11,36 @@ interface KPICardProps {
   change?: number | null;
   /** A line under the value instead of the change. */
   hint?: string;
-  icon: React.ReactNode;
   isLoading?: boolean;
 }
 
-export function KPICard({
-  title,
-  value,
-  change,
-  hint,
-  icon,
-  isLoading,
-}: KPICardProps) {
-  const isPositive = (change ?? 0) >= 0;
+export function KPICard({ title, value, change, hint, isLoading }: KPICardProps) {
   // A 0% change says nothing, usually that there was no last month to compare with.
   const showChange = typeof change === "number" && Number.isFinite(change) && change !== 0;
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="animate-shimmer h-24 rounded" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-6">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <p className="mt-2 text-3xl font-bold tabular-nums animate-count-up">{value}</p>
-            {!showChange && hint && <p className="mt-2 text-sm text-muted-foreground">{hint}</p>}
+    <Card>
+      <CardContent className="p-4">
+        <p className="text-[13px] text-muted-foreground">{title}</p>
+        {isLoading ? (
+          <Skeleton className="mt-2 h-7 w-24" />
+        ) : (
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-2">
+            <p className="text-2xl font-semibold tracking-tight">{value}</p>
             {showChange && (
-            <div className="mt-2 flex items-center gap-1">
-              {isPositive ? (
-                <TrendingUp className="h-4 w-4 text-green-600" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-red-600" />
-              )}
               <span
                 className={cn(
-                  "text-sm font-medium",
-                  isPositive ? "text-green-600" : "text-red-600",
+                  "text-xs font-medium tabular-nums",
+                  change! > 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400",
                 )}
               >
-                {isPositive ? "+" : ""}
+                {change! > 0 ? "+" : ""}
                 {change!.toFixed(1)}%
               </span>
-              <span className="text-sm text-muted-foreground">
-                vs last month
-              </span>
-            </div>
             )}
           </div>
-          <div className="rounded-lg bg-accent p-3">{icon}</div>
-        </div>
+        )}
+        {!isLoading && !showChange && hint && <p className="mt-1 text-xs text-muted-foreground">{hint}</p>}
       </CardContent>
     </Card>
   );

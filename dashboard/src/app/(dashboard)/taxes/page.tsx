@@ -159,8 +159,8 @@ export default function TaxesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Taxes</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Taxes</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Manage tax rates applied to invoices
           </p>
           {!canWrite && (
@@ -184,7 +184,7 @@ export default function TaxesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{taxes.length}</div>
+            <div className="text-[22px] font-semibold tracking-tight">{taxes.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -194,7 +194,7 @@ export default function TaxesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {taxes.filter((t) => t.appliedByDefault).length}
             </div>
           </CardContent>
@@ -206,7 +206,7 @@ export default function TaxesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {taxes.length > 0
                 ? (taxes.reduce((sum, t) => sum + t.rate, 0) / taxes.length).toFixed(1)
                 : 0}
@@ -239,22 +239,22 @@ export default function TaxesPage() {
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Code
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Rate
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Default
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                     Actions
                   </th>
                 </tr>
@@ -265,7 +265,7 @@ export default function TaxesPage() {
                     key={tax.id}
                     className="hover:bg-muted/50 transition-colors"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="text-sm font-medium">{tax.name}</p>
                       {tax.description && (
                         <p className="text-xs text-muted-foreground mt-0.5 max-w-[250px] truncate">
@@ -273,23 +273,23 @@ export default function TaxesPage() {
                         </p>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <span className="text-sm font-mono">{tax.code}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
                       <span className="text-sm font-bold">{tax.rate}%</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
                       <Badge
                         variant={tax.appliedByDefault ? "success" : "outline"}
                       >
                         {tax.appliedByDefault ? "Yes" : "No"}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <td className="px-4 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                       {formatDateTime(tax.createdAt)}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-2.5 text-right">
                       {canWrite && (
                         <div className="flex justify-end gap-1">
                           <Button

@@ -113,8 +113,8 @@ export default function PaymentsPage() {
     <div className="space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold">Payments</h1>
-        <p className="text-muted-foreground">Track all payment transactions</p>
+        <h1 className="text-[22px] font-semibold tracking-tight">Payments</h1>
+        <p className="mt-0.5 text-[13px] text-muted-foreground">Track all payment transactions</p>
       </div>
 
       {/* Filters */}
@@ -165,28 +165,28 @@ export default function PaymentsPage() {
               <table className="w-full">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Transaction ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Customer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Invoice
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Provider
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Date
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                       Actions
                     </th>
                   </tr>
@@ -197,27 +197,27 @@ export default function PaymentsPage() {
                       key={payment.id}
                       className="hover:bg-muted/50 transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <span className="text-sm font-mono">
                           {payment.transactionId}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <p className="text-sm font-medium">
                           {payment.customerName}
                         </p>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <span className="text-sm font-mono">
                           {payment.invoiceNumber}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <span className="text-sm font-bold">
                           {formatCurrency(payment.amount, payment.currency)}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <ProviderLogo code={payment.provider} size="sm" />
                           <span className="text-sm capitalize">
@@ -225,15 +225,15 @@ export default function PaymentsPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <Badge variant={statusColors[payment.status] as any}>
                           {payment.status}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                         {formatDateTime(payment.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-2.5 text-right">
                         {canWrite && payment.status === "succeeded" && (
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>

@@ -198,8 +198,8 @@ export default function CustomersPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Customers</h1>
-          <p className="text-muted-foreground">Manage your customer base</p>
+          <h1 className="text-[22px] font-semibold tracking-tight">Customers</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">Manage your customer base</p>
           {!canWrite && (
             <p className="text-sm text-muted-foreground">You have view-only access.</p>
           )}

@@ -323,8 +323,8 @@ export default function InvoicesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Invoices</h1>
-          <p className="text-muted-foreground">Manage and track invoices</p>
+          <h1 className="text-[22px] font-semibold tracking-tight">Invoices</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">Manage and track invoices</p>
           {!canWrite && (
             <p className="text-sm text-muted-foreground">You have view-only access.</p>
           )}
@@ -375,25 +375,25 @@ export default function InvoicesPage() {
               <table className="w-full">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Invoice
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Customer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Due Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Paid Date
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                       Actions
                     </th>
                   </tr>
@@ -409,27 +409,27 @@ export default function InvoicesPage() {
                         key={invoice.id}
                         className="hover:bg-muted/50 transition-colors"
                       >
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-2.5">
                           <span className="text-sm font-mono font-medium">
                             {invoice.invoiceNumber}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-2.5">
                           <p className="text-sm font-medium">
                             {invoice.customerName}
                           </p>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           <Badge variant={statusColors[invoice.status] as any}>
                             {invoice.status === "pending" && invoice.amountPaid > 0 ? "partially paid" : invoice.status}
                           </Badge>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-2.5 whitespace-nowrap">
                           <span className="text-sm font-bold">
                             {formatCurrency(invoice.amount, invoice.currency)}
                           </span>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-4 py-2.5">
                           <div>
                             <p className="text-sm">
                               {formatDate(invoice.dueDate)}
@@ -439,12 +439,12 @@ export default function InvoicesPage() {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                        <td className="px-4 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                           {invoice.paidDate
                             ? formatDate(invoice.paidDate)
                             : "-"}
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-4 py-2.5 text-right">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button variant="ghost" size="icon">

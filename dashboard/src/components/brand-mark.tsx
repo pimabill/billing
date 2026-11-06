@@ -29,7 +29,7 @@ export function BrandLoader({ label = "Loading", className }: { label?: string; 
 export function BrandLockup({ className, accent = "text-primary" }: { className?: string; accent?: string }) {
   const name = brand.name;
   return (
-    <span className={cn("inline-flex items-center gap-2 font-display text-lg font-semibold tracking-tight", className)}>
+    <span className={cn("inline-flex items-center gap-2 font-brand text-lg font-semibold tracking-tight", className)}>
       <BrandMark className={cn("h-7 w-7", accent)} />
       <span>
         {name.slice(0, brand.nameSplit)}

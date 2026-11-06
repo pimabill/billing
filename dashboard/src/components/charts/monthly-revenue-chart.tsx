@@ -35,7 +35,7 @@ export function MonthlyRevenueChart({ data, title = "Revenue", height = 260 }: {
           <CardDescription>Last six months, in {currency}</CardDescription>
         </div>
         <div className="text-right">
-          <p className="text-2xl font-bold tabular-nums">{formatCurrency(current, currency)}</p>
+          <p className="text-2xl font-semibold tracking-tight">{formatCurrency(current, currency)}</p>
           <p className="text-xs text-muted-foreground">
             this month
             {change !== null && (

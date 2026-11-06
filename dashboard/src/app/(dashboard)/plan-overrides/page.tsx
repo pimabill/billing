@@ -181,8 +181,8 @@ export default function PlanOverridesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Plan Overrides</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Plan Overrides</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Customer-specific pricing overrides for plans
           </p>
           {!canWrite && (
@@ -206,7 +206,7 @@ export default function PlanOverridesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{overrides.length}</div>
+            <div className="text-[22px] font-semibold tracking-tight">{overrides.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -216,7 +216,7 @@ export default function PlanOverridesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {new Set(overrides.map((o) => o.customerId)).size}
             </div>
           </CardContent>
@@ -228,7 +228,7 @@ export default function PlanOverridesPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {new Set(overrides.map((o) => o.planId)).size}
             </div>
           </CardContent>
@@ -258,25 +258,25 @@ export default function PlanOverridesPage() {
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Plan
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Price Override
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Min. Commitment
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Charge Overrides
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                     Actions
                   </th>
                 </tr>
@@ -287,7 +287,7 @@ export default function PlanOverridesPage() {
                     key={override.id}
                     className="hover:bg-muted/50 transition-colors"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="text-sm font-medium">
                         {override.customer?.name || getCustomerName(override.customerId)}
                       </p>
@@ -295,7 +295,7 @@ export default function PlanOverridesPage() {
                         {override.customer?.email || ""}
                       </p>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="text-sm font-medium">
                         {override.plan?.name || getPlanName(override.planId)}
                       </p>
@@ -303,7 +303,7 @@ export default function PlanOverridesPage() {
                         {override.plan?.code || ""}
                       </p>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
                       {override.overriddenPrices && override.overriddenPrices.length > 0 ? (
                         <div className="space-y-0.5">
                           {override.overriddenPrices.map((p, i) => (
@@ -316,7 +316,7 @@ export default function PlanOverridesPage() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
                       {override.overriddenMinimumCommitment != null ? (
                         <Badge variant="secondary">
                           {override.overriddenMinimumCommitment}
@@ -325,7 +325,7 @@ export default function PlanOverridesPage() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-2.5 whitespace-nowrap">
                       {override.overriddenCharges && override.overriddenCharges.length > 0 ? (
                         <Badge variant="secondary">
                           {override.overriddenCharges.length} charge(s)
@@ -334,10 +334,10 @@ export default function PlanOverridesPage() {
                         <span className="text-xs text-muted-foreground">—</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                    <td className="px-4 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                       {formatDateTime(override.createdAt)}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-2.5 text-right">
                       {canWrite && (
                         <div className="flex justify-end gap-1">
                           <Button

@@ -8,15 +8,11 @@ import {
   ArrowRight,
   Check,
   CreditCard,
-  DollarSign,
   Gem,
   KeyRound,
   Package,
-  Receipt,
   ShieldCheck,
-  TrendingUp,
   UserPlus,
-  Users,
   Webhook,
 } from "lucide-react";
 import { KPICard } from "@/components/dashboard/kpi-card";
@@ -142,8 +138,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Overview</h1>
-          <p className="text-muted-foreground">{data?.orgName ? `${data.orgName} at a glance.` : "Your billing at a glance."}</p>
+          <h1 className="text-[22px] font-semibold tracking-tight">Overview</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">{data?.orgName ? `${data.orgName} at a glance.` : "Your billing at a glance."}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button asChild variant="outline" size="sm">
@@ -196,13 +192,12 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         <KPICard
           title="Monthly recurring revenue"
           value={kpis ? formatCurrency(kpis.mrr, reporting, { abbreviated: true }) : "—"}
           change={kpis?.mrrChange}
           hint={`in ${reporting}, from active subscriptions`}
-          icon={<DollarSign className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
         <KPICard
@@ -210,7 +205,6 @@ export default function DashboardPage() {
           value={kpis?.activeSubscriptions?.toString() || "0"}
           change={kpis?.subscriptionChange}
           hint="paying or on trial"
-          icon={<Receipt className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
         <KPICard
@@ -218,14 +212,12 @@ export default function DashboardPage() {
           value={kpis?.totalCustomers?.toString() || "0"}
           change={kpis?.customerChange}
           hint="in total"
-          icon={<Users className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
         <KPICard
           title="Payment success rate"
           value={kpis ? `${Number(kpis.successRate || 0).toFixed(1)}%` : "0%"}
           hint="of payments succeed"
-          icon={<TrendingUp className="h-6 w-6 text-primary" />}
           isLoading={isLoading}
         />
       </div>

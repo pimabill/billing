@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* The theme toggle sets a class; without this, dark: follows the OS instead. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
     /* shadcn/ui semantic colors - dynamic via CSS vars */
     --color-background: var(--background);
@@ -37,7 +40,8 @@
 
     /* Brand type: Schibsted Grotesk text, Unbounded display, JetBrains Mono figures */
     --font-sans: "Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
-    --font-display: "Unbounded Variable", ui-sans-serif, system-ui, sans-serif;
+    --font-brand: "Unbounded Variable", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Schibsted Grotesk Variable", ui-sans-serif, system-ui, sans-serif;
     --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, monospace;
 
     /* Radius */
@@ -49,74 +53,74 @@
 }
 
 :root {
-    --radius: 0.625rem;
+    --radius: 0.5rem;
     --background: hsl(0 0% 100%);
-    --foreground: hsl(222.2 84% 4.9%);
+    --foreground: hsl(200 22% 10%);
     --card: hsl(0 0% 100%);
-    --card-foreground: hsl(222.2 84% 4.9%);
+    --card-foreground: hsl(200 22% 10%);
     --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(222.2 84% 4.9%);
+    --popover-foreground: hsl(200 22% 10%);
     --primary: hsl(178 77% 24%);
-    --primary-foreground: hsl(210 40% 98%);
-    --secondary: hsl(210 40% 96.1%);
-    --secondary-foreground: hsl(222.2 47.4% 11.2%);
-    --muted: hsl(210 40% 96.1%);
-    --muted-foreground: hsl(215.4 16.3% 46.9%);
-    --accent: hsl(210 40% 96.1%);
-    --accent-foreground: hsl(222.2 47.4% 11.2%);
-    --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(210 40% 98%);
-    --border: hsl(214.3 31.8% 91.4%);
-    --input: hsl(214.3 31.8% 91.4%);
+    --primary-foreground: hsl(0 0% 100%);
+    --secondary: hsl(170 12% 95.5%);
+    --secondary-foreground: hsl(200 20% 14%);
+    --muted: hsl(170 14% 96.5%);
+    --muted-foreground: hsl(195 8% 40%);
+    --accent: hsl(170 12% 95.5%);
+    --accent-foreground: hsl(200 20% 14%);
+    --destructive: hsl(0 72% 51%);
+    --destructive-foreground: hsl(0 0% 100%);
+    --border: hsl(170 10% 90%);
+    --input: hsl(170 8% 85%);
     --ring: hsl(178 77% 24%);
-    --chart-1: hsl(221.2 83.2% 53.3%);
-    --chart-2: hsl(160 60% 45%);
-    --chart-3: hsl(30 80% 55%);
-    --chart-4: hsl(280 65% 60%);
-    --chart-5: hsl(340 75% 55%);
-    --sidebar: hsl(0 0% 98%);
-    --sidebar-foreground: hsl(240 5.3% 26.1%);
-    --sidebar-muted: hsl(240 4.8% 95.9%);
-    --sidebar-muted-foreground: hsl(240 3.8% 46.1%);
-    --sidebar-accent: hsl(240 4.8% 95.9%);
-    --sidebar-accent-foreground: hsl(240 5.9% 10%);
-    --sidebar-border: hsl(220 13% 91%);
-    --sidebar-ring: hsl(221.2 83.2% 53.3%);
+    --chart-1: hsl(178 77% 28%);
+    --chart-2: hsl(20 70% 50%);
+    --chart-3: hsl(38 88% 50%);
+    --chart-4: hsl(212 78% 52%);
+    --chart-5: hsl(340 72% 52%);
+    --sidebar: hsl(170 14% 98%);
+    --sidebar-foreground: hsl(200 14% 26%);
+    --sidebar-muted: hsl(170 12% 95%);
+    --sidebar-muted-foreground: hsl(195 8% 44%);
+    --sidebar-accent: hsl(170 12% 94%);
+    --sidebar-accent-foreground: hsl(200 22% 10%);
+    --sidebar-border: hsl(170 10% 90%);
+    --sidebar-ring: hsl(178 77% 24%);
 }
 
 .dark {
-    --background: hsl(224 71% 4%);
-    --foreground: hsl(210 40% 98%);
-    --card: hsl(224 71% 7%);
-    --card-foreground: hsl(210 40% 98%);
-    --popover: hsl(224 71% 7%);
-    --popover-foreground: hsl(210 40% 98%);
+    --background: hsl(195 22% 7%);
+    --foreground: hsl(170 14% 93%);
+    --card: hsl(195 20% 9%);
+    --card-foreground: hsl(170 14% 93%);
+    --popover: hsl(195 20% 10%);
+    --popover-foreground: hsl(170 14% 93%);
     --primary: hsl(175 48% 54%);
     --primary-foreground: hsl(222.2 47.4% 11.2%);
-    --secondary: hsl(215 28% 17%);
-    --secondary-foreground: hsl(210 40% 98%);
-    --muted: hsl(215 28% 13%);
-    --muted-foreground: hsl(217 10% 64%);
-    --accent: hsl(215 28% 17%);
-    --accent-foreground: hsl(210 40% 98%);
-    --destructive: hsl(0 62.8% 30.6%);
-    --destructive-foreground: hsl(210 40% 98%);
-    --border: hsl(215 28% 17%);
-    --input: hsl(215 28% 22%);
+    --secondary: hsl(195 14% 15%);
+    --secondary-foreground: hsl(170 14% 93%);
+    --muted: hsl(195 15% 12%);
+    --muted-foreground: hsl(180 7% 63%);
+    --accent: hsl(195 14% 15%);
+    --accent-foreground: hsl(170 14% 93%);
+    --destructive: hsl(0 66% 52%);
+    --destructive-foreground: hsl(0 0% 100%);
+    --border: hsl(195 13% 17%);
+    --input: hsl(195 12% 23%);
     --ring: hsl(175 48% 54%);
-    --chart-1: hsl(220 70% 50%);
-    --chart-2: hsl(160 60% 45%);
-    --chart-3: hsl(30 80% 55%);
-    --chart-4: hsl(280 65% 60%);
-    --chart-5: hsl(340 75% 55%);
-    --sidebar: hsl(224 71% 4%);
-    --sidebar-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-muted: hsl(215 28% 13%);
-    --sidebar-muted-foreground: hsl(217 10% 64%);
-    --sidebar-accent: hsl(215 28% 17%);
-    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-border: hsl(215 28% 17%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
+    --chart-1: hsl(175 55% 52%);
+    --chart-2: hsl(20 75% 62%);
+    --chart-3: hsl(38 85% 58%);
+    --chart-4: hsl(212 80% 62%);
+    --chart-5: hsl(340 75% 62%);
+    --sidebar: hsl(195 22% 6%);
+    --sidebar-foreground: hsl(170 10% 78%);
+    --sidebar-muted: hsl(195 15% 12%);
+    --sidebar-muted-foreground: hsl(180 7% 60%);
+    --sidebar-accent: hsl(195 14% 14%);
+    --sidebar-accent-foreground: hsl(170 14% 93%);
+    --sidebar-border: hsl(195 13% 15%);
+    --sidebar-ring: hsl(175 48% 54%);
 }
 
 * {
@@ -127,6 +131,8 @@ body {
     font-family: var(--font-sans);
     background-color: var(--color-background);
     color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     font-feature-settings:
         "rlig" 1,
         "calt" 1;

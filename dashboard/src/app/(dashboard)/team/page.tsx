@@ -82,7 +82,7 @@ export default function TeamPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Team</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight">Team</h1>
         <p className="text-sm text-muted-foreground">
           People who can sign in to {user?.tenantName ?? "this organisation"}, and what each of them can do.
         </p>

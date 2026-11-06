@@ -33,22 +33,22 @@ export function CustomerTable({ customers, onEdit, onDelete, onViewPaymentMethod
         <table className="w-full">
           <thead className="bg-muted">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                 Customer
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                 Total Spent
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                 Subscriptions
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                 Created
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                 Actions
               </th>
             </tr>
@@ -59,7 +59,7 @@ export function CustomerTable({ customers, onEdit, onDelete, onViewPaymentMethod
                 key={customer.id}
                 className="hover:bg-muted/50 transition-colors"
               >
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-2.5 whitespace-nowrap">
                   <div className="flex items-center">
                     <Avatar name={customer.name} size="sm" />
                     <div className="ml-3">
@@ -68,25 +68,25 @@ export function CustomerTable({ customers, onEdit, onDelete, onViewPaymentMethod
                     </div>
                   </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-2.5 whitespace-nowrap">
                   <Badge
                     variant={customer.status === "active" ? "success" : "outline"}
                   >
                     {customer.status}
                   </Badge>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-2.5 whitespace-nowrap">
                   <span className="text-sm font-medium">
                     {formatCurrency(customer.totalSpent, customer.currency)}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 py-2.5 whitespace-nowrap">
                   <span className="text-sm">{customer.activeSubscriptions}</span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                <td className="px-4 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                   {formatRelativeTime(customer.createdAt)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right">
+                <td className="px-4 py-2.5 whitespace-nowrap text-right">
                   {hasActions && (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
