@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import { AlertCircle, Check, CreditCard, Lock, Smartphone } from "lucide-react";
+import { AlertCircle, Check, Lock, Smartphone } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { brand } from "@/lib/brand";
 import { cn } from "@/lib/utils/cn";
@@ -31,30 +31,61 @@ interface Checkout {
 const CONFIRM_TRIES = 24;
 const CONFIRM_EVERY_MS = 5000;
 
-function MethodArt({ method, currency }: { method: CheckoutMethod; currency: string }) {
-  if (method === "paypal") {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src="/providers/paypal.svg" alt="" className="h-6 w-6 object-contain" />;
-  }
-  if (method === "mobile_money" && currency === "UGX") {
-    return (
-      <span className="flex -space-x-1.5">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/providers/mtn_momo.svg" alt="" className="h-6 w-6 rounded-full bg-[#ffcb05] object-contain p-0.5 ring-2 ring-card" />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/providers/airtel_money.svg" alt="" className="h-6 w-6 rounded-full bg-white object-contain p-0.5 ring-2 ring-card" />
-      </span>
-    );
-  }
-  const Icon = method === "card" ? CreditCard : Smartphone;
-  return <Icon className="h-5 w-5 text-muted-foreground" aria-hidden />;
+interface PayOption {
+  key: string;
+  method: CheckoutMethod;
+  name: string;
+  hint: string;
+  art: React.ReactNode;
 }
 
-const METHOD_TEXT: Record<CheckoutMethod, { name: string; hint: string }> = {
-  mobile_money: { name: "Mobile money", hint: "Approve the payment on your phone" },
-  card: { name: "Card", hint: "Visa, Mastercard and others" },
-  paypal: { name: "PayPal", hint: "Pay with your PayPal account or a card" },
-};
+function Logo({ src, background = "bg-white" }: { src: string; background?: string }) {
+  return (
+    <span className={cn("flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border p-1", background)}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={src} alt="" className="max-h-full max-w-full object-contain" />
+    </span>
+  );
+}
+
+function CardMarks() {
+  return (
+    <span className="flex h-8 w-8 items-center justify-center rounded-lg border bg-white" aria-hidden>
+      <svg viewBox="0 0 24 16" className="h-4 w-6">
+        <circle cx="8.5" cy="8" r="6.5" fill="#eb001b" />
+        <circle cx="15.5" cy="8" r="6.5" fill="#f79e1b" fillOpacity="0.9" />
+      </svg>
+    </span>
+  );
+}
+
+/** Currencies where MTN and Airtel are the wallets people know by name. */
+const MTN_AND_AIRTEL = new Set(["UGX", "RWF", "ZMW"]);
+
+/** What the customer sees: wallets and brands by name, each paying through its method. */
+function payOptions(methods: CheckoutMethod[], currency: string): PayOption[] {
+  const wallet = { method: "mobile_money" as const, hint: "Approve the payment on your phone" };
+  return methods.flatMap((method): PayOption[] => {
+    if (method === "paypal") {
+      return [{ key: "paypal", method, name: "PayPal", hint: "Your PayPal account, or a card through PayPal", art: <Logo src="/providers/paypal.svg" /> }];
+    }
+    if (method === "card") {
+      return [{ key: "card", method, name: "Visa or Mastercard", hint: "Pay with your debit or credit card", art: <CardMarks /> }];
+    }
+    if (MTN_AND_AIRTEL.has(currency)) {
+      return [
+        { ...wallet, key: "mtn", name: "MTN Mobile Money", art: <Logo src="/providers/mtn_momo.svg" background="bg-[#ffcb05]" /> },
+        { ...wallet, key: "airtel", name: "Airtel Money", art: <Logo src="/providers/airtel_money.svg" /> },
+      ];
+    }
+    const art = (
+      <span className="flex h-8 w-8 items-center justify-center rounded-lg border bg-white">
+        <Smartphone className="h-4 w-4 text-muted-foreground" aria-hidden />
+      </span>
+    );
+    return [{ ...wallet, key: "wallet", name: currency === "KES" ? "M-Pesa" : "Mobile money", art }];
+  });
+}
 
 function Centered({ children }: { children: React.ReactNode }) {
   return <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10 text-center">{children}</div>;
@@ -65,7 +96,7 @@ export default function HostedCheckout() {
   const returned = useSearchParams().has("returned");
   const [data, setData] = useState<Checkout | null>(null);
   const [failure, setFailure] = useState<string | null>(null);
-  const [method, setMethod] = useState<CheckoutMethod | null>(null);
+  const [choice, setChoice] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [gaveUp, setGaveUp] = useState(false);
@@ -79,7 +110,6 @@ export default function HostedCheckout() {
     // Where wallets are an option they are how most people pay, so they come first.
     checkout.methods = [...checkout.methods].sort((x, y) => Number(y === "mobile_money") - Number(x === "mobile_money"));
     setData(checkout);
-    setMethod((current) => current ?? checkout.methods[0] ?? null);
     return checkout;
   }, [token]);
 
@@ -99,15 +129,18 @@ export default function HostedCheckout() {
     return () => clearTimeout(timer);
   }, [returned, data, settled, gaveUp, load]);
 
+  const options = data ? payOptions(data.methods, data.invoice.currency) : [];
+  const chosen = options.find((o) => o.key === choice) ?? options[0];
+
   async function pay() {
-    if (!method) return;
+    if (!chosen) return;
     setPaying(true);
     setProblem(null);
     try {
       const res = await fetch(`/api/pay/${encodeURIComponent(token)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ method }),
+        body: JSON.stringify({ method: chosen.method }),
       });
       const body = await res.json().catch(() => ({}));
       const url = (body.data ?? body).checkoutUrl;
@@ -248,27 +281,25 @@ export default function HostedCheckout() {
               ) : (
                 <>
                   <div role="radiogroup" aria-label="Payment method" className="mt-4 grid gap-2.5">
-                    {data.methods.map((m) => (
+                    {options.map((option) => (
                       <button
-                        key={m}
+                        key={option.key}
                         type="button"
                         role="radio"
-                        aria-checked={method === m}
-                        onClick={() => setMethod(m)}
+                        aria-checked={chosen?.key === option.key}
+                        onClick={() => setChoice(option.key)}
                         className={cn(
-                          "flex items-center gap-3 rounded-xl border p-4 text-left transition-colors",
-                          method === m ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/60",
+                          "flex items-center gap-3 rounded-xl border p-3.5 text-left transition-colors",
+                          chosen?.key === option.key ? "border-primary bg-primary/5 ring-1 ring-primary" : "hover:bg-muted/60",
                         )}
                       >
-                        <span className="flex w-10 shrink-0 justify-center">
-                          <MethodArt method={m} currency={invoice.currency} />
-                        </span>
+                        <span className="shrink-0">{option.art}</span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-medium">{METHOD_TEXT[m].name}</span>
-                          <span className="block text-xs text-muted-foreground">{METHOD_TEXT[m].hint}</span>
+                          <span className="block text-sm font-medium">{option.name}</span>
+                          <span className="block text-xs text-muted-foreground">{option.hint}</span>
                         </span>
-                        <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border", method === m && "border-primary")} aria-hidden>
-                          {method === m && <span className="h-2 w-2 rounded-full bg-primary" />}
+                        <span className={cn("flex h-4 w-4 shrink-0 items-center justify-center rounded-full border", chosen?.key === option.key && "border-primary")} aria-hidden>
+                          {chosen?.key === option.key && <span className="h-2 w-2 rounded-full bg-primary" />}
                         </span>
                       </button>
                     ))}
@@ -281,7 +312,7 @@ export default function HostedCheckout() {
                   <button
                     type="button"
                     onClick={pay}
-                    disabled={paying || !method}
+                    disabled={paying || !chosen}
                     className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
                   >
                     {paying ? <BrandMark animated tight className="h-4 w-4" /> : `Pay ${money(data.amount)}`}

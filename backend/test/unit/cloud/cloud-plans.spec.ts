@@ -19,6 +19,7 @@ describe('cloud plans', () => {
       expect(CLOUD_TIERS.enterprise.limits[key]).toBeUndefined();
     }
     expect(CLOUD_TIERS.free.limits.customers).toBe(500);
+    expect(CLOUD_TIERS.free.limits.activeSubscriptions).toBe(500);
   });
 
   it('prices every plan in dollars only, the year at ten months', () => {
@@ -84,6 +85,12 @@ describe('CloudPlansService.ensureCatalogue', () => {
     const db = await run({ ...local, UGX: 60000 });
     expect(db.$transaction).not.toHaveBeenCalled();
   });
+
+  it("keeps Free's features in step with its limits", async () => {
+    const db = await run({ USD: 15 });
+    expect(db.plan.update).toHaveBeenCalledWith({ where: { id: 'id_cloud_free' }, data: { features: expect.arrayContaining(['500 customers', '500 active subscriptions']) } });
+    expect(db.plan.update).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('CloudPlansService.refreshLimits', () => {
@@ -95,7 +102,7 @@ describe('CloudPlansService.refreshLimits', () => {
         tenantBilling: {
           findMany: jest.fn().mockResolvedValue([
             { tenantId: 'old', planId: 'cloud_free', limits: { customers: 100, activeSubscriptions: 100, invoicesPerMonth: 300, teamMembers: 2 } },
-            { tenantId: 'recent', planId: 'cloud_free', limits: { customers: 1000, activeSubscriptions: 1000, invoicesPerMonth: 2500, teamMembers: 5 } },
+            { tenantId: 'recent', planId: 'cloud_free', limits: { customers: 500, activeSubscriptions: 1000, invoicesPerMonth: 2500, teamMembers: 5 } },
             { tenantId: 'custom', planId: 'cloud_free', limits: { customers: 50 } },
             { tenantId: 'partner', planId: 'cloud_partner', limits: null },
           ]),

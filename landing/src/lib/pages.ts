@@ -591,7 +591,7 @@ const pillars: TopicPage[] = [
     sections: [
       {
         heading: "Free",
-        bullets: ["500 customers and 1,000 active subscriptions", "2,500 invoices a month", "5 team members", "Every feature, including managed payments"],
+        bullets: ["500 customers and 500 active subscriptions", "2,500 invoices a month", "5 team members", "Every feature, including managed payments"],
       },
       {
         heading: "Growth",
