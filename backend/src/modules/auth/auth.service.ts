@@ -11,6 +11,7 @@ import { permissionsOf } from '../../common/auth/permissions';
 import { hashApiKey, lastFour } from '../../common/auth/api-keys';
 import { derivedSecret, issuedBeforePasswordChange, passwordVersion } from '../../common/auth/tokens';
 import { EmailService } from '../../services/email.service';
+import { escapeHtml } from '../../common/utils/escape-html';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { isSandbox, sandboxLinkSecret } from '../../config/sandbox';
@@ -78,11 +79,25 @@ export class AuthService {
     const user = await this.db.user.create({ data: { email, name: dto.name, password } });
     try {
       const { tenant, apiKey } = await this.createOrganisation(user, dto.companyName);
+      // In the background: a sign-up never waits on, or fails with, this email.
+      void this.alertNewSignup(user, tenant).catch((e) => this.logger.warn(`Sign-up alert failed: ${e instanceof Error ? e.message : e}`));
       return { ...this.session(user, tenant, 'OWNER'), apiKey, ...this.generateTokens(tenant.id, user) };
     } catch (error) {
       await this.db.user.delete({ where: { id: user.id } }).catch(() => undefined);
       throw error;
     }
+  }
+
+  /** Tell the operator someone new signed up to the hosted cloud: SIGNUP_ALERT_EMAIL, or the operator organisation's email. */
+  private async alertNewSignup(user: User, tenant: Tenant): Promise<void> {
+    if (!cloudPlansEnabled()) return;
+    const to =
+      process.env.SIGNUP_ALERT_EMAIL?.trim() ||
+      (await this.db.tenant.findFirst({ where: { isPlatformOperator: true, isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true } }))?.email;
+    if (!to) return;
+    const row = (label: string, value: string) => `<tr><td style="padding:4px 16px 4px 0;color:#667">${label}</td><td>${escapeHtml(value)}</td></tr>`;
+    const html = `<p>Someone new signed up.</p><table>${row('Organisation', tenant.name)}${row('Name', user.name ?? '')}${row('Email', user.email)}${row('Time', new Date().toUTCString())}</table>`;
+    await this.emailService.sendHtml(to, `New sign-up: ${tenant.name}`, html);
   }
 
   /** Another organisation for a signed-in person, who owns it. */

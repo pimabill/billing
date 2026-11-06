@@ -125,6 +125,8 @@ export class CloudPlansService implements OnApplicationBootstrap {
       if (!superseded) continue;
       await db.$transaction([
         db.plan.update({ where: { id: existing.id }, data: details }),
+        // Prices no longer sold stop being offered; subscriptions already on one still renew in it.
+        db.planPrice.updateMany({ where: { planId: existing.id, currency: { notIn: plan.prices.map((p) => p.currency) } }, data: { isActive: false } }),
         ...plan.prices.map((p) =>
           db.planPrice.upsert({
             where: { planId_currency: { planId: existing.id, currency: p.currency } },

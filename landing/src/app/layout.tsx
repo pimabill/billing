@@ -3,7 +3,6 @@ import type { Metadata, Viewport } from "next";
 import "@fontsource-variable/unbounded";
 import "@fontsource-variable/schibsted-grotesk";
 import "@fontsource-variable/jetbrains-mono";
-import { growthMonthly } from "@/lib/pages";
 import { keywords, site } from "@/lib/site";
 import "./globals.css";
 
@@ -88,14 +87,8 @@ const jsonLd = [
     ],
     offers: [
       { "@type": "Offer", name: "Self-hosted", price: "0", priceCurrency: "USD", description: "Open source, on your own servers" },
-      { "@type": "Offer", name: "Cloud Free", price: "0", priceCurrency: "USD", description: "Hosted: 1,000 customers, 2,500 invoices a month" },
-      ...Object.entries(growthMonthly).map(([currency, amount]) => ({
-        "@type": "Offer",
-        name: "Cloud Growth",
-        price: String(amount),
-        priceCurrency: currency,
-        description: "Hosted, no limits, billed monthly",
-      })),
+      { "@type": "Offer", name: "Cloud Free", price: "0", priceCurrency: "USD", description: "Hosted: 500 customers, 2,500 invoices a month" },
+      { "@type": "Offer", name: "Cloud Growth", price: "15", priceCurrency: "USD", description: "Hosted, no limits, billed monthly" },
     ],
   },
 ];

@@ -35,13 +35,8 @@ export interface TopicPage {
   related: string[];
 }
 
-/** Growth's monthly price per currency; keep in step with the backend's cloud-plans catalogue. */
-export const growthMonthly: Record<string, number> = {
-  UGX: 55000, KES: 1900, TZS: 38000, RWF: 20000, NGN: 22000, GHS: 180, ZAR: 270,
-  XAF: 9000, XOF: 9000, ZMW: 380, MWK: 26000, EGP: 720, USD: 15, EUR: 14, GBP: 12,
-};
-
-const money = (currency: string) => `${currency} ${growthMonthly[currency].toLocaleString("en")}`;
+/** Growth's monthly price, in dollars only; keep in step with the backend's cloud-plans catalogue. */
+export const growthPrice = "$15";
 
 const howRenewalsWork: TopicSection = {
   heading: "How renewals work with mobile money",
@@ -59,7 +54,7 @@ const countries: TopicPage[] = [
     path: "billing-software/uganda",
     nav: "Uganda",
     title: "Billing Software for Uganda with MTN MoMo & Airtel Money",
-    description: `Subscription billing and invoicing for Ugandan businesses: MTN MoMo and Airtel Money collections, UGX pricing, payouts and receipts. Free to start; Growth is ${money("UGX")} a month.`,
+    description: `Subscription billing and invoicing for Ugandan businesses: MTN MoMo and Airtel Money collections, UGX pricing, payouts and receipts. Free to start; Growth is ${growthPrice} a month.`,
     section: { name: "Billing software by country" },
     h1: "Billing software for Uganda, built around mobile money",
     lede:
@@ -98,7 +93,7 @@ const countries: TopicPage[] = [
       },
       {
         question: "How much does it cost in Uganda?",
-        answer: `The cloud is free up to 1,000 customers and 2,500 invoices a month. Growth has no limits and costs ${money("UGX")} a month, payable by mobile money. Self-hosting is free.`,
+        answer: `The cloud is free up to 500 customers and 2,500 invoices a month. Growth has no limits and costs ${growthPrice} a month. Self-hosting is free.`,
       },
       {
         question: "Can I get paid without a payment gateway account?",
@@ -112,7 +107,7 @@ const countries: TopicPage[] = [
     path: "billing-software/kenya",
     nav: "Kenya",
     title: "Subscription Billing Software for Kenya with M-Pesa",
-    description: `Recurring billing and invoicing for Kenyan businesses: M-Pesa and Airtel Money through Flutterwave, Paystack, Pesapal or DPO, cards, KES pricing. Growth is ${money("KES")} a month.`,
+    description: `Recurring billing and invoicing for Kenyan businesses: M-Pesa and Airtel Money through Flutterwave, Paystack, Pesapal or DPO, cards, KES pricing. Growth is ${growthPrice} a month.`,
     section: { name: "Billing software by country" },
     h1: "Subscription billing for Kenya, with M-Pesa built in",
     lede:
@@ -151,7 +146,7 @@ const countries: TopicPage[] = [
       },
       {
         question: "What does it cost in Kenya?",
-        answer: `Free up to 1,000 customers. Growth, with no limits, is ${money("KES")} a month. You can also self-host it for free.`,
+        answer: `Free up to 500 customers. Growth, with no limits, is ${growthPrice} a month. You can also self-host it for free.`,
       },
     ],
     related: ["billing-software/uganda", "billing-software/tanzania", "mobile-money-billing", "use-cases/saas-billing"],
@@ -160,7 +155,7 @@ const countries: TopicPage[] = [
     path: "billing-software/nigeria",
     nav: "Nigeria",
     title: "Recurring Billing Software for Nigeria (Paystack & Flutterwave)",
-    description: `Subscriptions and invoicing in naira: cards, bank transfers and USSD through Paystack or Flutterwave, automatic card renewals and dunning. Growth is ${money("NGN")} a month.`,
+    description: `Subscriptions and invoicing in naira: cards, bank transfers and USSD through Paystack or Flutterwave, automatic card renewals and dunning. Growth is ${growthPrice} a month.`,
     section: { name: "Billing software by country" },
     h1: "Recurring billing for Nigerian businesses",
     lede:
@@ -189,7 +184,7 @@ const countries: TopicPage[] = [
       },
       {
         question: "What does it cost in Nigeria?",
-        answer: `Free up to 1,000 customers. Growth is ${money("NGN")} a month with no limits. Self-hosting is free.`,
+        answer: `Free up to 500 customers. Growth is ${growthPrice} a month with no limits. Self-hosting is free.`,
       },
     ],
     related: ["billing-software/ghana", "alternatives/chargebee", "use-cases/saas-billing", "pricing"],
@@ -198,7 +193,7 @@ const countries: TopicPage[] = [
     path: "billing-software/ghana",
     nav: "Ghana",
     title: "Billing Software for Ghana with Mobile Money",
-    description: `Subscription billing and invoicing in cedis: MTN MoMo and other mobile money through Paystack or Flutterwave, cards and payouts. Growth is ${money("GHS")} a month.`,
+    description: `Subscription billing and invoicing in cedis: MTN MoMo and other mobile money through Paystack or Flutterwave, cards and payouts. Growth is ${growthPrice} a month.`,
     section: { name: "Billing software by country" },
     h1: "Billing software for Ghana, with mobile money",
     lede: "Bill in cedis and collect mobile money and cards through Paystack or Flutterwave, with renewals, reminders and receipts handled for you.",
@@ -220,7 +215,7 @@ const countries: TopicPage[] = [
       },
       {
         question: "What does it cost in Ghana?",
-        answer: `Free up to 1,000 customers; Growth is ${money("GHS")} a month. Self-hosting is free.`,
+        answer: `Free up to 500 customers; Growth is ${growthPrice} a month. Self-hosting is free.`,
       },
     ],
     related: ["billing-software/nigeria", "mobile-money-billing", "pricing"],
@@ -229,7 +224,7 @@ const countries: TopicPage[] = [
     path: "billing-software/tanzania",
     nav: "Tanzania",
     title: "Billing Software for Tanzania with Mobile Money",
-    description: `Recurring billing and invoices in Tanzanian shillings: M-Pesa, Airtel Money and other wallets through Flutterwave, Pesapal or DPO. Growth is ${money("TZS")} a month.`,
+    description: `Recurring billing and invoices in Tanzanian shillings: M-Pesa, Airtel Money and other wallets through Flutterwave, Pesapal or DPO. Growth is ${growthPrice} a month.`,
     section: { name: "Billing software by country" },
     h1: "Billing software for Tanzania",
     lede: "Run subscriptions and invoices in shillings and collect mobile money and cards through Flutterwave, Pesapal or DPO.",
@@ -251,7 +246,7 @@ const countries: TopicPage[] = [
       },
       {
         question: "What does it cost in Tanzania?",
-        answer: `Free up to 1,000 customers; Growth is ${money("TZS")} a month. Self-hosting is free.`,
+        answer: `Free up to 500 customers; Growth is ${growthPrice} a month. Self-hosting is free.`,
       },
     ],
     related: ["billing-software/kenya", "billing-software/uganda", "mobile-money-billing"],
@@ -260,7 +255,7 @@ const countries: TopicPage[] = [
     path: "billing-software/rwanda",
     nav: "Rwanda",
     title: "Billing Software for Rwanda with MTN MoMo & Airtel Money",
-    description: `Subscriptions and invoicing in Rwandan francs: MTN MoMo and Airtel Money, cards and payouts. Free to start; Growth is ${money("RWF")} a month.`,
+    description: `Subscriptions and invoicing in Rwandan francs: MTN MoMo and Airtel Money, cards and payouts. Free to start; Growth is ${growthPrice} a month.`,
     section: { name: "Billing software by country" },
     h1: "Billing software for Rwanda",
     lede: "Bill in francs and collect MTN MoMo, Airtel Money and cards, with renewals, receipts and payouts in one place.",
@@ -282,7 +277,7 @@ const countries: TopicPage[] = [
       },
       {
         question: "What does it cost in Rwanda?",
-        answer: `Free up to 1,000 customers; Growth is ${money("RWF")} a month. Self-hosting is free.`,
+        answer: `Free up to 500 customers; Growth is ${growthPrice} a month. Self-hosting is free.`,
       },
     ],
     related: ["billing-software/uganda", "mobile-money-billing", "pricing"],
@@ -497,7 +492,7 @@ const alternatives: TopicPage[] = [
       },
       {
         heading: "Pricing",
-        body: ["Free up to 1,000 customers, then a flat monthly fee in your own currency; billing isn't charged as a share of your revenue. Self-hosting is free."],
+        body: ["Free up to 500 customers, then a flat $15 a month; billing isn't charged as a share of your revenue. Self-hosting is free."],
       },
     ],
     faq: [
@@ -532,7 +527,7 @@ const alternatives: TopicPage[] = [
     faq: [
       {
         question: "Do I have to run it myself?",
-        answer: "No. Use the cloud, free up to 1,000 customers, or self-host it when you want to.",
+        answer: "No. Use the cloud, free up to 500 customers, or self-host it when you want to.",
       },
     ],
     related: ["alternatives/lago", "alternatives/chargebee", "use-cases/saas-billing"],
@@ -588,20 +583,20 @@ const pillars: TopicPage[] = [
   {
     path: "pricing",
     nav: "Pricing",
-    title: "Pricing: Free to Start, Growth in Your Currency",
-    description: `PimaBill cloud is free up to 1,000 customers. Growth has no limits for ${money("USD")}, ${money("UGX")}, ${money("KES")} or ${money("NGN")} a month. Self-hosting is free.`,
+    title: "Pricing: Free to Start, $15 a Month to Grow",
+    description: `PimaBill cloud is free up to 500 customers. Growth has no limits for ${growthPrice} a month. Self-hosting is free.`,
     section: { name: "Pricing" },
     h1: "Pricing",
-    lede: "Start free. Pay a flat monthly fee in your own currency when you grow. Or run it yourself, free.",
+    lede: "Start free. Pay a flat $15 a month when you grow. Or run it yourself, free.",
     sections: [
       {
         heading: "Free",
-        bullets: ["1,000 customers and 1,000 active subscriptions", "2,500 invoices a month", "5 team members", "Every feature, including managed payments"],
+        bullets: ["500 customers and 1,000 active subscriptions", "2,500 invoices a month", "5 team members", "Every feature, including managed payments"],
       },
       {
         heading: "Growth",
         body: [
-          `No limits, priority support. ${Object.keys(growthMonthly).map(money).join(" · ")} a month; a year costs ten months.`,
+          `No limits, priority support. ${growthPrice} a month; a year costs ten months.`,
         ],
       },
       { heading: "Enterprise", body: ["Priced per customer with you, with a negotiated managed payments fee, an SLA and a named account manager."] },
@@ -609,8 +604,8 @@ const pillars: TopicPage[] = [
     ],
     faq: [
       {
-        question: "Can I pay in my own currency?",
-        answer: `Yes. Growth is priced in ${Object.keys(growthMonthly).length} currencies and can be paid by card or mobile money.`,
+        question: "How do I pay for Growth?",
+        answer: "Growth is priced in US dollars and paid by card or PayPal. Your own customers can still be billed in any currency and pay by mobile money.",
       },
       {
         question: "Are there transaction fees?",

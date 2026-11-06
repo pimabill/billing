@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../common/utils/escape-html';
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { randomBytes } from 'crypto';
 import { MemberRole } from '../../generated/prisma-central/client';
@@ -129,8 +130,4 @@ export class TeamService {
     const others = await this.db.membership.count({ where: { tenantId, role: 'OWNER', userId: { not: userId } } });
     if (others === 0) throw new BadRequestException('An organisation needs at least one owner. Make someone else an owner first.');
   }
-}
-
-function escapeHtml(text: string): string {
-  return text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 }
