@@ -51,27 +51,27 @@ export default function TopicPageView({ page }: { page: TopicPage }) {
       </a>
       <Header />
       <main id="main">
-        <section aria-labelledby="topic-title" className="bg-aurora text-night-ink">
+        <section aria-labelledby="topic-title" className="bg-wash">
           <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-20">
-            <nav aria-label="Breadcrumb" className="font-mono text-xs uppercase tracking-[0.08em] text-night-ink-2">
-              <a href="/" className="hover:text-white">
+            <nav aria-label="Breadcrumb" className="text-sm font-medium text-ink-2">
+              <a href="/" className="hover:text-teal">
                 {site.name}
               </a>
               <span aria-hidden> / </span>
               <span>{page.section.name}</span>
             </nav>
-            <h1 id="topic-title" className="mt-5 font-display text-3xl font-semibold leading-tight tracking-tight text-white sm:text-5xl">
+            <h1 id="topic-title" className="mt-5 font-display text-4xl font-semibold leading-tight tracking-tight sm:text-6xl">
               {page.h1}
             </h1>
-            <p className="mt-5 max-w-2xl text-lg text-night-ink-2">{page.lede}</p>
+            <p className="mt-5 max-w-2xl text-lg text-ink-2 sm:text-xl">{page.lede}</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
                 href={`${site.dashboardUrl}/register`}
-                className="inline-flex h-11 items-center gap-2 rounded-lg bg-glow px-5 font-semibold text-night transition hover:brightness-110"
+                className="inline-flex h-12 items-center gap-2 rounded-full bg-ink px-6 font-semibold text-white transition hover:bg-teal"
               >
                 Start free <ArrowRight className="h-4 w-4" aria-hidden />
               </a>
-              <a href={site.docsUrl} className="inline-flex h-11 items-center rounded-lg border border-night-line px-5 font-semibold text-white hover:border-glow">
+              <a href={site.docsUrl} className="inline-flex h-12 items-center rounded-full border border-ink/15 bg-white/70 px-6 font-semibold transition hover:border-ink">
                 Read the docs
               </a>
             </div>

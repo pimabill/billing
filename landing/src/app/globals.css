@@ -20,24 +20,6 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --mist: #0c1114;
-    --card: #141b1f;
-    --ink: #e7ecea;
-    --ink-2: #9ba7a3;
-    --line: #25312f;
-    --teal: #4fc2b9;
-    --teal-strong: #7fd6cf;
-    --teal-soft: #123230;
-    --bark: #e08457;
-    --bark-soft: #3a2015;
-    --on-teal: #0c1114;
-    --code-bg: #080c0e;
-    color-scheme: dark;
-  }
-}
-
 @theme inline {
   --color-mist: var(--mist);
   --color-card: var(--card);
@@ -63,7 +45,7 @@ html {
 }
 
 body {
-  background: var(--mist);
+  background: #fff;
   color: var(--ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -144,4 +126,42 @@ h3 {
     0 0 0 1px rgba(255, 255, 255, 0.06),
     0 40px 120px -30px rgba(31, 196, 180, 0.35),
     0 30px 60px -30px rgba(0, 0, 0, 0.6);
+}
+
+/* Plain teal text for dark bands, where the gradient would be too much. */
+.text-glow-plain {
+  color: #5eead4;
+}
+
+/* A soft wash of the brand's colours, behind product UI. */
+.bg-wash {
+  background:
+    radial-gradient(60% 90% at 12% 10%, #c9f3e7 0%, transparent 70%),
+    radial-gradient(55% 90% at 88% 15%, #ffe6c7 0%, transparent 70%),
+    radial-gradient(60% 80% at 60% 100%, #ffd9cc 0%, transparent 70%),
+    #f4fbf8;
+}
+
+.shadow-card {
+  box-shadow:
+    0 1px 2px rgba(11, 31, 30, 0.06),
+    0 24px 60px -24px rgba(11, 31, 30, 0.28);
+}
+
+/* The tally rises once, bar by bar. */
+@keyframes tally-rise {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+}
+.tally-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: tally-rise 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tally-bar {
+    animation: none;
+  }
 }

@@ -11,12 +11,12 @@ const navLinks = [
   { label: "Docs", href: site.docsUrl },
 ];
 
-const linkClass = "text-sm font-medium text-night-ink-2 transition-colors hover:text-white";
+const linkClass = "text-sm font-medium text-ink transition-colors hover:text-teal";
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-night-line bg-night text-night-ink [&_.text-teal]:text-glow">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
+    <header className="sticky top-0 z-50 w-full border-b border-line bg-white text-ink">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6">
         <a href="/" aria-label={`${site.name} home`}>
           <BrandLockup />
         </a>
@@ -38,7 +38,7 @@ export default function Header() {
           </a>
           <a
             href={`${site.dashboardUrl}/register`}
-            className="inline-flex h-10 items-center rounded-lg bg-glow px-4 text-sm font-semibold text-night transition hover:brightness-110"
+            className="inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-semibold text-white transition hover:bg-teal"
           >
             Start free
           </a>
@@ -47,7 +47,7 @@ export default function Header() {
         <details className="group relative md:hidden">
           <summary
             aria-label="Menu"
-            className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg text-night-ink-2 hover:text-white [&::-webkit-details-marker]:hidden"
+            className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg text-ink hover:text-teal [&::-webkit-details-marker]:hidden"
           >
             <Menu className="h-5 w-5" aria-hidden />
           </summary>
