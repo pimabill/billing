@@ -15,7 +15,7 @@ const linkClass = "text-sm font-medium text-night-ink-2 transition-colors hover:
 
 export default function Header() {
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-night-line bg-night/85 text-night-ink backdrop-blur-xl [&_.text-teal]:text-glow">
+    <header className="sticky top-0 z-50 w-full border-b border-night-line bg-night text-night-ink [&_.text-teal]:text-glow">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-4 sm:px-6">
         <a href="/" aria-label={`${site.name} home`}>
           <BrandLockup />

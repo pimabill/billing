@@ -257,8 +257,8 @@ export default function CouponsPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Coupons</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Coupons</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Manage discount coupons for your customers
           </p>
           {!canWrite && (
@@ -282,7 +282,7 @@ export default function CouponsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{coupons.length}</div>
+            <div className="text-[22px] font-semibold tracking-tight">{coupons.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -292,7 +292,7 @@ export default function CouponsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {coupons.filter((c) => c.isActive).length}
             </div>
           </CardContent>
@@ -304,7 +304,7 @@ export default function CouponsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {coupons.reduce((sum, c) => sum + c.redemptionCount, 0)}
             </div>
           </CardContent>
@@ -334,28 +334,28 @@ export default function CouponsPage() {
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Code
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Discount
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Type
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Redemptions
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Expires
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                     Actions
                   </th>
                 </tr>
@@ -370,7 +370,7 @@ export default function CouponsPage() {
                       key={coupon.id}
                       className="hover:bg-muted/50 transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <Tag className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm font-mono font-medium">
@@ -378,7 +378,7 @@ export default function CouponsPage() {
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <p className="text-sm font-medium">{coupon.name}</p>
                         {coupon.description && (
                           <p className="text-xs text-muted-foreground mt-0.5 max-w-[200px] truncate">
@@ -386,12 +386,12 @@ export default function CouponsPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <span className="text-sm font-bold">
                           {formatDiscount(coupon)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <Badge
                           variant={
                             coupon.discountType === "PERCENTAGE"
@@ -404,7 +404,7 @@ export default function CouponsPage() {
                             : "Fixed Amount"}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <span className="text-sm">
                           {coupon.redemptionCount}
                           {coupon.maxRedemptions
@@ -412,7 +412,7 @@ export default function CouponsPage() {
                             : ""}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           {canWrite && (
                             <Switch
@@ -437,12 +437,12 @@ export default function CouponsPage() {
                           </Badge>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                         {coupon.expiresAt
                           ? formatDateTime(coupon.expiresAt)
                           : "Never"}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-2.5 text-right">
                         {canWrite && (
                           <div className="flex justify-end gap-1">
                             <Button

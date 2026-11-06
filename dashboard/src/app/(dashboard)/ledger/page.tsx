@@ -90,7 +90,7 @@ export default function LedgerPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Ledger</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">Ledger</h1>
           <p className="text-sm text-muted-foreground">
             Double-entry record of invoices, payments, wallets, collections and payouts. Updated every 10 minutes.
           </p>
@@ -196,7 +196,7 @@ export default function LedgerPage() {
               )}
             </tbody>
           </table>
-          {entries.length === 0 && <p className="px-6 py-4 text-sm text-muted-foreground">No journal entries yet.</p>}
+          {entries.length === 0 && <p className="px-4 py-2.5 text-sm text-muted-foreground">No journal entries yet.</p>}
         </CardContent>
         {totalPages > 1 && (
           <div className="flex items-center justify-end gap-2 p-4 border-t text-sm">

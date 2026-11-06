@@ -176,8 +176,8 @@ export default function CreditNotesPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Credit Notes</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Credit Notes</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Manage credit notes for invoices
           </p>
           {!canWrite && (
@@ -231,28 +231,28 @@ export default function CreditNotesPage() {
               <table className="w-full">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       ID
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Invoice
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Customer
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Reason
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Created
                     </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                       Actions
                     </th>
                   </tr>
@@ -263,18 +263,18 @@ export default function CreditNotesPage() {
                       key={cn.id}
                       className="hover:bg-muted/50 transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <span className="text-sm font-mono">
                           {cn.id.slice(0, 8)}...
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <span className="text-sm font-mono">
                           {cn.invoice?.invoiceNumber ||
                             `INV-${cn.invoiceId.slice(-8).toUpperCase()}`}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-4 py-2.5">
                         <p className="text-sm font-medium">
                           {cn.customer?.name || cn.customerId.slice(0, 8) + "..."}
                         </p>
@@ -284,17 +284,17 @@ export default function CreditNotesPage() {
                           </p>
                         )}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <span className="text-sm font-bold">
                           {formatCurrency(cn.amount, cn.currency)}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <Badge variant="secondary">
                           {reasonLabels[cn.reason] || cn.reason}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
                         <Badge
                           variant={statusVariants[cn.status] as any}
                         >
@@ -302,10 +302,10 @@ export default function CreditNotesPage() {
                             cn.status.slice(1).toLowerCase()}
                         </Badge>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-muted-foreground">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-sm text-muted-foreground">
                         {formatDateTime(cn.createdAt)}
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-4 py-2.5 text-right">
                         {canWrite &&
                           (cn.status === "DRAFT" ||
                             cn.status === "FINALIZED") && (

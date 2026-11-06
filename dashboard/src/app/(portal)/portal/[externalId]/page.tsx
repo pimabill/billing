@@ -216,7 +216,7 @@ export default function CustomerBillingPortal() {
     <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold">Billing</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight">Billing</h1>
         <p className="text-muted-foreground mt-1">
           Manage your subscriptions, view invoices, and make payments.
         </p>
@@ -226,17 +226,17 @@ export default function CustomerBillingPortal() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Active Subscriptions</p>
-          <p className="text-2xl font-bold mt-1">{data.summary.activeSubscriptions}</p>
+          <p className="text-[22px] font-semibold tracking-tight mt-1">{data.summary.activeSubscriptions}</p>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Total Spent</p>
-          <p className="text-2xl font-bold mt-1">
+          <p className="text-[22px] font-semibold tracking-tight mt-1">
             {formatCurrency(data.summary.totalSpent, data.summary.currency)}
           </p>
         </div>
         <div className="bg-card rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">Pending Invoices</p>
-          <p className="text-2xl font-bold mt-1">{data.summary.pendingInvoices}</p>
+          <p className="text-[22px] font-semibold tracking-tight mt-1">{data.summary.pendingInvoices}</p>
         </div>
       </div>
 

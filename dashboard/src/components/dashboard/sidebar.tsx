@@ -63,7 +63,7 @@ interface NavGroup {
 
 const navigation: NavGroup[] = [
   {
-    label: "Core",
+    label: "",
     items: [
       { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
       { name: "Analytics", href: "/analytics", icon: BarChart3 },
@@ -122,9 +122,10 @@ const navigation: NavGroup[] = [
 
 const DOCS_URL = process.env.NEXT_PUBLIC_DOCS_URL || "http://localhost:4003";
 
-export function Sidebar() {
+export function Sidebar({ mobile = false }: { mobile?: boolean }) {
   const pathname = usePathname();
   const { sidebarCollapsed, toggleSidebar } = useUIStore();
+  const collapsed = sidebarCollapsed && !mobile;
   const { user, logout, organisations, switchOrganisation } = useAuthStore();
   const [creatingOrg, setCreatingOrg] = useState(false);
   const otherOrgs = organisations.filter((o) => o.id !== user?.tenantId);
@@ -148,26 +149,29 @@ export function Sidebar() {
   return (
     <div
       className={cn(
-        "flex flex-col h-screen bg-card border-r border-border transition-all duration-300",
-        sidebarCollapsed ? "w-16" : "w-64",
+        "relative z-20 flex h-screen flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200",
+        collapsed ? "w-16" : "w-60",
       )}
     >
       {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-border">
+      <div className="flex h-14 shrink-0 items-center px-4">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <Image src={brand.logo} alt={brand.name} width={32} height={32} className="h-8 w-8 rounded-lg" />
-          {!sidebarCollapsed && (
-            <span className="font-semibold text-lg">{brand.name}</span>
+          <Image src={brand.logo} alt={brand.name} width={32} height={32} className="h-7 w-7 rounded-lg" />
+          {!collapsed && (
+            <span className="leading-tight">
+              <span className="block text-sm font-semibold">{brand.name}</span>
+              {user?.tenantName && <span className="block max-w-40 truncate text-xs text-muted-foreground">{user.tenantName}</span>}
+            </span>
           )}
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-2 py-3 overflow-y-auto space-y-4">
+      <nav className="flex-1 space-y-4 overflow-y-auto px-2 py-2">
         {navigation.map((group) => (
           <div key={group.label}>
-            {!sidebarCollapsed && (
-              <p className="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
+            {!collapsed && group.label && (
+              <p className="mb-1 px-2.5 text-xs font-medium text-muted-foreground">
                 {group.label}
               </p>
             )}
@@ -179,15 +183,15 @@ export function Sidebar() {
                     key={item.name}
                     href={item.href}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                      "flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium transition-colors",
                       isActive
                         ? "bg-primary/10 text-primary"
-                        : "text-foreground hover:bg-accent",
+                        : "text-sidebar-foreground hover:bg-sidebar-accent",
                     )}
-                    title={sidebarCollapsed ? item.name : undefined}
+                    title={collapsed ? item.name : undefined}
                   >
                     <item.icon className="h-4 w-4 flex-shrink-0" />
-                    {!sidebarCollapsed && <span>{item.name}</span>}
+                    {!collapsed && <span>{item.name}</span>}
                   </Link>
                 );
               })}
@@ -197,34 +201,34 @@ export function Sidebar() {
       </nav>
 
       {/* Environment and external links */}
-      <div className="px-2 pb-2 border-t border-border pt-2">
-        <EnvironmentSwitch collapsed={sidebarCollapsed} />
+      <div className="px-2 pb-2 border-t border-sidebar-border pt-2">
+        <EnvironmentSwitch collapsed={collapsed} />
         <a
           href={DOCS_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium text-foreground hover:bg-accent transition-colors"
-          title={sidebarCollapsed ? "Documentation" : undefined}
+          className="flex h-8 items-center gap-2.5 rounded-md px-2.5 text-[13px] font-medium text-sidebar-foreground transition-colors hover:bg-sidebar-accent"
+          title={collapsed ? "Documentation" : undefined}
         >
           <BookOpen className="h-4 w-4 flex-shrink-0" />
-          {!sidebarCollapsed && <span>Documentation</span>}
+          {!collapsed && <span>Documentation</span>}
         </a>
       </div>
 
       {/* User Profile */}
-      <div className="p-2 border-t border-border">
+      <div className="p-2 border-t border-sidebar-border">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
                 "w-full flex items-center gap-3 px-3 py-2 rounded-md hover:bg-accent transition-colors",
-                sidebarCollapsed && "justify-center",
+                collapsed && "justify-center",
               )}
             >
               <Avatar name={user?.name || "User"} size="sm" />
-              {!sidebarCollapsed && (
+              {!collapsed && (
                 <div className="flex-1 text-left min-w-0">
-                  <p className="text-sm font-medium truncate">{user?.name}</p>
+                  <p className="truncate text-[13px] font-medium">{user?.name}</p>
                   <p className="text-xs text-muted-foreground truncate">
                     {user?.tenantName ?? user?.email}
                     {user?.role && ` · ${roleLabels[user.role] ?? user.role}`}
@@ -265,17 +269,19 @@ export function Sidebar() {
       <NewOrganisationDialog open={creatingOrg} onOpenChange={setCreatingOrg} />
 
       {/* Collapse Toggle */}
-      <button
-        onClick={toggleSidebar}
-        className="absolute -right-3 top-20 h-6 w-6 rounded-full border border-border bg-card shadow-sm flex items-center justify-center hover:bg-muted"
-        title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-      >
-        {sidebarCollapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronLeft className="h-4 w-4" />
-        )}
-      </button>
+      {!mobile && (
+        <button
+          onClick={toggleSidebar}
+          className="absolute -right-3 top-[18px] flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background text-muted-foreground hover:text-foreground"
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <ChevronLeft className="h-4 w-4" />
+          )}
+        </button>
+      )}
     </div>
   );
 }

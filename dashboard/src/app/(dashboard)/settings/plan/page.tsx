@@ -119,7 +119,7 @@ function PlanPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Plan</h1>
+        <h1 className="text-[22px] font-semibold tracking-tight">Plan</h1>
         <p className="text-sm text-muted-foreground">What your organisation is on, what it uses, and moving to a bigger plan.</p>
       </div>
 
@@ -200,7 +200,7 @@ function PlanPage() {
                   {p.name}
                   {current && <Badge variant="success">Current</Badge>}
                 </CardTitle>
-                <div className="text-2xl font-bold tabular-nums">
+                <div className="text-[22px] font-semibold tracking-tight tabular-nums">
                   {price ? (Number(price.amount) === 0 ? "Free" : money(price.amount, price.currency)) : "—"}
                   {price && Number(price.amount) > 0 && <span className="text-sm font-normal text-muted-foreground"> / {p.interval === "YEARLY" ? "year" : "month"}</span>}
                 </div>
@@ -237,7 +237,7 @@ function PlanPage() {
               Enterprise
               {enterprise && <Badge variant="success">Current</Badge>}
             </CardTitle>
-            <div className="text-2xl font-bold">Let&apos;s talk</div>
+            <div className="text-[22px] font-semibold tracking-tight">Let&apos;s talk</div>
             <CardDescription>For large or multi-entity billing, priced for you.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

@@ -229,8 +229,8 @@ export default function WalletsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Wallets</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Wallets</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Manage prepaid credit wallets for your customers
           </p>
           {!canWrite && (
@@ -254,7 +254,7 @@ export default function WalletsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeWallets.length}</div>
+            <div className="text-[22px] font-semibold tracking-tight">{activeWallets.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -264,7 +264,7 @@ export default function WalletsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {totalCredits.toLocaleString()} credits
             </div>
           </CardContent>
@@ -276,7 +276,7 @@ export default function WalletsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
+            <div className="text-[22px] font-semibold tracking-tight">
               {formatCurrency(totalBalance, "USD", { showSymbol: true })}
             </div>
           </CardContent>
@@ -306,28 +306,28 @@ export default function WalletsPage() {
             <table className="w-full">
               <thead className="bg-muted">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Customer
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Name
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Credits
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Balance
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Rate
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Status
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                     Expires
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                     Actions
                   </th>
                 </tr>
@@ -339,7 +339,7 @@ export default function WalletsPage() {
                     className="hover:bg-muted/50 transition-colors cursor-pointer"
                     onClick={() => openTransactions(wallet)}
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <p className="text-sm font-medium">
                         {wallet.customer?.name || wallet.customerId}
                       </p>
@@ -347,21 +347,21 @@ export default function WalletsPage() {
                         {wallet.customer?.email}
                       </p>
                     </td>
-                    <td className="px-6 py-4 text-sm">
+                    <td className="px-4 py-2.5 text-sm">
                       {wallet.name || "-"}
                     </td>
-                    <td className="px-6 py-4 text-sm font-mono font-bold">
+                    <td className="px-4 py-2.5 text-sm font-mono font-bold">
                       {wallet.creditsBalance.toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-sm font-medium">
+                    <td className="px-4 py-2.5 text-sm font-medium">
                       {formatCurrency(wallet.balance, wallet.currency, {
                         showSymbol: true,
                       })}
                     </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">
                       1 credit = {wallet.rateAmount} {wallet.currency}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-4 py-2.5">
                       <Badge
                         variant={
                           wallet.status === "ACTIVE" ? "success" : "error"
@@ -370,12 +370,12 @@ export default function WalletsPage() {
                         {wallet.status}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-sm text-muted-foreground">
+                    <td className="px-4 py-2.5 text-sm text-muted-foreground">
                       {wallet.expirationAt
                         ? formatDateTime(wallet.expirationAt)
                         : "Never"}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-4 py-2.5 text-right">
                       <div
                         className="flex justify-end gap-1"
                         onClick={(e) => e.stopPropagation()}
@@ -631,22 +631,22 @@ export default function WalletsPage() {
               <table className="w-full text-sm">
                 <thead className="bg-muted">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Type
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Kind
                     </th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                       Credits
                     </th>
-                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                    <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">
                       Amount
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Status
                     </th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                    <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">
                       Date
                     </th>
                   </tr>

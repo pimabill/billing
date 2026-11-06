@@ -2,11 +2,11 @@
 
 /* PimaBill brand: mist ground, ink text, ledger teal; barkcloth marks totals only. */
 :root {
-  --mist: #f1f4f3;
+  --mist: #f7f9f8;
   --card: #ffffff;
   --ink: #10141b;
   --ink-2: #4b5563;
-  --line: #d8dedc;
+  --line: #e4e9e7;
   --teal: #0e6e6b;
   --teal-strong: #0a5552;
   --teal-soft: #ddefed;
@@ -51,7 +51,8 @@
   --color-bark-soft: var(--bark-soft);
   --color-on-teal: var(--on-teal);
   --color-code: var(--code-bg);
-  --font-display: var(--font-unbounded), ui-sans-serif, system-ui, sans-serif;
+  --font-brand: var(--font-unbounded), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
   --font-sans: var(--font-schibsted), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -65,12 +66,15 @@ body {
   background: var(--mist);
   color: var(--ink);
   font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
 h2,
 h3 {
   text-wrap: balance;
+  letter-spacing: -0.03em;
 }
 
 :focus-visible {
@@ -123,13 +127,13 @@ h3 {
     radial-gradient(60rem 30rem at 15% -10%, rgba(31, 196, 180, 0.28), transparent 60%),
     radial-gradient(40rem 26rem at 95% 5%, rgba(224, 132, 87, 0.18), transparent 60%),
     linear-gradient(to bottom, transparent, var(--night) 92%),
-    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
   background-size: auto, auto, auto, 56px 56px, 56px 56px;
 }
 
 .text-glow {
-  background: linear-gradient(100deg, #7ff0e2 0%, #1fc4b4 45%, #f3b38f 100%);
+  background: linear-gradient(100deg, #9af5e9 0%, #2fd6c5 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

@@ -460,8 +460,8 @@ export default function ProvidersPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Payment Providers</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Payment Providers</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Configure and manage payment providers
           </p>
           {!canConfigure && (

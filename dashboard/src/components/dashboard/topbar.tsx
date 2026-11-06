@@ -1,9 +1,8 @@
 "use client";
 
-import { Search, Moon, Sun } from "lucide-react";
+import { Menu, Search, Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { useUIStore } from "@/lib/stores/ui";
 import { useEffect, useState } from "react";
 import { NotificationsDropdown } from "./notifications-dropdown";
@@ -11,7 +10,7 @@ import { PlanPill } from "./plan-pill";
 
 export function Topbar() {
   const { setTheme, theme } = useTheme();
-  const { setCommandOpen } = useUIStore();
+  const { setCommandOpen, setMobileNavOpen } = useUIStore();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -31,22 +30,32 @@ export function Topbar() {
   }, [setCommandOpen]);
 
   return (
-    <div className="h-16 border-b border-border bg-card px-4 flex items-center gap-4">
+    <div className="flex h-14 shrink-0 items-center gap-3 border-b border-border bg-background px-4 md:px-8">
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden"
+        aria-label="Open navigation"
+        onClick={() => setMobileNavOpen(true)}
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
       {/* Search */}
-      <div className="flex-1 max-w-xl">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search... (⌘K)"
-            className="pl-9"
-            onClick={() => setCommandOpen(true)}
-            readOnly
-          />
-        </div>
-      </div>
+      <button
+        type="button"
+        onClick={() => setCommandOpen(true)}
+        className="flex h-8 w-full max-w-xs items-center gap-2 rounded-md bg-muted px-2.5 text-[13px] text-muted-foreground transition-colors hover:bg-accent"
+      >
+        <Search className="h-3.5 w-3.5 shrink-0" />
+        <span className="flex-1 truncate text-left">Search</span>
+        <kbd className="hidden rounded border border-border bg-background px-1 font-sans text-[11px] sm:inline">
+          ⌘K
+        </kbd>
+      </button>
 
       {/* Actions sit at the far right, apart from search. */}
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-1">
         <PlanPill />
         <NotificationsDropdown />
 
@@ -59,9 +68,9 @@ export function Topbar() {
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
             {theme === "dark" ? (
-              <Sun className="h-5 w-5" />
+              <Sun className="h-4 w-4" />
             ) : (
-              <Moon className="h-5 w-5" />
+              <Moon className="h-4 w-4" />
             )}
           </Button>
         )}

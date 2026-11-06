@@ -233,8 +233,8 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Analytics</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Amounts in {reporting}, converted at the exchange rate of each payment&apos;s day.{" "}
             <Link href="/settings?tab=currencies" className="text-primary hover:underline">
               Change
@@ -494,7 +494,7 @@ export default function AnalyticsPage() {
                       transform="rotate(-90 50 50)"
                     />
                   </svg>
-                  <span className="absolute text-3xl font-bold tabular-nums">{successRate.toFixed(1)}%</span>
+                  <span className="absolute text-[22px] font-semibold tracking-tight tabular-nums">{successRate.toFixed(1)}%</span>
                 </div>
                 <p className="mt-3 text-sm text-muted-foreground">{successRate >= 90 ? "Healthy" : successRate >= 70 ? "Fair" : "Needs attention"}</p>
               </CardContent>
@@ -540,7 +540,7 @@ function StatStrip({ items }: { items: StatItem[] }) {
             {i.label}
             {i.hint && <MetricTooltip text={i.hint} />}
           </p>
-          <p className={`mt-1 text-2xl font-bold tabular-nums ${i.tone === "up" ? "text-green-600" : i.tone === "down" ? "text-red-600" : ""}`}>{i.value}</p>
+          <p className={`mt-1 text-[22px] font-semibold tracking-tight tabular-nums ${i.tone === "up" ? "text-green-600" : i.tone === "down" ? "text-red-600" : ""}`}>{i.value}</p>
           {i.sub && <p className="mt-1 text-xs text-muted-foreground">{i.sub}</p>}
         </div>
       ))}

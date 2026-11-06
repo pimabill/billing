@@ -293,8 +293,8 @@ export default function PlansPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Plans</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-[22px] font-semibold tracking-tight">Plans</h1>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
             Manage your subscription plans
           </p>
           {!canWrite && (
@@ -378,7 +378,7 @@ export default function PlansPage() {
                 <div>
                   {price ? (
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold tabular-nums">
+                      <span className="text-[22px] font-semibold tracking-tight tabular-nums">
                         {formatCurrency(price.amount, price.currency, { showSymbol: true })}
                       </span>
                       <span className="text-muted-foreground">/{plan.interval === "yearly" ? "year" : plan.interval === "monthly" ? "month" : plan.interval}</span>

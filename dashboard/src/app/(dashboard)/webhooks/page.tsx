@@ -161,19 +161,19 @@ function LogTable({
           <thead className="bg-muted">
             <tr>
               <th className="w-8 px-4 py-3" />
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                 Status
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                 Event
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                 {direction === "inbound" ? "Provider" : "Destination URL"}
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                 HTTP
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground">
                 Time
               </th>
             </tr>
@@ -251,7 +251,7 @@ export default function WebhooksPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Webhooks</h1>
+          <h1 className="text-[22px] font-semibold tracking-tight">Webhooks</h1>
           <p className="text-muted-foreground mt-1">
             Monitor inbound events from payment providers and outbound
             deliveries to your configured endpoint.
@@ -271,7 +271,7 @@ export default function WebhooksPage() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Inbound Events</p>
-            <p className="text-2xl font-bold">
+            <p className="text-[22px] font-semibold tracking-tight">
               {loadingInbound ? "—" : (inboundMeta.total ?? 0)}
             </p>
           </div>
@@ -282,7 +282,7 @@ export default function WebhooksPage() {
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Outbound Deliveries</p>
-            <p className="text-2xl font-bold">
+            <p className="text-[22px] font-semibold tracking-tight">
               {loadingOutbound ? "—" : (outboundMeta.total ?? 0)}
             </p>
           </div>

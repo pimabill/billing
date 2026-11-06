@@ -17,7 +17,7 @@ export default function BrandMark({ className = "h-5 w-5", animated = false }: {
 export function BrandLockup({ className = "" }: { className?: string }) {
   const name = site.name;
   return (
-    <span className={`inline-flex items-center gap-2 font-display text-lg font-semibold tracking-tight ${className}`}>
+    <span className={`inline-flex items-center gap-2 font-brand text-lg font-semibold tracking-tight ${className}`}>
       <BrandMark className="h-7 w-7 text-teal" />
       <span>
         {name.slice(0, site.nameSplit)}
