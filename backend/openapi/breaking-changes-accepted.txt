@@ -66,3 +66,10 @@ POST /api/transfers request property `amount` list-of-types was narrowed by remo
 # was always sent by Flutterwave once a secret hash is set, and unsigned calls
 # (which could mark invoices paid) are now refused. Only Flutterwave calls this.
 POST /webhooks/flutterwave the `header` request parameter `verif-hash` became required
+
+# A hosted checkout has no payment or provider until the customer chooses. Both
+# are still always returned to any client that doesn't ask for `hosted: true`.
+POST /api/invoices/{id}/checkout the response property `paymentId` became optional for the status `200`
+POST /api/invoices/{id}/checkout the response property `provider` became optional for the status `200`
+POST /api/portal/customers/{externalId}/invoices/{invoiceId}/checkout the response property `paymentId` became optional for the status `200`
+POST /api/portal/customers/{externalId}/invoices/{invoiceId}/checkout the response property `provider` became optional for the status `200`

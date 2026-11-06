@@ -59,6 +59,28 @@ export type CheckoutMethod = (typeof CHECKOUT_METHODS)[number];
 /** Currencies PayPal takes payments in (no African currency among them). */
 export const PAYPAL_CURRENCIES = ['AUD', 'BRL', 'CAD', 'CNY', 'CZK', 'DKK', 'EUR', 'HKD', 'HUF', 'ILS', 'JPY', 'MYR', 'MXN', 'TWD', 'NZD', 'NOK', 'PHP', 'PLN', 'GBP', 'SGD', 'SEK', 'CHF', 'THB', 'USD'];
 
+/** Currencies with mobile money wallets a hosted checkout can take. */
+export const MOBILE_MONEY_CURRENCIES = ['UGX', 'KES', 'GHS', 'RWF', 'TZS', 'ZMW', 'XOF', 'XAF'];
+
+const PROVIDER_METHODS: Record<string, readonly CheckoutMethod[]> = {
+  stripe: ['card'],
+  payu: ['card'],
+  paystack: ['card', 'mobile_money'],
+  flutterwave: ['card', 'mobile_money'],
+  dpo: ['card', 'mobile_money'],
+  'dpo-group': ['card', 'mobile_money'],
+  pesapal: ['card', 'mobile_money'],
+  paypal: ['paypal'],
+};
+
+/** Whether a provider's checkout can take this method in this currency. Managed payments says for itself, per account. */
+export function providerTakes(providerName: string, method: CheckoutMethod, currency: string): boolean {
+  if (!PROVIDER_METHODS[providerName]?.includes(method)) return false;
+  if (method === 'paypal') return PAYPAL_CURRENCIES.includes(currency);
+  if (method === 'mobile_money') return (providerName === 'paystack' ? ['GHS', 'KES'] : MOBILE_MONEY_CURRENCIES).includes(currency);
+  return true;
+}
+
 export interface ChargeParams {
   amount: number;
   currency: string;

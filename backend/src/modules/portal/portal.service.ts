@@ -1,9 +1,12 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { amountDue } from '../invoices/apply-payment';
-import { PAYPAL_CURRENCIES, type CheckoutMethod } from '../../providers/base-payment.provider';
+import { CHECKOUT_METHODS, MOBILE_MONEY_CURRENCIES, PAYPAL_CURRENCIES, providerTakes, type CheckoutMethod } from '../../providers/base-payment.provider';
+import { CHECKOUT_PROVIDER_NAMES } from '../../providers/provider.factory';
+import { EncryptionService } from '../../services/encryption.service';
+import { isSandbox } from '../../config/sandbox';
 import { ManagedAccountsService } from '../money/managed.service';
-import { InvoicesService } from '../invoices/invoices.service';
+import { InvoicesService, isTestCredentials } from '../invoices/invoices.service';
 
 @Injectable()
 export class PortalService {
@@ -12,7 +15,22 @@ export class PortalService {
   constructor(
     private readonly invoices: InvoicesService,
     private readonly managed: ManagedAccountsService,
+    private readonly encryption: EncryptionService,
   ) {}
+
+  /** The ways a customer can pay in this currency: what the organisation's providers and managed account take. */
+  async checkoutMethods(db: PrismaClient, tenantId: string, currency: string): Promise<CheckoutMethod[]> {
+    const active = await db.paymentProvider.findMany({ where: { isActive: true, providerName: { in: CHECKOUT_PROVIDER_NAMES } }, select: { providerName: true, credentials: true } });
+    const usable = active.filter((p) => isSandbox() || !isTestCredentials(JSON.parse(this.encryption.decrypt(p.credentials))));
+    let managed: readonly CheckoutMethod[] = [];
+    if (usable.some((p) => p.providerName === 'managed')) {
+      const status = await this.managed.status(db, tenantId).catch(() => null);
+      if (status?.account?.status === 'active') managed = status.account.methods ?? ['card'];
+    }
+    const inCurrency = (method: CheckoutMethod) =>
+      (method !== 'paypal' || PAYPAL_CURRENCIES.includes(currency)) && (method !== 'mobile_money' || MOBILE_MONEY_CURRENCIES.includes(currency));
+    return CHECKOUT_METHODS.filter((method) => usable.some((p) => providerTakes(p.providerName, method, currency)) || (managed.includes(method) && inCurrency(method)));
+  }
 
   /**
    * Whether this organisation's customers can pay by PayPal: through its own
@@ -96,6 +114,7 @@ export class PortalService {
         paidAt: inv.paidAt,
         // Downloaded through the portal route, with the same credentials.
         pdfUrl: inv.pdfUrl ? `/api/portal/customers/${encodeURIComponent(customer.externalId)}/invoices/${inv.id}/pdf` : null,
+        amountDue: Number(amountDue(inv)),
         createdAt: inv.createdAt,
       })),
       payments: payments.map((p) => ({
@@ -163,7 +182,7 @@ export class PortalService {
     };
   }
 
-  async getInvoiceCheckout(db: PrismaClient, customerId: string, invoiceId: string, callbackUrl?: string, tenantId?: string, method?: CheckoutMethod) {
+  async getInvoiceCheckout(db: PrismaClient, customerId: string, invoiceId: string, callbackUrl?: string, tenantId?: string, method?: CheckoutMethod, hosted?: boolean) {
     const invoice = await db.invoice.findUnique({
       where: { id: invoiceId },
       include: { customer: true },
@@ -174,6 +193,8 @@ export class PortalService {
     if (invoice.status === 'PAID') throw new BadRequestException('Invoice is already paid');
     if (invoice.status === 'CANCELED') throw new BadRequestException('Invoice has been voided');
     if (amountDue(invoice).lte(0)) throw new BadRequestException('Nothing to pay on this invoice');
+
+    if (hosted && tenantId) return this.invoices.createHostedCheckout(db, invoiceId, tenantId, { callbackUrl });
 
     // The same checkout as the API: providers in priority order, managed payments last.
     const result = await this.invoices.createCheckout(db, invoiceId, callbackUrl, undefined, tenantId, undefined, method);

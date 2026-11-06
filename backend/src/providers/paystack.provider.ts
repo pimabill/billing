@@ -44,7 +44,9 @@ export class PaystackProvider extends BasePaymentProvider {
 
       // Restrict to card channel when tokenization is needed (for recurring billing)
       // Paystack channels: ['card', 'bank', 'ussd', 'qr', 'mobile_money', 'bank_transfer']
-      if (params.paymentOptions === 'card') {
+      if (params.method === 'mobile_money') {
+        payload.channels = ['mobile_money'];
+      } else if (params.paymentOptions === 'card') {
         payload.channels = ['card'];
       }
 

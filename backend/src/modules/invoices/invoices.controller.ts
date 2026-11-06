@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Body, Param, Query, Req, Res, UseGuards } from '@nestjs/common';
 import {
   ApiTags,
   ApiOperation,
@@ -18,6 +18,12 @@ import { CreateInvoiceDto } from './dto/create-invoice.dto';
 import { InvoiceQueryDto } from './dto/invoice-query.dto';
 import { InvoiceResponse, PaginatedInvoiceResponse, CheckoutResponse } from './dto/invoice-response.dto';
 import { MessageResponse } from '../auth/dto/auth-response.dto';
+
+/** On the hosted checkout the customer picks how to pay, so a provider or method cannot also be set. */
+function assertHostedOptions(options: { callbackUrl?: string; amount?: number; providerName?: string; method?: string }) {
+  if (options.providerName || options.method) throw new BadRequestException('hosted cannot be used with providerName or method: the customer chooses');
+  return { callbackUrl: options.callbackUrl, amount: options.amount };
+}
 
 @ApiTags('Invoices')
 @ApiBearerAuth('api-key')
@@ -70,7 +76,10 @@ export class InvoicesController {
     const invoice = await this.invoicesService.create(db, tenant.id, fields as CreateInvoiceDto);
     if (!checkout) return invoice;
     // A one-time charge: the invoice and the link to pay it, in one call.
-    const link = await this.invoicesService.createCheckout(db, (invoice as { id: string }).id, checkout.callbackUrl, checkout.providerName, tenant.id, checkout.amount, checkout.method);
+    const id = (invoice as { id: string }).id;
+    const link = checkout.hosted
+      ? await this.invoicesService.createHostedCheckout(db, id, tenant.id, assertHostedOptions(checkout))
+      : await this.invoicesService.createCheckout(db, id, checkout.callbackUrl, checkout.providerName, tenant.id, checkout.amount, checkout.method);
     return { ...invoice, checkout: link };
   }
 
@@ -196,8 +205,9 @@ export class InvoicesController {
     @TenantDb() db: PrismaClient,
     @Req() req: { tenant: { id: string } },
     @Param('id') id: string,
-    @Body() body: { callbackUrl?: string; providerName?: string; amount?: number; method?: string },
+    @Body() body: { callbackUrl?: string; providerName?: string; amount?: number; method?: string; hosted?: boolean },
   ) {
+    if (body.hosted) return this.invoicesService.createHostedCheckout(db, id, req.tenant.id, assertHostedOptions(body));
     return this.invoicesService.createCheckout(db, id, body.callbackUrl, body.providerName, req.tenant.id, body.amount, checkoutMethod(body.method));
   }
 

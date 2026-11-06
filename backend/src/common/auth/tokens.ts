@@ -6,7 +6,7 @@ import { JwtPayload, sign, verify } from 'jsonwebtoken';
  * a token issued for one purpose (a password reset, a customer portal link)
  * can never be presented as another (a dashboard session).
  */
-export type TokenPurpose = 'password-reset' | 'portal' | 'mfa';
+export type TokenPurpose = 'password-reset' | 'portal' | 'mfa' | 'checkout';
 
 export function derivedSecret(jwtSecret: string, purpose: TokenPurpose): string {
   return createHmac('sha256', jwtSecret).update(`pimabill:${purpose}`).digest('hex');
@@ -62,6 +62,36 @@ export function verifyPortalToken(token: string, jwtSecret: string): PortalToken
     const payload = verify(token, derivedSecret(jwtSecret, 'portal'), { algorithms: ['HS256'] }) as JwtPayload;
     if (payload.typ !== 'portal' || typeof payload.sub !== 'string' || typeof payload.cid !== 'string') return null;
     return { sub: payload.sub, cid: payload.cid, typ: 'portal' };
+  } catch {
+    return null;
+  }
+}
+
+export interface CheckoutTokenPayload {
+  /** Tenant id */
+  sub: string;
+  /** The invoice this link pays */
+  inv: string;
+  typ: 'checkout';
+  /** Part of the invoice to charge, such as a deposit; otherwise all that is left. */
+  amt?: number;
+  /** What had been paid when a part-payment link was made, to tell when it has been used. */
+  paid?: number;
+  /** Where the customer goes when they are done. */
+  ret?: string;
+}
+
+/** A link to the hosted checkout: it can show and pay this one invoice, and nothing else. */
+export function signCheckoutToken(jwtSecret: string, tenantId: string, invoiceId: string, expiresInSeconds: number, extra: Pick<CheckoutTokenPayload, 'amt' | 'paid' | 'ret'> = {}): string {
+  const payload: CheckoutTokenPayload = { sub: tenantId, inv: invoiceId, typ: 'checkout', ...extra };
+  return sign(payload, derivedSecret(jwtSecret, 'checkout'), { algorithm: 'HS256', expiresIn: expiresInSeconds });
+}
+
+export function verifyCheckoutToken(token: string, jwtSecret: string): CheckoutTokenPayload | null {
+  try {
+    const payload = verify(token, derivedSecret(jwtSecret, 'checkout'), { algorithms: ['HS256'] }) as JwtPayload;
+    if (payload.typ !== 'checkout' || typeof payload.sub !== 'string' || typeof payload.inv !== 'string') return null;
+    return { sub: payload.sub, inv: payload.inv, typ: 'checkout', amt: payload.amt, paid: payload.paid, ret: payload.ret };
   } catch {
     return null;
   }

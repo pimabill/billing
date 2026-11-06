@@ -18,6 +18,18 @@ interface FlutterwaveCredentials {
   secretHash?: string;
 }
 
+/** Flutterwave's payment_options value for mobile money in each currency. */
+const MOBILE_MONEY_OPTIONS: Record<string, string> = {
+  UGX: 'mobilemoneyuganda',
+  KES: 'mpesa',
+  GHS: 'mobilemoneyghana',
+  RWF: 'mobilemoneyrwanda',
+  TZS: 'mobilemoneytanzania',
+  ZMW: 'mobilemoneyzambia',
+  XOF: 'mobilemoneyfranco',
+  XAF: 'mobilemoneyfranco',
+};
+
 export class FlutterwaveProvider extends BasePaymentProvider {
   readonly name = 'flutterwave';
   private readonly logger = new Logger(FlutterwaveProvider.name);
@@ -52,9 +64,11 @@ export class FlutterwaveProvider extends BasePaymentProvider {
         meta: params.metadata,
       };
 
-      // Restrict to card-only when tokenization is needed (for recurring billing)
-      if (params.paymentOptions) {
-        payload.payment_options = params.paymentOptions;
+      // Restrict to card-only when tokenization is needed (for recurring billing),
+      // or to the country's wallets when the payer chose mobile money.
+      const options = params.method === 'mobile_money' ? MOBILE_MONEY_OPTIONS[params.currency] : params.paymentOptions;
+      if (options) {
+        payload.payment_options = options;
       }
 
       const response = await fetch(`${this.baseUrl}/payments`, {
