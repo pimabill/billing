@@ -116,3 +116,46 @@ describe('CloudPlansService.refreshLimits', () => {
     expect(update).toHaveBeenCalledWith({ where: { tenantId: 'old' }, data: { limits: CLOUD_TIERS.free.limits } });
   });
 });
+
+describe('paying for Growth', () => {
+  async function checkout(method?: 'paypal') {
+    const { CloudPlansService } = await import('../../../src/modules/cloud-plans/cloud-plans.service');
+    const db = {
+      plan: { findUnique: async () => ({ id: 'plan_1', code: 'cloud_growth_monthly', name: 'Growth', isActive: true, prices: [{ currency: 'USD' }] }) },
+      customer: { upsert: async () => ({ id: 'cus_1' }) },
+      subscription: { findMany: async () => [{ id: 'sub_1', currency: 'USD', plan: { code: 'cloud_growth_monthly', name: 'Growth' }, invoices: [] }] },
+      invoice: { findFirst: async () => ({ id: 'inv_1' }) },
+    };
+    const central = {
+      client: {
+        tenant: {
+          findFirst: async () => ({ id: 'operator', name: 'Operator' }),
+          findUnique: async () => null,
+          findUniqueOrThrow: async () => ({ id: 'ten_1', name: 'Shop', email: 'shop@example.com' }),
+        },
+        tenantBilling: { findUnique: async () => null },
+      },
+    };
+    const invoices = {
+      createHostedCheckout: jest.fn(async () => ({ checkoutUrl: 'https://app.example/pay/token' })),
+      createCheckout: jest.fn(async () => ({ checkoutUrl: 'https://paypal.example/x' })),
+    };
+    const service = new CloudPlansService(central as never, { getTenantClient: async () => db } as never, {} as never, invoices as never, {} as never);
+    Object.defineProperty(service, 'enabled', { get: () => true });
+    const result = await service.checkout('ten_1', 'cloud_growth_monthly', 'USD', 'https://app.example/settings/plan', method);
+    return { result, invoices };
+  }
+
+  it('lets the organisation choose how to pay on the hosted checkout', async () => {
+    const { result, invoices } = await checkout();
+    expect(result.url).toBe('https://app.example/pay/token');
+    expect(invoices.createHostedCheckout).toHaveBeenCalledWith(expect.anything(), 'inv_1', 'operator', { callbackUrl: 'https://app.example/settings/plan' });
+    expect(invoices.createCheckout).not.toHaveBeenCalled();
+  });
+
+  it('goes straight to payment when the API caller names a method', async () => {
+    const { result, invoices } = await checkout('paypal');
+    expect(result.url).toBe('https://paypal.example/x');
+    expect(invoices.createHostedCheckout).not.toHaveBeenCalled();
+  });
+});

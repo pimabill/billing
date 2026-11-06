@@ -1,12 +1,18 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { amountDue } from '../invoices/apply-payment';
-import { CHECKOUT_METHODS, MOBILE_MONEY_CURRENCIES, PAYPAL_CURRENCIES, providerTakes, type CheckoutMethod } from '../../providers/base-payment.provider';
+import { CHECKOUT_METHODS, MOBILE_MONEY_CURRENCIES, PAYPAL_CURRENCIES, methodBrands, providerTakes, type CheckoutMethod } from '../../providers/base-payment.provider';
 import { CHECKOUT_PROVIDER_NAMES } from '../../providers/provider.factory';
 import { EncryptionService } from '../../services/encryption.service';
 import { isSandbox } from '../../config/sandbox';
 import { ManagedAccountsService } from '../money/managed.service';
 import { InvoicesService, isTestCredentials } from '../invoices/invoices.service';
+
+/** A provider on the hosted checkout, with what the customer can use through it. */
+export interface CheckoutOption {
+  provider: string;
+  methods: { method: CheckoutMethod; brands: readonly string[] }[];
+}
 
 @Injectable()
 export class PortalService {
@@ -18,9 +24,13 @@ export class PortalService {
     private readonly encryption: EncryptionService,
   ) {}
 
-  /** The ways a customer can pay in this currency: what the organisation's providers and managed account take. */
-  async checkoutMethods(db: PrismaClient, tenantId: string, currency: string): Promise<CheckoutMethod[]> {
-    const active = await db.paymentProvider.findMany({ where: { isActive: true, providerName: { in: CHECKOUT_PROVIDER_NAMES } }, select: { providerName: true, credentials: true } });
+  /** The organisation's providers, in priority order, each with the ways it can take this currency. */
+  async checkoutOptions(db: PrismaClient, tenantId: string, currency: string): Promise<CheckoutOption[]> {
+    const active = await db.paymentProvider.findMany({
+      where: { isActive: true, providerName: { in: CHECKOUT_PROVIDER_NAMES } },
+      select: { providerName: true, credentials: true },
+      orderBy: { priority: 'asc' },
+    });
     const usable = active.filter((p) => isSandbox() || !isTestCredentials(JSON.parse(this.encryption.decrypt(p.credentials))));
     let managed: readonly CheckoutMethod[] = [];
     if (usable.some((p) => p.providerName === 'managed')) {
@@ -29,7 +39,15 @@ export class PortalService {
     }
     const inCurrency = (method: CheckoutMethod) =>
       (method !== 'paypal' || PAYPAL_CURRENCIES.includes(currency)) && (method !== 'mobile_money' || MOBILE_MONEY_CURRENCIES.includes(currency));
-    return CHECKOUT_METHODS.filter((method) => usable.some((p) => providerTakes(p.providerName, method, currency)) || (managed.includes(method) && inCurrency(method)));
+    return usable
+      .map(({ providerName: provider }) => ({
+        provider,
+        methods: CHECKOUT_METHODS.filter((method) => (provider === 'managed' ? managed.includes(method) && inCurrency(method) : providerTakes(provider, method, currency))).map((method) => ({
+          method,
+          brands: methodBrands(provider, method, currency),
+        })),
+      }))
+      .filter((option) => option.methods.length > 0);
   }
 
   /**

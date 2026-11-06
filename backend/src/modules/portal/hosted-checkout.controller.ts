@@ -18,9 +18,9 @@ export class HostedCheckoutController {
 
   @Post(':token')
   @HttpCode(200)
-  pay(@Param('token') token: string, @Body() body: { method?: string }) {
+  pay(@Param('token') token: string, @Body() body: { method?: string; provider?: string }) {
     const method = checkoutMethod(body?.method);
     if (!method) throw new BadRequestException('Choose how to pay');
-    return this.checkout.pay(token, method);
+    return this.checkout.pay(token, method, typeof body.provider === 'string' ? body.provider : undefined);
   }
 }

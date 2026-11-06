@@ -81,6 +81,49 @@ export function providerTakes(providerName: string, method: CheckoutMethod, curr
   return true;
 }
 
+/** Flutterwave's wallets for collections. XOF is left out: its wallets differ from country to country. */
+const FLUTTERWAVE_WALLETS: Record<string, readonly string[]> = {
+  UGX: ['MTN', 'Airtel'],
+  KES: ['M-Pesa'],
+  GHS: ['MTN', 'AirtelTigo', 'Telecel'],
+  RWF: ['MTN', 'Airtel'],
+  TZS: ['Airtel', 'Tigo', 'Halopesa'],
+  ZMW: ['MTN', 'Airtel', 'Zamtel'],
+  XAF: ['MTN', 'Orange Money'],
+};
+
+/** DPO's mobile network operators by currency (its MNO advisory); it has none listed for XAF. */
+const DPO_WALLETS: Record<string, readonly string[]> = {
+  UGX: ['MTN', 'Airtel'],
+  KES: ['M-Pesa', 'Airtel'],
+  GHS: ['MTN', 'Telecel'],
+  RWF: ['MTN', 'Airtel'],
+  TZS: ['Vodacom', 'Airtel', 'Tigo', 'Halotel', 'Zantel', 'TTCL'],
+  ZMW: ['MTN', 'Airtel'],
+  XOF: ['MTN', 'Orange'],
+};
+
+/**
+ * The wallets a provider documents, by currency. Pesapal publishes no current
+ * list, so it has none here and the customer sees plain "mobile money": naming
+ * wallets would be a guess. Managed payments' mobile money checkouts run
+ * through Flutterwave.
+ */
+const PROVIDER_WALLETS: Record<string, Record<string, readonly string[]>> = {
+  flutterwave: FLUTTERWAVE_WALLETS,
+  managed: FLUTTERWAVE_WALLETS,
+  paystack: { GHS: ['MTN', 'AirtelTigo', 'Telecel'], KES: ['M-Pesa', 'Airtel Money'] },
+  dpo: DPO_WALLETS,
+  'dpo-group': DPO_WALLETS,
+};
+
+/** What a payer can use under a method with this provider in this currency, by name. Empty when it is not known. */
+export function methodBrands(providerName: string, method: CheckoutMethod, currency: string): readonly string[] {
+  if (method === 'card') return providerName.startsWith('dpo') ? ['Visa', 'Mastercard', 'American Express'] : ['Visa', 'Mastercard'];
+  if (method === 'mobile_money') return PROVIDER_WALLETS[providerName]?.[currency] ?? [];
+  return [];
+}
+
 export interface ChargeParams {
   amount: number;
   currency: string;

@@ -22,7 +22,7 @@ export class PlanCheckoutDto {
   @IsUrl({ protocols: ['https', 'http'], require_tld: false })
   returnUrl?: string;
 
-  @ApiPropertyOptional({ enum: ['card', 'mobile_money', 'paypal'], description: 'How to pay; PayPal needs a currency it takes (USD, EUR, GBP). Defaults to card.' })
+  @ApiPropertyOptional({ enum: ['card', 'mobile_money', 'paypal'], description: 'How to pay; PayPal needs a currency it takes (USD, EUR, GBP). Leave it out to choose on the hosted checkout.' })
   @IsOptional()
   @IsIn(['card', 'mobile_money', 'paypal'])
   method?: 'card' | 'mobile_money' | 'paypal';

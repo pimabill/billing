@@ -4972,7 +4972,7 @@
             "type": "string"
           },
           "method": {
-            "description": "How to pay; PayPal needs a currency it takes (USD, EUR, GBP). Defaults to card.",
+            "description": "How to pay; PayPal needs a currency it takes (USD, EUR, GBP). Leave it out to choose on the hosted checkout.",
             "enum": [
               "card",
               "mobile_money",
