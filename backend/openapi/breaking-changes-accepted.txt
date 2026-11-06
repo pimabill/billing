@@ -73,3 +73,6 @@ POST /api/invoices/{id}/checkout the response property `paymentId` became option
 POST /api/invoices/{id}/checkout the response property `provider` became optional for the status `200`
 POST /api/portal/customers/{externalId}/invoices/{invoiceId}/checkout the response property `paymentId` became optional for the status `200`
 POST /api/portal/customers/{externalId}/invoices/{invoiceId}/checkout the response property `provider` became optional for the status `200`
+GET /api/money/managed api path removed without deprecation
+PATCH /api/money/managed api path removed without deprecation
+POST /api/money/managed api path removed without deprecation
