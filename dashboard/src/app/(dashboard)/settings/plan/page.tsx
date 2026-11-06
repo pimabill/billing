@@ -43,7 +43,7 @@ function PlanPage() {
   const params = useSearchParams();
   const canManage = useCan("org.manage");
   const [data, setData] = useState<PlanStatus | null>(null);
-  const [currency, setCurrency] = useState("UGX");
+  const [currency, setCurrency] = useState("USD");
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async (afterCheckout = false) => {
@@ -218,7 +218,7 @@ function PlanPage() {
                 {p.tier === "growth" && !current && !partner && !enterprise && canManage && (
                   <Button className="w-full" disabled={busy !== null} onClick={() => upgrade(p)}>
                     {busy === p.code ? <BrandMark animated tight className="mr-2 h-4 w-4" /> : <Sparkles className="mr-2 h-4 w-4" aria-hidden />}
-                    Upgrade, pay with card or mobile money
+                    Upgrade, pay by card
                   </Button>
                 )}
                 {p.tier === "growth" && !current && !partner && !enterprise && canManage && PAYPAL_CURRENCIES.has(currency) && (

@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../common/utils/escape-html';
 import { BadRequestException, ForbiddenException, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { EmailService } from '../../services/email.service';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
@@ -18,7 +19,6 @@ export interface StoredManaged extends ManagedCredentials {
   reason?: string;
 }
 
-const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 interface StatusContext {
   org: string;
