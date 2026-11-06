@@ -4,7 +4,7 @@ import { site } from "@/lib/site";
 export const faq = [
   {
     question: `Is ${site.name} free and open source?`,
-    answer: `Yes. ${site.name} is released under the AGPL-3.0 licence and the SDKs under MIT. You can self-host it with Docker at no cost, or use our cloud: free up to 500 customers, then Growth, with no limits, at $15 a month. Enterprise is priced with you. Managed payments are part of the cloud only.`,
+    answer: `Yes. ${site.name} is released under the AGPL-3.0 licence and the SDKs under MIT. You can self-host it with Docker at no cost, or use our cloud: free up to 500 customers, then Growth, with no limits, at $15 a month. Enterprise is priced with you.`,
   },
   {
     question: "Can I bill customers with mobile money?",
@@ -18,7 +18,7 @@ export const faq = [
   },
   {
     question: "Do you hold my money?",
-    answer: `Not when you connect your own payment providers or crypto wallet: payments go straight to your accounts, and ${site.name} records every movement in a double-entry ledger. If you would rather not set up payment providers, managed payments on our cloud takes payments for you and pays them out to your mobile money, bank or PayPal, and you can change where they go at any time.`,
+    answer: `Not when you connect your own payment providers or crypto wallet: payments go straight to your accounts, and ${site.name} records every movement in a double-entry ledger.`,
   },
   {
     question: "Can I test without moving real money?",

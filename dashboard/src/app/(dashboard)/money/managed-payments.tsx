@@ -79,7 +79,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
         <CardContent className="p-6 text-sm text-muted-foreground">
           {state.available
             ? "Managed payments let you take payments without a provider account of your own. Ask an owner or admin of this organisation to apply."
-            : `Managed payments are part of the ${brand.name} cloud plans; they are not available on self-hosted deployments or without a cloud plan.`}
+            : "Managed payments are by invitation."}
         </CardContent>
       </Card>
     );

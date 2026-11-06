@@ -119,7 +119,7 @@ export default function DashboardPage() {
         {
           done: canTakePayments,
           title: "Take payments",
-          text: "Connect your own provider, or apply for managed payments and use ours.",
+          text: data.managed?.available ? "Connect your own provider, or apply for managed payments and use ours." : "Connect a payment provider so customers can pay you.",
           href: data.managed?.available ? "/money?tab=managed" : "/providers",
           icon: CreditCard,
         },

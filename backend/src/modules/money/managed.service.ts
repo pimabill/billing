@@ -7,7 +7,7 @@ import { ManagedAccount, ManagedCredentials, managedConfig, ManagedPaymentsClien
 import { notificationUrls } from './notification-urls';
 import { CentralPrismaService } from '../../database/central-prisma.service';
 import { isSandbox } from '../../config/sandbox';
-import { cloudPlansEnabled } from '../cloud-plans/cloud-plans.catalogue';
+import { cloudPlansEnabled, tierOf } from '../cloud-plans/cloud-plans.catalogue';
 
 /** Lowest priority, so a tenant's own provider accounts are always preferred when it has them. */
 const MANAGED_PRIORITY = 1000;
@@ -72,9 +72,11 @@ export class ManagedAccountsService {
   ) {}
 
   /**
-   * Managed payments are a hosted-cloud service: offered to organisations on a
-   * cloud plan (and to the operator). A self-hosted deployment has no managed
-   * payments key, so it never gets here.
+   * Managed payments are by invitation: organisations the operator has put on
+   * Partner or Enterprise can apply (and the operator itself). An organisation
+   * with an account keeps it whatever its plan. The sandbox only follows live
+   * approvals. A self-hosted deployment has no managed payments key, so it
+   * never gets here.
    */
   async allowedFor(tenantId: string): Promise<boolean> {
     if (!managedConfig()) return false;
@@ -83,8 +85,11 @@ export class ManagedAccountsService {
       select: { isPlatformOperator: true, tenantBilling: { select: { planId: true } } },
     });
     if (!tenant) return false;
-    if (tenant.isPlatformOperator || !cloudPlansEnabled()) return true;
-    return Boolean(tenant.tenantBilling?.planId?.startsWith('cloud_'));
+    if (tenant.isPlatformOperator) return true;
+    if (isSandbox()) return false;
+    if (!cloudPlansEnabled()) return true;
+    const tier = tierOf(tenant.tenantBilling?.planId);
+    return tier === 'partner' || tier === 'enterprise';
   }
 
   private client(): ManagedPaymentsClient {
@@ -119,7 +124,7 @@ export class ManagedAccountsService {
 
   async open(db: PrismaClient, tenantId: string, input: Omit<OpenManagedAccount, 'externalId' | 'notificationUrl'>): Promise<ManagedAccount> {
     if (await this.accountId(db)) throw new BadRequestException('This account already has managed payments');
-    if (!(await this.allowedFor(tenantId))) throw new ForbiddenException('Managed payments are included with the cloud plans; this organisation is not on one');
+    if (!(await this.allowedFor(tenantId))) throw new ForbiddenException('Managed payments are by invitation');
     const r = await this.client().openAccount({ ...input, externalId: tenantId, notificationUrl: notificationUrls('managed', tenantId).notificationUrl });
     if (!r.data) throw new BadRequestException(r.error ?? 'Managed payments could not open the account');
     await this.sync(db, r.data, tenantId);

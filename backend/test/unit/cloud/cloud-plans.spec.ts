@@ -55,12 +55,13 @@ describe('cloud plans', () => {
 describe('CloudPlansService.ensureCatalogue', () => {
   const local = { UGX: 55000, KES: 1900, TZS: 38000, RWF: 20000, NGN: 22000, GHS: 180, ZAR: 270, XAF: 9000, XOF: 9000, ZMW: 380, MWK: 26000, EGP: 720, USD: 15, EUR: 14, GBP: 12 };
 
-  async function run(prices: Record<string, number>) {
+  async function run(prices: Record<string, number>, features?: string[]) {
     const { CloudPlansService } = await import('../../../src/modules/cloud-plans/cloud-plans.service');
     const db = {
       plan: {
         findUnique: jest.fn(async ({ where }: { where: { code: string } }) => ({
           id: `id_${where.code}`,
+          features,
           prices: Object.entries(where.code === 'cloud_growth_monthly' ? prices : {}).map(([currency, amount]) => ({ currency, amount })),
         })),
         update: jest.fn(),
@@ -79,6 +80,11 @@ describe('CloudPlansService.ensureCatalogue', () => {
     expect(db.$transaction).toHaveBeenCalledTimes(1);
     expect(db.planPrice.updateMany).toHaveBeenCalledWith({ where: { planId: 'id_cloud_growth_monthly', currency: { notIn: ['USD'] } }, data: { isActive: false } });
     expect(db.plan.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'id_cloud_growth_monthly' } }));
+  });
+
+  it('stops any plan offering managed payments, whatever its prices', async () => {
+    const db = await run({ USD: 15 }, ['Every feature, including managed payments']);
+    expect(db.plan.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'id_cloud_growth_monthly' }, data: { features: expect.not.arrayContaining(['Every feature, including managed payments']) } }));
   });
 
   it('keeps prices the operator set', async () => {

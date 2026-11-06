@@ -65,7 +65,6 @@ const countries: TopicPage[] = [
         bullets: [
           "MTN MoMo and Airtel Money, directly through the operators' APIs or through Yo! Payments",
           "Cards, mobile money and bank through Flutterwave, Pesapal, DPO or Eversend",
-          "No provider account yet? Managed payments collects for you and pays out to your mobile money or bank",
           "Payouts to MTN, Airtel and bank accounts, with approval steps for your team",
         ],
       },
@@ -95,11 +94,6 @@ const countries: TopicPage[] = [
         question: "How much does it cost in Uganda?",
         answer: `The cloud is free up to 500 customers and 2,500 invoices a month. Growth has no limits and costs ${growthPrice} a month. Self-hosting is free.`,
       },
-      {
-        question: "Can I get paid without a payment gateway account?",
-        answer:
-          "Yes. Apply for managed payments in the dashboard: once approved, it takes card and mobile money payments for you and pays them out to your MTN, Airtel or bank account.",
-      },
     ],
     related: ["billing-software/kenya", "mobile-money-billing", "use-cases/isp-billing", "use-cases/school-fees"],
   },
@@ -118,7 +112,6 @@ const countries: TopicPage[] = [
         bullets: [
           "M-Pesa and Airtel Money on Flutterwave, Paystack, Pesapal or DPO checkout",
           "Cards charged automatically each period once saved",
-          "Managed payments if you'd rather not open a gateway account",
           "Payouts to mobile money and bank accounts",
         ],
       },
@@ -234,7 +227,6 @@ const countries: TopicPage[] = [
         bullets: [
           "M-Pesa, Airtel Money and other wallets through Flutterwave, Pesapal or DPO checkout",
           "Cards, charged automatically at renewal once saved",
-          "Managed payments if you don't have a gateway account",
         ],
       },
       howRenewalsWork,
@@ -461,7 +453,6 @@ const alternatives: TopicPage[] = [
           "MTN MoMo, Airtel Money and African gateways (Flutterwave, Paystack, Pesapal, DPO, Yo!)",
           "Payouts to mobile money and bank accounts, with approvals",
           "Crypto collections to your own wallet",
-          "Managed payments on the cloud if you have no gateway account",
         ],
       },
     ],
@@ -591,7 +582,7 @@ const pillars: TopicPage[] = [
     sections: [
       {
         heading: "Free",
-        bullets: ["500 customers and 500 active subscriptions", "2,500 invoices a month", "5 team members", "Every feature, including managed payments"],
+        bullets: ["500 customers and 500 active subscriptions", "2,500 invoices a month", "5 team members", "Every feature"],
       },
       {
         heading: "Growth",
@@ -599,7 +590,7 @@ const pillars: TopicPage[] = [
           `No limits, priority support. ${growthPrice} a month; a year costs ten months.`,
         ],
       },
-      { heading: "Enterprise", body: ["Priced per customer with you, with a negotiated managed payments fee, an SLA and a named account manager."] },
+      { heading: "Enterprise", body: ["Priced per customer with you, with an SLA and a named account manager."] },
       { heading: "Self-hosted", body: ["Free and open source under AGPL-3.0: run it on your own servers with Docker."] },
     ],
     faq: [
@@ -610,7 +601,7 @@ const pillars: TopicPage[] = [
       {
         question: "Are there transaction fees?",
         answer:
-          "Not on payments through your own providers. Managed payments, if you use it, has a small fee per payment, shown before you start.",
+          "Not on payments through your own providers.",
       },
     ],
     related: ["billing-software/uganda", "billing-software/kenya", "billing-software/nigeria", "alternatives/chargebee"],

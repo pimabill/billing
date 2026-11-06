@@ -79,7 +79,7 @@ export const CLOUD_CATALOGUE: CloudPlanDefinition[] = [
     description: 'Everything you need to run your billing, free for as long as you stay within the limits.',
     interval: 'MONTHLY',
     prices: priced(0),
-    features: ['500 customers', '500 active subscriptions', '2,500 invoices a month', '5 team members', 'Every feature, including managed payments', 'Community support'],
+    features: ['500 customers', '500 active subscriptions', '2,500 invoices a month', '5 team members', 'Every feature', 'Community support'],
   },
   {
     code: 'cloud_growth_monthly',
@@ -88,7 +88,7 @@ export const CLOUD_CATALOGUE: CloudPlanDefinition[] = [
     description: 'No limits on customers, subscriptions, invoices or team, with priority support.',
     interval: 'MONTHLY',
     prices: priced(1),
-    features: ['Unlimited customers and subscriptions', 'Unlimited invoices', 'Unlimited team members', 'Every feature, including managed payments', 'Priority support'],
+    features: ['Unlimited customers and subscriptions', 'Unlimited invoices', 'Unlimited team members', 'Every feature', 'Priority support'],
   },
   {
     code: 'cloud_growth_yearly',

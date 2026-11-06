@@ -34,7 +34,7 @@ const NAMES: Record<string, string> = { managed: 'Managed payments', 'dpo-group'
 export const providerName = (code: string) => PROVIDER_CATALOGUE.find((p) => p.code === code)?.name ?? NAMES[code] ?? code;
 
 const DESCRIPTIONS: Record<string, string> = {
-  managed: 'Payments taken for you by managed payments (card and mobile money), paid out to your account; see GET /money/managed for the methods',
+  managed: 'Payments taken for you (card and mobile money), paid out to your account',
 };
 
 export const providerDescription = (code: string) => PROVIDER_CATALOGUE.find((p) => p.code === code)?.description ?? DESCRIPTIONS[code] ?? null;
