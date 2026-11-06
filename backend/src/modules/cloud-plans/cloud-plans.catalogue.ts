@@ -14,7 +14,7 @@ import { isSandbox } from '../../config/sandbox';
 export type CloudTier = 'free' | 'growth' | 'enterprise' | 'partner';
 
 export const CLOUD_TIERS: Record<CloudTier, { name: string; limits: PlanLimits }> = {
-  free: { name: 'Free', limits: { customers: 500, activeSubscriptions: 1000, invoicesPerMonth: 2500, teamMembers: 5 } },
+  free: { name: 'Free', limits: { customers: 500, activeSubscriptions: 500, invoicesPerMonth: 2500, teamMembers: 5 } },
   // Absent limits are unlimited.
   growth: { name: 'Growth', limits: {} },
   // Priced per customer and invoiced by the operator; no public price. Set by the operator.
@@ -79,7 +79,7 @@ export const CLOUD_CATALOGUE: CloudPlanDefinition[] = [
     description: 'Everything you need to run your billing, free for as long as you stay within the limits.',
     interval: 'MONTHLY',
     prices: priced(0),
-    features: ['500 customers', '1,000 active subscriptions', '2,500 invoices a month', '5 team members', 'Every feature, including managed payments', 'Community support'],
+    features: ['500 customers', '500 active subscriptions', '2,500 invoices a month', '5 team members', 'Every feature, including managed payments', 'Community support'],
   },
   {
     code: 'cloud_growth_monthly',
@@ -117,6 +117,7 @@ export const SUPERSEDED_LIMITS: Partial<Record<CloudTier, PlanLimits[]>> = {
   free: [
     { customers: 100, activeSubscriptions: 100, invoicesPerMonth: 300, teamMembers: 2 },
     { customers: 1000, activeSubscriptions: 1000, invoicesPerMonth: 2500, teamMembers: 5 },
+    { customers: 500, activeSubscriptions: 1000, invoicesPerMonth: 2500, teamMembers: 5 },
   ],
   growth: [{ customers: 5000, activeSubscriptions: 5000, invoicesPerMonth: 10000, teamMembers: 10 }],
 };

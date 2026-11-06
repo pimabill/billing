@@ -122,7 +122,11 @@ export class CloudPlansService implements OnApplicationBootstrap {
       const superseded = (SUPERSEDED_PRICES[plan.code] ?? []).some(
         (old) => Object.keys(old).length === Object.keys(current).length && Object.entries(old).every(([c, a]) => current[c] === a),
       );
-      if (!superseded) continue;
+      if (!superseded) {
+        // Free's features state its limits, which live in code, so they always follow it.
+        if (plan.tier === 'free') await db.plan.update({ where: { id: existing.id }, data: { features: plan.features } });
+        continue;
+      }
       await db.$transaction([
         db.plan.update({ where: { id: existing.id }, data: details }),
         // Prices no longer sold stop being offered; subscriptions already on one still renew in it.

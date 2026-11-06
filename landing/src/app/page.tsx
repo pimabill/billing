@@ -460,7 +460,7 @@ const tiers = [
     period: "",
     description: "We host it. Start billing today, free while you stay within the limits.",
     features: [
-      "500 customers and 1,000 active subscriptions",
+      "500 customers and 500 active subscriptions",
       "2,500 invoices a month, 5 team members",
       "Every feature: usage billing, wallets, the ledger",
       "Managed payments: get paid without setting up a payment provider",

@@ -88,12 +88,13 @@ export class AuthService {
     }
   }
 
-  /** Tell the operator someone new signed up to the hosted cloud: SIGNUP_ALERT_EMAIL, or the operator organisation's email. */
+  /** Tell the platform admin someone new signed up to the hosted cloud: SIGNUP_ALERT_EMAIL, or the operator organisation's email. */
   private async alertNewSignup(user: User, tenant: Tenant): Promise<void> {
     if (!cloudPlansEnabled()) return;
+    const operator = process.env.CLOUD_BILLING_TENANT_ID;
     const to =
       process.env.SIGNUP_ALERT_EMAIL?.trim() ||
-      (await this.db.tenant.findFirst({ where: { isPlatformOperator: true, isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true } }))?.email;
+      (await this.db.tenant.findFirst({ where: operator ? { id: operator } : { isPlatformOperator: true, isActive: true }, orderBy: { createdAt: 'asc' }, select: { email: true } }))?.email;
     if (!to) return;
     const row = (label: string, value: string) => `<tr><td style="padding:4px 16px 4px 0;color:#667">${label}</td><td>${escapeHtml(value)}</td></tr>`;
     const html = `<p>Someone new signed up.</p><table>${row('Organisation', tenant.name)}${row('Name', user.name ?? '')}${row('Email', user.email)}${row('Time', new Date().toUTCString())}</table>`;
