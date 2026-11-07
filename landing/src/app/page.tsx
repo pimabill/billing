@@ -570,7 +570,7 @@ const selfHosted = {
   features: [
     "Every feature, unlimited organisations and customers",
     "Bring your own payment providers: every provider supported",
-    "AGPL-3.0, running in minutes with Docker Compose",
+    "AGPL-3.0, installed with one Docker command",
     "Your own sandbox deployment",
     "Community support on GitHub",
   ],

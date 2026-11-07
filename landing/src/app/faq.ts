@@ -41,7 +41,7 @@ export const faq = [
   {
     question: "What do I need to self-host it?",
     answer:
-      "Docker. One docker compose command starts PostgreSQL, Redis, the API, the background worker, the dashboard and the docs. Each organisation gets its own database.",
+      "A server with Docker. One command asks for your domains, generates every secret, sets up HTTPS and starts PostgreSQL, Redis, the API, the background worker and the dashboard. Each organisation gets its own database.",
   },
   {
     question: "How does it compare with Lago, Kill Bill or Chargebee?",

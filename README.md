@@ -82,19 +82,18 @@ docker compose up -d --build
 | Dashboard | http://localhost:4002  |
 | Docs      | http://localhost:4003  |
 
-### Production (pre-built images)
+### Self-hosting
+
+One command installs PimaBill on your server. It asks for your domains and SMTP details, generates every secret, starts the stack and sets up HTTPS:
 
 ```bash
-# On your server:
-curl -O https://raw.githubusercontent.com/pimabill/billing/main/docker-compose.prod.yml
-curl -O https://raw.githubusercontent.com/pimabill/billing/main/.env.example
-cp .env.example .env
-# Edit .env with real secrets and domain URLs
-
-docker compose -f docker-compose.prod.yml up -d
+docker run -it --rm \
+  --volume /var/run/docker.sock:/var/run/docker.sock \
+  --volume "$(pwd)"/pimabill:/install \
+  ghcr.io/pimabill/installer:stable
 ```
 
-See [nginx.conf.example](nginx.conf.example) for a reverse proxy setup with custom domains.
+Add `upgrade` to the end of the same command to move to a new release. It backs up your databases first. See the [self-hosting guide](docs/content/1.getting-started/4.self-hosting.md).
 
 ### Local Development
 
@@ -124,6 +123,7 @@ dashboard/     Next.js 16 dashboard — shadcn/ui, Tailwind v4, Zustand
 landing/       Next.js 15 marketing site
 docs/          Nuxt/Docus documentation site
 fern/          Fern SDK generation config
+installer/     Self-hosting installer image and compose file
 sdks/          Generated TypeScript and Python SDKs
 ```
 
@@ -206,6 +206,8 @@ A sandbox deployment (`SANDBOX_MODE=true`) runs the same code against payment pr
 | **DPO** | 20+ African countries | Cards, mobile money |
 | **PayU** | South Africa, Nigeria, Kenya | Cards, EFT, mobile money |
 | **PesaPal** | Kenya, Uganda, Tanzania | M-Pesa, Airtel Money, cards |
+
+A deployment can also connect one [external payment gateway](docs/content/3.guides/20.external-payment-gateway.md) through a small public protocol.
 
 Configure providers per-tenant in the dashboard under **Settings > Payment Providers**. Credentials are encrypted at rest.
 

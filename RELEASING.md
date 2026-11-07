@@ -8,6 +8,7 @@ One version covers the whole system: the API, dashboard, landing page, docs, Ope
 2. [release-please](https://github.com/googleapis/release-please) keeps a pull request open on `main` titled `chore(main): release X.Y.Z`, with the changelog and the version bumped in every `package.json`, the OpenAPI spec and `version.txt`.
 3. **Merging that pull request is the release.** It tags `vX.Y.Z`, publishes the GitHub release, and starts the **SDKs** workflow, which builds and publishes the SDKs.
 4. Deploys are separate: every merge to `main` deploys the hosted API and dashboard (**Deploy** workflow).
+5. The release also tags the `api`, `dashboard` and `installer` images with its version and `stable`. Self-hosted installs use these tags, so the installer always pins a released version.
 
 To release a particular version (for example the first 1.0), add a footer to the commit that should trigger it:
 
