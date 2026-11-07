@@ -106,12 +106,10 @@ const DPO_WALLETS: Record<string, readonly string[]> = {
 /**
  * The wallets a provider documents, by currency. Pesapal publishes no current
  * list, so it has none here and the customer sees plain "mobile money": naming
- * wallets would be a guess. The payment gateway's checkouts are
- * assumed to offer Flutterwave's wallets.
+ * wallets would be a guess. The payment gateway names its own, per account.
  */
 const PROVIDER_WALLETS: Record<string, Record<string, readonly string[]>> = {
   flutterwave: FLUTTERWAVE_WALLETS,
-  gateway: FLUTTERWAVE_WALLETS,
   paystack: { GHS: ['MTN', 'AirtelTigo', 'Telecel'], KES: ['M-Pesa', 'Airtel Money'] },
   dpo: DPO_WALLETS,
   'dpo-group': DPO_WALLETS,

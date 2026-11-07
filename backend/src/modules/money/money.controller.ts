@@ -29,11 +29,8 @@ import {
   VerifyPayeeDto,
   RequestOtpDto,
   AssignDepositDto,
-  OpenGatewayAccountDto,
-  UpdateGatewayAccountDto,
 } from './dto/money.dto';
 import {
-  GatewayAccountResponse,
   GatewayStatusResponse,
   MoneyCapabilitiesResponse,
   MoneyMovementResponse,
@@ -256,29 +253,10 @@ export class MoneySettingsController {
     return this.gateway.status(db, req.tenant.id);
   }
 
-  @Post('gateway')
+  @Post('gateway/link')
   @ApiExcludeEndpoint()
-  @ApiOperation({
-    summary: 'Open a payment gateway account (no provider account of your own needed)',
-    description:
-      'The platform collects through its own provider accounts, keeps its fee (on top of the provider\'s) and pays the rest ' +
-      'to your payout destination: mobile money, bank or PayPal. Bank details also allow direct settlement where the ' +
-      'provider supports it. The account takes payments once it has been reviewed.',
-  })
-  @ApiResponse({ status: 201, description: 'The new account', type: GatewayAccountResponse })
-  openGateway(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant, @Body() dto: OpenGatewayAccountDto) {
-    return this.gateway.open(db, req.tenant.id, dto);
-  }
-
-  @Patch('gateway')
-  @ApiExcludeEndpoint()
-  @ApiOperation({
-    summary: 'Change your gateway account\'s contact details or payout destination',
-    description: 'Anything left out stays as it is. Every change is recorded by the platform.',
-  })
-  @ApiResponse({ status: 200, description: 'The account after the change', type: GatewayAccountResponse })
-  updateGateway(@TenantDb() db: PrismaClient, @Body() dto: UpdateGatewayAccountDto) {
-    return this.gateway.update(db, dto);
+  gatewayLink(@Req() req: RequestWithTenant) {
+    return this.gateway.link(req.tenant.id);
   }
 
   @Get('capabilities')

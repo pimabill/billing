@@ -37,7 +37,6 @@ import {
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDateTime } from "@/lib/utils/date";
 import { CryptoDeposits } from "./crypto-deposits";
-import { GatewayPayments } from "./gateway-account";
 import type { Wallet } from "@/types";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -59,13 +58,11 @@ export default function MoneyPage() {
   const [providers, setProviders] = useState<ProviderCapabilities[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [gatewayAvailable, setGatewayAvailable] = useState(false);
   const canConfigure = useCan("settings.providers");
 
   const loadCapabilities = useCallback(async () => {
     try {
       const [caps, walletList] = await Promise.all([moneyApi.capabilities(), apiClient.wallets.list({ status: "ACTIVE", limit: 100 })]);
-      setGatewayAvailable(Boolean((await moneyApi.gatewayStatus().catch(() => null))?.available));
       setSettings(caps.settings);
       setProviders(caps.providers);
       setWallets(walletList.data);
@@ -87,9 +84,9 @@ export default function MoneyPage() {
     );
   }
   if (!settings) return <div className="animate-shimmer h-96 rounded-lg" />;
-  // Links can open a tab directly, e.g. /money?tab=gateway.
+  // Links can open a tab directly, e.g. /money?tab=payouts.
   const requestedTab = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab")) || "collections";
-  const initialTab = requestedTab === "gateway" && !gatewayAvailable ? "collections" : requestedTab;
+  const initialTab = requestedTab;
   const watchesChain = providers.some((p) => ["tron_usdt", "eth_usdt", "bsc_usdt", "btc"].includes(p.provider));
 
   return (
@@ -107,7 +104,6 @@ export default function MoneyPage() {
           <TabsTrigger value="payouts">Payouts</TabsTrigger>
           <TabsTrigger value="transfers">Transfers</TabsTrigger>
           {watchesChain && <TabsTrigger value="deposits">Crypto deposits</TabsTrigger>}
-          {gatewayAvailable && <TabsTrigger value="gateway">Payment gateway</TabsTrigger>}
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -127,9 +123,6 @@ export default function MoneyPage() {
         )}
         <TabsContent value="settings" className="mt-4">
           <SettingsPanel settings={settings} providers={providers} onSaved={setSettings} />
-        </TabsContent>
-        <TabsContent value="gateway" className="mt-4">
-          <GatewayPayments onChanged={loadCapabilities} />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,13 +1,12 @@
 import { escapeHtml } from '../../common/utils/escape-html';
-import { BadRequestException, ForbiddenException, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
 import { EmailService } from '../../services/email.service';
 import { PrismaClient } from '../../generated/prisma-tenant/client';
 import { EncryptionService } from '../../services/encryption.service';
-import { GatewayAccount, GatewayCredentials, gatewayConfig, GatewayClient, OpenGatewayAccount, UpdateGatewayAccount } from './adapters/gateway.adapter';
+import { GatewayAccount, GatewayCredentials, gatewayConfig, GatewayClient } from './adapters/gateway.adapter';
 import { notificationUrls } from './notification-urls';
 import { CentralPrismaService } from '../../database/central-prisma.service';
 import { isSandbox } from '../../config/sandbox';
-import { cloudPlansEnabled, tierOf } from '../cloud-plans/cloud-plans.catalogue';
 
 /** Lowest priority, so a tenant's own provider accounts are always preferred when it has them. */
 const GATEWAY_PRIORITY = 1000;
@@ -35,7 +34,7 @@ function statusMessage(status: string, { org, reason, fee }: StatusContext): { t
         body: [
           'Your application is approved. Invoice checkouts, renewals, portal payments and payment links can now be paid through the payment gateway, by card or mobile money.',
           ...(fee ? [`Our fee is ${fee} per payment, on top of the payment provider's own fee, taken before each payout.`] : []),
-          'Payouts go to the destination you gave us; you can change it any time on the payment gateway page.',
+          'Payouts go to the destination you gave us; you can change it any time from Settings → Payment providers.',
         ],
       };
     case 'rejected':
@@ -57,8 +56,8 @@ function statusMessage(status: string, { org, reason, fee }: StatusContext): { t
 }
 
 /**
- * Tenant side of the payment gateway: opening the tenant's gateway account
- * and keeping its stored connection in step with the account's status.
+ * Tenant side of the payment gateway: sending the tenant to the gateway's
+ * own account page and keeping its stored connection in step with the account's status.
  * The connection is active only while the account is.
  */
 @Injectable()
@@ -71,25 +70,11 @@ export class GatewayAccountsService {
     @Optional() private readonly email?: EmailService,
   ) {}
 
-  /**
-   * The payment gateway is by invitation: organisations the operator has put on
-   * Partner or Enterprise can apply (and the operator itself). An organisation
-   * with an account keeps it whatever its plan. The sandbox only follows live
-   * approvals. A self-hosted deployment has no gateway key, so it
-   * never gets here.
-   */
+  /** The gateway decides who may apply. An organisation it cannot answer for is not offered it. */
   async allowedFor(tenantId: string): Promise<boolean> {
     if (!gatewayConfig()) return false;
-    const tenant = await this.central.client.tenant.findUnique({
-      where: { id: tenantId },
-      select: { isPlatformOperator: true, tenantBilling: { select: { planId: true } } },
-    });
-    if (!tenant) return false;
-    if (tenant.isPlatformOperator) return true;
-    if (isSandbox()) return false;
-    if (!cloudPlansEnabled()) return true;
-    const tier = tierOf(tenant.tenantBilling?.planId);
-    return tier === 'partner' || tier === 'enterprise';
+    const r = await this.client().eligibility(tenantId).catch(() => null);
+    return r?.data?.eligible === true;
   }
 
   private client(): GatewayClient {
@@ -122,23 +107,11 @@ export class GatewayAccountsService {
     return { available: true, account: { ...r.data, ...(stored?.statusChangedAt && { statusChangedAt: stored.statusChangedAt }) } };
   }
 
-  async open(db: PrismaClient, tenantId: string, input: Omit<OpenGatewayAccount, 'externalId' | 'notificationUrl'>): Promise<GatewayAccount> {
-    if (await this.accountId(db)) throw new BadRequestException('This account already has a payment gateway account');
-    if (!(await this.allowedFor(tenantId))) throw new ForbiddenException('The payment gateway is by invitation');
-    const r = await this.client().openAccount({ ...input, externalId: tenantId, notificationUrl: notificationUrls('gateway', tenantId).notificationUrl });
-    if (!r.data) throw new BadRequestException(r.error ?? 'The payment gateway could not open the account');
-    await this.sync(db, r.data, tenantId);
-    this.logger.log(`Gateway account ${r.data.id} opened for tenant ${tenantId} (${r.data.status})`);
-    return r.data;
-  }
-
-  /** Change the gateway account's contact details or payout destination. */
-  async update(db: PrismaClient, changes: UpdateGatewayAccount): Promise<GatewayAccount> {
-    if (!gatewayConfig()) throw new BadRequestException('The payment gateway is not offered on this deployment');
-    const id = await this.accountId(db);
-    if (!id) throw new BadRequestException('This account has no payment gateway account yet');
-    const r = await this.client().updateAccount(id, changes);
-    if (!r.data) throw new BadRequestException(r.error ?? 'The payment gateway could not update the account');
+  /** A link to the gateway's own page, where the organisation applies and manages its account. */
+  async link(tenantId: string): Promise<{ url: string; expiresAt: string }> {
+    const dashboard = (process.env.DASHBOARD_URL || 'http://localhost:4002').replace(/\/$/, '');
+    const r = await this.client().accountLink({ externalId: tenantId, notificationUrl: notificationUrls('gateway', tenantId).notificationUrl, returnUrl: `${dashboard}/providers` });
+    if (!r.data) throw new BadRequestException(r.error ?? 'The payment gateway could not open its account page');
     return r.data;
   }
 
@@ -187,7 +160,7 @@ export class GatewayAccountsService {
     });
     if (!people.length) return;
     const org = people[0].tenant.name;
-    const link = `${(process.env.DASHBOARD_URL || 'http://localhost:4002').replace(/\/$/, '')}/money?tab=gateway`;
+    const link = `${(process.env.DASHBOARD_URL || 'http://localhost:4002').replace(/\/$/, '')}/providers`;
     const fee = account.fee?.type === 'percentage' ? `${account.fee.value}%` : null;
     const message = statusMessage(account.status, { org, reason: account.reason, fee });
     if (!message) return;

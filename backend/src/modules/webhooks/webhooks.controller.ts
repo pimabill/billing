@@ -83,7 +83,7 @@ export class WebhooksController {
   async gatewayPayments(
     @Param('tenantId') tenantId: string,
     @Req() req: RawBodyRequest<Request>,
-    @Body() body: { event?: string; id?: string; collection?: { reference?: string }; account?: { id?: string; status?: GatewayAccountStatus; reason?: string; fee?: { type: 'percentage' | 'flat'; value: number } } },
+    @Body() body: { event?: string; id?: string; collection?: { reference?: string }; account?: { id?: string; externalId?: string; status?: GatewayAccountStatus; reason?: string; fee?: { type: 'percentage' | 'flat'; value: number } } },
     @Headers('x-gateway-signature') gatewaySignature?: string,
     @Headers('x-managed-signature') earlierSignature?: string,
   ) {
@@ -95,7 +95,9 @@ export class WebhooksController {
     if (!db) return { status: 'ignored' };
 
     if (body.account?.id && body.account.status) {
-      if ((await this.gateway.accountId(db)) !== body.account.id) return { status: 'ignored' };
+      // An account opened on the gateway's own page is new to us: the signed address names the organisation.
+      const known = await this.gateway.accountId(db);
+      if (known ? known !== body.account.id : body.account.externalId !== tenantId) return { status: 'ignored' };
       await this.gateway.sync(db, { id: body.account.id, status: body.account.status, reason: body.account.reason, fee: body.account.fee }, tenantId);
       return { status: 'ok' };
     }

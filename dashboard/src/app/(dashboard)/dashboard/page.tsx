@@ -120,7 +120,7 @@ export default function DashboardPage() {
           done: canTakePayments,
           title: "Take payments",
           text: data.gateway?.available ? "Connect your own provider, or apply for the payment gateway." : "Connect a payment provider so customers can pay you.",
-          href: data.gateway?.available ? "/money?tab=gateway" : "/providers",
+          href: "/providers",
           icon: CreditCard,
         },
         { done: data.plansCount > 0, title: "Create a plan", text: "What you sell, its prices and billing interval.", href: "/plans", icon: Package },
@@ -245,7 +245,7 @@ export default function DashboardPage() {
                       <Badge variant={gatewayLabel[gateway.status].variant}>{gatewayLabel[gateway.status].text}</Badge>
                     </span>
                   ) : (
-                    <Link href="/money?tab=gateway" className="flex items-center gap-1 text-primary hover:underline">
+                    <Link href="/providers" className="flex items-center gap-1 text-primary hover:underline">
                       Apply <ArrowRight className="h-3 w-3" aria-hidden />
                     </Link>
                   )}

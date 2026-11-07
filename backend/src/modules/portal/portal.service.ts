@@ -33,9 +33,13 @@ export class PortalService {
     });
     const usable = active.filter((p) => isSandbox() || !isTestCredentials(JSON.parse(this.encryption.decrypt(p.credentials))));
     let gateway: readonly CheckoutMethod[] = [];
+    let wallets: readonly string[] = [];
     if (usable.some((p) => p.providerName === 'gateway')) {
       const status = await this.gateway.status(db, tenantId).catch(() => null);
-      if (status?.account?.status === 'active') gateway = status.account.methods ?? ['card'];
+      if (status?.account?.status === 'active') {
+        gateway = status.account.methods ?? ['card'];
+        wallets = status.account.wallets?.[currency] ?? [];
+      }
     }
     const inCurrency = (method: CheckoutMethod) =>
       (method !== 'paypal' || PAYPAL_CURRENCIES.includes(currency)) && (method !== 'mobile_money' || MOBILE_MONEY_CURRENCIES.includes(currency));
@@ -44,7 +48,7 @@ export class PortalService {
         provider,
         methods: CHECKOUT_METHODS.filter((method) => (provider === 'gateway' ? gateway.includes(method) && inCurrency(method) : providerTakes(provider, method, currency))).map((method) => ({
           method,
-          brands: methodBrands(provider, method, currency),
+          brands: provider === 'gateway' && method === 'mobile_money' ? wallets : methodBrands(provider, method, currency),
         })),
       }))
       .filter((option) => option.methods.length > 0);

@@ -123,34 +123,6 @@ export interface GatewayAccount {
   statusChangedAt?: string;
 }
 
-export type GatewayPayoutType = "mobile_money" | "bank" | "paypal";
-
-export interface OpenGatewayAccount {
-  businessName: string;
-  email: string;
-  phone: string;
-  country: string;
-  currency: string;
-  bank?: { code: string; accountNumber: string; accountName?: string };
-  payoutDestination?: GatewayPayoutDestination;
-}
-
-export interface GatewayPayoutDestination {
-  type: GatewayPayoutType;
-  msisdn?: string;
-  name?: string;
-  email?: string;
-  bankCode?: string;
-  accountNumber?: string;
-  accountName?: string;
-}
-
-export interface UpdateGatewayAccount {
-  email?: string;
-  phone?: string;
-  payoutDestination?: GatewayPayoutDestination;
-}
-
 export interface ProviderCapabilities {
   provider: string;
   capabilities: { collect: string[]; payout: string[]; balance: boolean; verifyPayee: boolean };
@@ -199,10 +171,7 @@ export const moneyApi = {
   assignDeposit: (id: string, collectionId: string) =>
     apiFetch<MoneyIntent>(`/money/crypto-deposits/${id}/assign`, { method: "POST", body: JSON.stringify({ collectionId }) }),
   gatewayStatus: () => apiFetch<{ available: boolean; account: GatewayAccount | null }>("/money/gateway"),
-  openGateway: (body: OpenGatewayAccount) =>
-    apiFetch<GatewayAccount>("/money/gateway", { method: "POST", body: JSON.stringify(body) }),
-  updateGateway: (body: UpdateGatewayAccount) =>
-    apiFetch<GatewayAccount>("/money/gateway", { method: "PATCH", body: JSON.stringify(body) }),
+  gatewayLink: () => apiFetch<{ url: string; expiresAt: string }>("/money/gateway/link", { method: "POST" }),
   requestOtp: (provider: string, phone: string) =>
     apiFetch<{ pinId: string }>(`/money/providers/${provider}/otp`, { method: "POST", body: JSON.stringify({ phone }) }),
   balance: (provider: string) =>
