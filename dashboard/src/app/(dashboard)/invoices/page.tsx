@@ -103,7 +103,7 @@ export default function InvoicesPage() {
   const [checkoutInvoice, setCheckoutInvoice] = useState<Invoice | null>(null);
   const [configuredProviders, setConfiguredProviders] = useState<PaymentProvider[]>([]);
   const [selectedProvider, setSelectedProvider] = useState<string>("");
-  // With managed payments the payer can go to PayPal instead of the card and mobile money checkout.
+  // With the payment gateway the payer can go to PayPal instead of the card and mobile money checkout.
   const [checkoutMethod, setCheckoutMethod] = useState<CheckoutMethod>("card");
   const [isGeneratingCheckout, setIsGeneratingCheckout] = useState(false);
 
@@ -807,7 +807,7 @@ export default function InvoicesPage() {
                   ))}
                 </SelectContent>
               </Select>
-              {selectedProvider === "managed" && checkoutInvoice && (
+              {selectedProvider === "gateway" && checkoutInvoice && (
                 <div className="mt-3">
                   <Label htmlFor="checkout-method">The customer pays by</Label>
                   <Select value={checkoutMethod} onValueChange={(v) => setCheckoutMethod(v as CheckoutMethod)}>
@@ -840,7 +840,7 @@ export default function InvoicesPage() {
               <Button
                 onClick={() =>
                   checkoutInvoice &&
-                  runCheckout(checkoutInvoice, selectedProvider || undefined, selectedProvider === "managed" && checkoutMethod === "paypal" ? "paypal" : undefined)
+                  runCheckout(checkoutInvoice, selectedProvider || undefined, selectedProvider === "gateway" && checkoutMethod === "paypal" ? "paypal" : undefined)
                 }
                 disabled={isGeneratingCheckout || !selectedProvider}
               >

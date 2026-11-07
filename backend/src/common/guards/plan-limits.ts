@@ -19,7 +19,7 @@ export type Counted = (typeof COUNTED)[number];
 export const FEATURE_ROUTES = {
   usage_billing: ['/events', '/billable-metrics'],
   // Before money_movement: the first matching prefix decides.
-  managed_payments: ['/money/managed'],
+  gateway: ['/money/gateway'],
   money_movement: ['/money', '/collections', '/payouts', '/transfers'],
   wallets: ['/wallets'],
   ledger: ['/ledger'],
@@ -31,7 +31,7 @@ const FEATURE_LABELS: Record<PlanFeature, string> = {
   money_movement: 'Money movement',
   wallets: 'Wallets',
   ledger: 'The ledger',
-  managed_payments: 'Managed payments',
+  gateway: 'Payment gateway',
 };
 
 /** Creating one of these counts against a limit. */

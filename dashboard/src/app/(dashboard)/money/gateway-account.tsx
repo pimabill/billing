@@ -10,35 +10,35 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { brand } from "@/lib/brand";
-import { moneyApi, type ManagedAccount, type ManagedPayoutType, type OpenManagedAccount } from "@/lib/api/money";
+import { moneyApi, type GatewayAccount, type GatewayPayoutType, type OpenGatewayAccount } from "@/lib/api/money";
 import { apiClient } from "@/lib/api/client";
 import { BrandMark } from "@/components/brand-mark";
 
-const statusText: Record<ManagedAccount["status"], { label: string; variant: "success" | "warning" | "error"; hint: string }> = {
+const statusText: Record<GatewayAccount["status"], { label: string; variant: "success" | "warning" | "error"; hint: string }> = {
   pending_review: { label: "In review", variant: "warning", hint: "We are checking your business and payout details. Checkout links start working once it is approved." },
-  active: { label: "Active", variant: "success", hint: "Checkouts for your invoices and subscriptions use managed payments whenever none of your own providers can take the payment." },
+  active: { label: "Active", variant: "success", hint: "Checkouts for your invoices and subscriptions use the payment gateway whenever none of your own providers can take the payment." },
   rejected: { label: "Not approved", variant: "error", hint: "Contact support to find out what is needed." },
   suspended: { label: "Suspended", variant: "error", hint: "New payments are paused. Contact support." },
 };
 
 const empty = { businessName: "", email: "", phone: "", country: "UG", currency: "UGX", msisdn: "", mobileName: "", paypalEmail: "", bankCode: "", accountNumber: "", accountName: "" };
 
-type PayoutChoice = ManagedPayoutType | "keep";
+type PayoutChoice = GatewayPayoutType | "keep";
 
-const payoutTypes: { value: ManagedPayoutType; label: string }[] = [
+const payoutTypes: { value: GatewayPayoutType; label: string }[] = [
   { value: "mobile_money", label: "Mobile money" },
   { value: "bank", label: "Bank account" },
   { value: "paypal", label: "PayPal" },
 ];
 
 /**
- * Managed payments: for accounts without their own Flutterwave or other
+ * Payment gateway: for accounts without their own Flutterwave or other
  * provider account. The platform collects through its own provider accounts,
  * keeps the fee, and pays the rest out to the destination given here (or,
  * where the provider supports it, settles each payment to the bank directly).
  */
-export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
-  const [state, setState] = useState<{ available: boolean; account: ManagedAccount | null } | null>(null);
+export function GatewayPayments({ onChanged }: { onChanged: () => void }) {
+  const [state, setState] = useState<{ available: boolean; account: GatewayAccount | null } | null>(null);
   const [form, setForm] = useState(empty);
   const [payoutType, setPayoutType] = useState<PayoutChoice>("mobile_money");
   const [editing, setEditing] = useState(false);
@@ -48,7 +48,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
 
   const load = useCallback(async () => {
     try {
-      const status = await moneyApi.managedStatus();
+      const status = await moneyApi.gatewayStatus();
       setState(status);
       // Applying: start from what the organisation already told us.
       if (!status.account && status.available) {
@@ -78,8 +78,8 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
       <Card>
         <CardContent className="p-6 text-sm text-muted-foreground">
           {state.available
-            ? "Managed payments let you take payments without a provider account of your own. Ask an owner or admin of this organisation to apply."
-            : "Managed payments are by invitation."}
+            ? "The payment gateway lets you take payments without a provider account of your own. Ask an owner or admin of this organisation to apply."
+            : "The payment gateway is by invitation."}
         </CardContent>
       </Card>
     );
@@ -88,12 +88,12 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
   const set = (key: keyof typeof empty, value: string) => setForm((f) => ({ ...f, [key]: value }));
   const field = (key: keyof typeof empty, label: string, props: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
     <div className="space-y-1.5">
-      <Label htmlFor={`managed-${key}`}>{label}</Label>
-      <Input id={`managed-${key}`} value={form[key]} onChange={(e) => set(key, e.target.value)} {...props} />
+      <Label htmlFor={`gateway-${key}`}>{label}</Label>
+      <Input id={`gateway-${key}`} value={form[key]} onChange={(e) => set(key, e.target.value)} {...props} />
     </div>
   );
 
-  const destination = (): Pick<OpenManagedAccount, "bank" | "payoutDestination"> => {
+  const destination = (): Pick<OpenGatewayAccount, "bank" | "payoutDestination"> => {
     if (payoutType === "keep") return {};
     if (payoutType === "mobile_money") {
       return { payoutDestination: { type: "mobile_money", msisdn: form.msisdn.replace(/[\s+]/g, ""), name: form.mobileName || undefined } };
@@ -110,7 +110,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
     e.preventDefault();
     setSaving(true);
     try {
-      await moneyApi.openManaged({
+      await moneyApi.openGateway({
         businessName: form.businessName,
         email: form.email,
         phone: form.phone,
@@ -118,17 +118,17 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
         currency: form.currency.toUpperCase(),
         ...destination(),
       });
-      toast.success("Managed payments requested");
+      toast.success("Application sent");
       await load();
       onChanged();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Could not open managed payments");
+      toast.error(err instanceof Error ? err.message : "Could not send the application");
     } finally {
       setSaving(false);
     }
   };
 
-  const startEditing = (a: ManagedAccount) => {
+  const startEditing = (a: GatewayAccount) => {
     setForm({ ...empty, email: a.email ?? "", phone: a.phone ?? "" });
     setPayoutType("keep");
     setEditing(true);
@@ -139,8 +139,8 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
     setSaving(true);
     try {
       const { payoutDestination } = destination();
-      await moneyApi.updateManaged({ email: form.email || undefined, phone: form.phone || undefined, ...(payoutDestination && { payoutDestination }) });
-      toast.success("Managed payments details saved");
+      await moneyApi.updateGateway({ email: form.email || undefined, phone: form.phone || undefined, ...(payoutDestination && { payoutDestination }) });
+      toast.success("Details saved");
       setEditing(false);
       await load();
     } catch (err) {
@@ -184,7 +184,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          Managed payments
+          Payment gateway
           {account && <Badge variant={statusText[account.status].variant}>{statusText[account.status].label}</Badge>}
         </CardTitle>
         <CardDescription>
@@ -275,7 +275,7 @@ export function ManagedPayments({ onChanged }: { onChanged: () => void }) {
             <div className="flex items-end">
               <Button type="submit" disabled={saving}>
                 {saving && <BrandMark animated tight className="mr-2 h-4 w-4" />}
-                Request managed payments
+                Apply
               </Button>
             </div>
             <p className="text-xs text-muted-foreground sm:col-span-2">

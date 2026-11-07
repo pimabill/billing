@@ -17,7 +17,7 @@ import type { Customer, Plan } from "@/types";
 type What = "once" | "plan";
 
 /** Providers that can take an invoice payment through a hosted checkout. */
-const CHECKOUT = new Set(["stripe", "paystack", "flutterwave", "dpo", "payu", "pesapal", "paypal", "managed"]);
+const CHECKOUT = new Set(["stripe", "paystack", "flutterwave", "dpo", "payu", "pesapal", "paypal", "gateway"]);
 const METHOD_LABELS: Record<string, string> = { card: "Card", mobile_money: "Mobile money", paypal: "PayPal" };
 
 interface PayOption {
@@ -55,7 +55,7 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
   const [trialDays, setTrialDays] = useState("");
   const [method, setMethod] = useState("mobile_money");
   const [busy, setBusy] = useState(false);
-  // What the customer can pay through: the organisation's own providers and managed payments.
+  // What the customer can pay through: the organisation's own providers and the payment gateway.
   const [payOptions, setPayOptions] = useState<PayOption[] | null>(null);
   const [payWith, setPayWith] = useState("auto");
   const [result, setResult] = useState<Result | null>(null);
@@ -68,17 +68,17 @@ export function ChargeDialog({ open, onOpenChange, customer: preset, onDone }: {
     apiClient.plans.list().then((p) => setPlans(p.filter((x: any) => x.isActive !== false)), () => setPlans([]));
     Promise.all([
       apiFetch<any>("/payment-providers?configured=true").catch(() => []),
-      moneyApi.managedStatus().catch(() => null),
-    ]).then(([providers, managed]) => {
+      moneyApi.gatewayStatus().catch(() => null),
+    ]).then(([providers, gateway]) => {
       const own: PayOption[] = ((providers?.data ?? providers ?? []) as { providerName: string; name?: string; isActive: boolean }[])
-        .filter((p) => p.isActive && p.providerName !== "managed" && CHECKOUT.has(p.providerName))
+        .filter((p) => p.isActive && p.providerName !== "gateway" && CHECKOUT.has(p.providerName))
         .map((p) => ({ code: p.providerName, label: p.name ?? p.providerName }));
-      const account = managed?.account;
-      const viaManaged: PayOption[] =
+      const account = gateway?.account;
+      const viaGateway: PayOption[] =
         account?.status === "active"
-          ? [{ code: "managed", label: `Managed payments${account.methods?.length ? ` · ${account.methods.map((m) => METHOD_LABELS[m] ?? m).join(", ")}` : ""}` }]
+          ? [{ code: "gateway", label: `Payment gateway${account.methods?.length ? ` · ${account.methods.map((m) => METHOD_LABELS[m] ?? m).join(", ")}` : ""}` }]
           : [];
-      setPayOptions([...own, ...viaManaged]);
+      setPayOptions([...own, ...viaGateway]);
     });
   }, [open, preset]);
 

@@ -590,9 +590,9 @@ export class InvoicesService {
     }
 
     // The requested provider, or every active one in priority order: when one cannot start a
-    // checkout (a revoked key, an outage) the next is tried, managed payments last. Paying by
-    // A chosen method leaves only the providers that take it, and managed payments.
-    const names = method ? CHECKOUT_PROVIDER_NAMES.filter((n) => n === 'managed' || providerTakes(n, method, invoice.currency)) : CHECKOUT_PROVIDER_NAMES;
+    // checkout (a revoked key, an outage) the next is tried, the payment gateway last. Paying by
+    // A chosen method leaves only the providers that take it, and the payment gateway.
+    const names = method ? CHECKOUT_PROVIDER_NAMES.filter((n) => n === 'gateway' || providerTakes(n, method, invoice.currency)) : CHECKOUT_PROVIDER_NAMES;
     const candidates = await db.paymentProvider.findMany({
       where: { isActive: true, providerName: providerName ? providerName : { in: names } },
       orderBy: { priority: 'asc' },
@@ -616,7 +616,7 @@ export class InvoicesService {
         this.logger.warn(`Skipped ${providerConfig.providerName} for invoice ${id}: its credentials are for its test environment`);
         continue;
       }
-      if (providerConfig.providerName === 'managed' && tenantId) credentials.tenantId = tenantId;
+      if (providerConfig.providerName === 'gateway' && tenantId) credentials.tenantId = tenantId;
       const provider = ProviderFactory.create(providerConfig.providerName, credentials);
 
       // Create a pending payment record

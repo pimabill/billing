@@ -52,9 +52,9 @@ describe('WebhooksController (payment notifications)', () => {
     await expect(controller.stripe(req({ 'stripe-signature': 't=1,v1=x' }), {})).rejects.toThrow('Could not process stripe webhook');
   });
 
-  it('settles an invoice paid through managed payments once the service confirms it', async () => {
-    db.payment.findFirst.mockResolvedValue({ id: 'pay_m', provider: 'managed', status: 'PROCESSING', amount: '110000', currency: 'UGX', invoiceId: 'inv_m', invoice: { id: 'inv_m', invoiceNumber: 'INV-1', customer: null } });
-    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'managed', credentials: 'enc' });
+  it('settles an invoice paid through the payment gateway once the service confirms it', async () => {
+    db.payment.findFirst.mockResolvedValue({ id: 'pay_m', provider: 'gateway', status: 'PROCESSING', amount: '110000', currency: 'UGX', invoiceId: 'inv_m', invoice: { id: 'inv_m', invoiceNumber: 'INV-1', customer: null } });
+    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'gateway', credentials: 'enc' });
     db.providerEvent.create.mockResolvedValue({});
     db.payment.updateMany.mockResolvedValue({ count: 1 });
     db.invoice.updateMany.mockResolvedValue({ count: 1 });
@@ -62,32 +62,32 @@ describe('WebhooksController (payment notifications)', () => {
     const getPaymentStatus = jest.fn().mockResolvedValue({ status: 'succeeded', transactionId: 'pay_m', amount: 110000, currency: 'UGX', reference: 'pay_m' });
     jest.spyOn(ProviderFactory, 'create').mockReturnValue({ getPaymentStatus } as never);
 
-    expect(await controller.settleManagedPayment(db as never, 't1', 'pay_m')).toBe(true);
+    expect(await controller.settleGatewayPayment(db as never, 't1', 'pay_m')).toBe(true);
     expect(getPaymentStatus).toHaveBeenCalledWith('pay_m');
     expect(db.invoice.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ id: 'inv_m' }), data: expect.objectContaining({ status: 'PAID' }) }));
   });
 
   it('counts an instalment and keeps the invoice open until it is covered', async () => {
-    db.payment.findFirst.mockResolvedValue({ id: 'pay_d', provider: 'managed', status: 'PROCESSING', amount: '100000', currency: 'UGX', invoiceId: 'inv_d', invoice: { id: 'inv_d', invoiceNumber: 'INV-2', customer: null } });
-    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'managed', credentials: 'enc' });
+    db.payment.findFirst.mockResolvedValue({ id: 'pay_d', provider: 'gateway', status: 'PROCESSING', amount: '100000', currency: 'UGX', invoiceId: 'inv_d', invoice: { id: 'inv_d', invoiceNumber: 'INV-2', customer: null } });
+    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'gateway', credentials: 'enc' });
     db.providerEvent.create.mockResolvedValue({});
     db.payment.updateMany.mockResolvedValue({ count: 1 });
     db.invoice.updateMany.mockResolvedValue({ count: 1 });
     db.invoice.findUniqueOrThrow.mockResolvedValue({ amount: new Prisma.Decimal(300000), amountPaid: new Prisma.Decimal(100000) });
     jest.spyOn(ProviderFactory, 'create').mockReturnValue({ getPaymentStatus: jest.fn().mockResolvedValue({ status: 'succeeded', transactionId: 'pay_d', amount: 100000, currency: 'UGX', reference: 'pay_d' }) } as never);
 
-    expect(await controller.settleManagedPayment(db as never, 't1', 'pay_d')).toBe(true);
+    expect(await controller.settleGatewayPayment(db as never, 't1', 'pay_d')).toBe(true);
     expect(db.invoice.updateMany).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'PAID' }) }));
     const events = queues.flatMap((q) => q.add.mock.calls.map((c: unknown[]) => (c[1] as { event?: string }).event));
     expect(events).toContain('invoice.partially_paid');
     expect(events).not.toContain('invoice.paid');
   });
 
-  it('leaves a managed invoice payment open while the service still reports it pending', async () => {
-    db.payment.findFirst.mockResolvedValue({ id: 'pay_p', provider: 'managed', status: 'PROCESSING', amount: '29', currency: 'USD', invoiceId: 'inv_p' });
-    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'managed', credentials: 'enc' });
+  it('leaves a gateway invoice payment open while the service still reports it pending', async () => {
+    db.payment.findFirst.mockResolvedValue({ id: 'pay_p', provider: 'gateway', status: 'PROCESSING', amount: '29', currency: 'USD', invoiceId: 'inv_p' });
+    db.paymentProvider.findUnique.mockResolvedValue({ providerName: 'gateway', credentials: 'enc' });
     jest.spyOn(ProviderFactory, 'create').mockReturnValue({ getPaymentStatus: jest.fn().mockResolvedValue({ status: 'pending', transactionId: 'pay_p', amount: 0, currency: '' }) } as never);
-    expect(await controller.settleManagedPayment(db as never, 't1', 'pay_p')).toBe(true);
+    expect(await controller.settleGatewayPayment(db as never, 't1', 'pay_p')).toBe(true);
     expect(db.invoice.updateMany).not.toHaveBeenCalled();
   });
 

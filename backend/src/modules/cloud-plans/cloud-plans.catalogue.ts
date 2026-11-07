@@ -1,5 +1,6 @@
 import { PlanLimits } from '../../common/guards/plan-limits';
 import { isSandbox } from '../../config/sandbox';
+import { gatewayConfig } from '../money/adapters/gateway.adapter';
 
 /**
  * The hosted cloud's plans. Their prices live as ordinary plans in the
@@ -127,11 +128,11 @@ export const tierOf = (code: string | null | undefined): CloudTier | null =>
 export const PAID_CODES = CLOUD_CATALOGUE.filter((p) => p.tier === 'growth').map((p) => p.code);
 
 /**
- * On when this deployment is the hosted cloud: CLOUD_PLANS=true, or managed
- * payments configured. Off by default in the sandbox, which never charges.
+ * On when this deployment is the hosted cloud: CLOUD_PLANS=true, or a gateway
+ * configured (until each cloud deployment sets CLOUD_PLANS). Off by default in the sandbox, which never charges.
  */
 export function cloudPlansEnabled(): boolean {
   if (process.env.CLOUD_PLANS) return process.env.CLOUD_PLANS === 'true';
   if (isSandbox()) return false;
-  return Boolean(process.env.MANAGED_PAYMENTS_URL && process.env.MANAGED_PAYMENTS_API_KEY);
+  return Boolean(gatewayConfig());
 }

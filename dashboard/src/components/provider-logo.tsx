@@ -22,7 +22,7 @@ const LOGOS: Record<string, string> = {
 const MONOGRAMS: Record<string, { mark: string; color: string }> = {
   pesapal: { mark: "Pp", color: "bg-[#19a64c]" },
   nowpayments: { mark: "NP", color: "bg-[#2a2d3e]" },
-  managed: { mark: "M", color: "bg-primary" },
+  gateway: { mark: "M", color: "bg-primary" },
 };
 
 const SIZES = { sm: "h-7 w-7 rounded-md p-1 text-[10px]", md: "h-11 w-11 rounded-xl p-1.5 text-sm" } as const;

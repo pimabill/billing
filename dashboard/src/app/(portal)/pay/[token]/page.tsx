@@ -76,7 +76,7 @@ const PROVIDER_NAMES: Record<string, string> = {
   payu: "PayU",
   pesapal: "Pesapal",
   paypal: "PayPal",
-  managed: brand.name,
+  gateway: brand.name,
 };
 
 /** Wallets with a logo of their own. */
@@ -316,7 +316,7 @@ export default function HostedCheckout() {
                     {groups.map((group) => (
                       <div key={group.provider}>
                         <p className="mb-2 flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                          {group.provider === "managed" ? <BrandMark tight className="h-5 w-5" /> : <ProviderLogo code={group.provider} name={group.name} size="sm" className="h-5 w-5 rounded p-0.5 text-[8px] shadow-none" />}
+                          {group.provider === "gateway" ? <BrandMark tight className="h-5 w-5" /> : <ProviderLogo code={group.provider} name={group.name} size="sm" className="h-5 w-5 rounded p-0.5 text-[8px] shadow-none" />}
                           {group.name}
                         </p>
                         <div className="grid gap-2.5">

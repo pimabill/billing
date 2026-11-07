@@ -77,17 +77,17 @@ export function NotificationsDropdown() {
         };
       });
 
-      // Managed payments: a status change in the last 30 days is news.
-      const managed = await moneyApi.managedStatus().catch(() => null);
-      const account = managed?.account;
+      // Payment gateway: a status change in the last 30 days is news.
+      const gateway = await moneyApi.gatewayStatus().catch(() => null);
+      const account = gateway?.account;
       if (account?.statusChangedAt && Date.now() - new Date(account.statusChangedAt).getTime() < 30 * 86_400_000 && account.status !== "pending_review") {
-        const managedNotice: Record<string, { type: Notification["type"]; title: string; message: string }> = {
-          active: { type: "success", title: "Managed payments approved", message: "Payments can now go through managed payments." },
-          rejected: { type: "error", title: "Managed payments not approved", message: account.reason ?? "See the managed payments page." },
-          suspended: { type: "warning", title: "Managed payments paused", message: account.reason ?? "See the managed payments page." },
+        const gatewayNotice: Record<string, { type: Notification["type"]; title: string; message: string }> = {
+          active: { type: "success", title: "Payment gateway approved", message: "Payments can now go through the payment gateway." },
+          rejected: { type: "error", title: "Payment gateway not approved", message: account.reason ?? "See the payment gateway page." },
+          suspended: { type: "warning", title: "Payment gateway paused", message: account.reason ?? "See the payment gateway page." },
         };
-        const notice = managedNotice[account.status];
-        if (notice) mapped.push({ id: `managed_${account.statusChangedAt}`, ...notice, timestamp: new Date(account.statusChangedAt), read: false });
+        const notice = gatewayNotice[account.status];
+        if (notice) mapped.push({ id: `gateway_${account.statusChangedAt}`, ...notice, timestamp: new Date(account.statusChangedAt), read: false });
       }
       mapped.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 

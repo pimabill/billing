@@ -6,14 +6,14 @@ import { DpoProvider } from './dpo.provider';
 import { PayUProvider } from './payu.provider';
 import { PesapalProvider } from './pesapal.provider';
 import { PayPalProvider } from './paypal.provider';
-import { ManagedCheckoutProvider } from './managed.provider';
+import { GatewayCheckoutProvider } from './gateway.provider';
 
 /**
  * Providers that can run an invoice checkout through BasePaymentProvider.
  * Money-movement-only providers (e.g. Yo! Payments) are configured in the same
  * table but must never be picked as the default checkout provider.
  */
-export const CHECKOUT_PROVIDER_NAMES = ['stripe', 'paystack', 'flutterwave', 'dpo', 'dpo-group', 'payu', 'pesapal', 'paypal', 'managed'];
+export const CHECKOUT_PROVIDER_NAMES = ['stripe', 'paystack', 'flutterwave', 'dpo', 'dpo-group', 'payu', 'pesapal', 'paypal', 'gateway'];
 
 export class ProviderFactory {
   static create(providerName: string, credentials: Record<string, unknown>): BasePaymentProvider {
@@ -45,9 +45,9 @@ export class ProviderFactory {
         return new PayPalProvider(
           credentials as { clientId: string; clientSecret: string; webhookId: string; environment: 'sandbox' | 'live' },
         );
-      case 'managed':
-        // Managed payments: the platform's provider accounts take the payment (see ManagedCheckoutProvider).
-        return new ManagedCheckoutProvider(credentials as { accountId: string; tenantId?: string });
+      case 'gateway':
+        // Payment gateway: the platform's provider accounts take the payment (see GatewayCheckoutProvider).
+        return new GatewayCheckoutProvider(credentials as { accountId: string; tenantId?: string });
       default:
         throw new Error(`Unsupported payment provider: ${providerName}`);
     }

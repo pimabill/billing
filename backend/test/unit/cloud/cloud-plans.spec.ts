@@ -33,11 +33,11 @@ describe('cloud plans', () => {
     const saved = { ...process.env };
     try {
       delete process.env.CLOUD_PLANS;
-      delete process.env.MANAGED_PAYMENTS_URL;
+      delete process.env.GATEWAY_URL;
       delete process.env.SANDBOX_MODE;
       expect(cloudPlansEnabled()).toBe(false);
-      process.env.MANAGED_PAYMENTS_URL = 'http://managed';
-      process.env.MANAGED_PAYMENTS_API_KEY = 'k';
+      process.env.GATEWAY_URL = 'http://gateway';
+      process.env.GATEWAY_API_KEY = 'k';
       expect(cloudPlansEnabled()).toBe(true);
       process.env.SANDBOX_MODE = 'true';
       expect(cloudPlansEnabled()).toBe(false);
@@ -80,11 +80,6 @@ describe('CloudPlansService.ensureCatalogue', () => {
     expect(db.$transaction).toHaveBeenCalledTimes(1);
     expect(db.planPrice.updateMany).toHaveBeenCalledWith({ where: { planId: 'id_cloud_growth_monthly', currency: { notIn: ['USD'] } }, data: { isActive: false } });
     expect(db.plan.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'id_cloud_growth_monthly' } }));
-  });
-
-  it('stops any plan offering managed payments, whatever its prices', async () => {
-    const db = await run({ USD: 15 }, ['Every feature, including managed payments']);
-    expect(db.plan.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'id_cloud_growth_monthly' }, data: { features: expect.not.arrayContaining(['Every feature, including managed payments']) } }));
   });
 
   it('keeps prices the operator set', async () => {

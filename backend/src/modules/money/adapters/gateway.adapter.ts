@@ -2,40 +2,38 @@ import { createHmac, timingSafeEqual } from 'crypto';
 import { Capabilities, CollectRequest, MoneyProvider, ProviderOutcome, Rail } from '../types';
 
 /**
- * Managed payments: for tenants without their own provider accounts. A
- * separate, privately run Managed Payments service opens a Flutterwave
- * subaccount for the tenant and takes payments on it; Flutterwave settles
- * straight to the tenant's bank account and keeps the platform fee as the
- * split, so neither PimaBill nor the service holds the money.
+ * External payment gateway: a separate service that takes payments for an
+ * organisation, for deployments that subscribe to one. Any service that
+ * implements this protocol can be connected; it is documented in the
+ * self-hosting guide. Set GATEWAY_URL and GATEWAY_API_KEY to turn it on.
  *
- * This adapter is only the client. The instance's subscription key
- * (MANAGED_PAYMENTS_API_KEY) identifies the PimaBill deployment; the
- * tenant's managed account id is its stored credential.
+ * This adapter is only the client. The key identifies this deployment; the
+ * organisation's gateway account id is its stored credential.
  *
- * API (v1, JSON, `Authorization: Bearer <instance key>`):
+ * API (v1, JSON, `Authorization: Bearer <key>`):
  *   POST /v1/accounts                     open an account (business + bank details)
  *   GET  /v1/accounts/:id                 account status and payment methods
  *   POST /v1/accounts/mirror              sandbox only: the account, set up from the approved live one
  *   POST /v1/collections                  create a checkout (Idempotency-Key: our reference)
  *   GET  /v1/collections/:reference       collection status
  * Notifications: POST to notificationUrl with
- *   X-Managed-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "t.body" with the webhook secret>
+ *   X-Gateway-Signature: t=<unix seconds>,v1=<hex HMAC-SHA256 of "t.body" with the webhook secret>
  */
-export interface ManagedConfig {
+export interface GatewayConfig {
   baseUrl: string;
   apiKey: string;
   webhookSecret?: string;
 }
 
-export interface ManagedCredentials {
+export interface GatewayCredentials {
   accountId: string;
 }
 
-export type ManagedAccountStatus = 'pending_review' | 'active' | 'rejected' | 'suspended';
+export type GatewayAccountStatus = 'pending_review' | 'active' | 'rejected' | 'suspended';
 
-export interface ManagedAccount {
+export interface GatewayAccount {
   id: string;
-  status: ManagedAccountStatus;
+  status: GatewayAccountStatus;
   businessName: string;
   country: string;
   currency: string;
@@ -50,13 +48,13 @@ export interface ManagedAccount {
   email?: string;
   phone?: string;
   reason?: string;
-  /** When billing saw the status change (returned by GET /money/managed). */
+  /** When billing saw the status change (returned by GET /money/gateway). */
   statusChangedAt?: string;
-  /** Payment methods the merchant's customers can use through managed payments. */
+  /** Payment methods the merchant's customers can use through the payment gateway. */
   methods?: ('card' | 'mobile_money' | 'paypal')[];
 }
 
-export interface ManagedPayoutDestination {
+export interface GatewayPayoutDestination {
   type: 'mobile_money' | 'bank' | 'paypal';
   msisdn?: string;
   /** Name on the mobile money or PayPal account. */
@@ -68,13 +66,13 @@ export interface ManagedPayoutDestination {
 }
 
 /** Contact details and payout destination, changeable after applying. */
-export interface UpdateManagedAccount {
+export interface UpdateGatewayAccount {
   email?: string;
   phone?: string;
-  payoutDestination?: ManagedPayoutDestination;
+  payoutDestination?: GatewayPayoutDestination;
 }
 
-export interface OpenManagedAccount {
+export interface OpenGatewayAccount {
   externalId: string;
   businessName: string;
   email: string;
@@ -84,7 +82,7 @@ export interface OpenManagedAccount {
   /** For direct settlement where the provider supports it. */
   bank?: { code: string; accountNumber: string; accountName?: string };
   /** Where pooled balances are paid out. Bank details, a payout destination, or both. */
-  payoutDestination?: ManagedPayoutDestination;
+  payoutDestination?: GatewayPayoutDestination;
   /** Where the service reports account status changes for this tenant. */
   notificationUrl?: string;
 }
@@ -92,35 +90,38 @@ export interface OpenManagedAccount {
 const TIMEOUT_MS = 30_000;
 const SIGNATURE_TOLERANCE_S = 600;
 
-/** Managed settings from the environment, or null when this deployment has no subscription. */
-export function managedConfig(): ManagedConfig | null {
-  const baseUrl = process.env.MANAGED_PAYMENTS_URL;
-  const apiKey = process.env.MANAGED_PAYMENTS_API_KEY;
+/** Earlier names of the settings, read until each deployment has moved to the GATEWAY_ ones. */
+const setting = (name: 'URL' | 'API_KEY' | 'WEBHOOK_SECRET') => process.env[`GATEWAY_${name}`] || process.env[`MANAGED_PAYMENTS_${name}`];
+
+/** Gateway settings from the environment, or null when this deployment has no subscription. */
+export function gatewayConfig(): GatewayConfig | null {
+  const baseUrl = setting('URL');
+  const apiKey = setting('API_KEY');
   if (!baseUrl || !apiKey) return null;
-  return { baseUrl: baseUrl.replace(/\/$/, ''), apiKey, webhookSecret: process.env.MANAGED_PAYMENTS_WEBHOOK_SECRET };
+  return { baseUrl: baseUrl.replace(/\/$/, ''), apiKey, webhookSecret: setting('WEBHOOK_SECRET') };
 }
 
-export class ManagedPaymentsClient {
+export class GatewayClient {
   constructor(
-    private readonly config: ManagedConfig,
+    private readonly config: GatewayConfig,
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  openAccount(input: OpenManagedAccount) {
-    return this.request<ManagedAccount>('POST', '/v1/accounts', input, input.externalId);
+  openAccount(input: OpenGatewayAccount) {
+    return this.request<GatewayAccount>('POST', '/v1/accounts', input, input.externalId);
   }
 
-  updateAccount(id: string, changes: UpdateManagedAccount) {
-    return this.request<ManagedAccount>('POST', `/v1/accounts/${encodeURIComponent(id)}`, changes);
+  updateAccount(id: string, changes: UpdateGatewayAccount) {
+    return this.request<GatewayAccount>('POST', `/v1/accounts/${encodeURIComponent(id)}`, changes);
   }
 
   getAccount(id: string) {
-    return this.request<ManagedAccount>('GET', `/v1/accounts/${encodeURIComponent(id)}`);
+    return this.request<GatewayAccount>('GET', `/v1/accounts/${encodeURIComponent(id)}`);
   }
 
   /** Sandbox deployments: the merchant's account, set up from their approved live one (404 when they are not approved there). */
   mirrorAccount(externalId: string, notificationUrl: string) {
-    return this.request<ManagedAccount>('POST', '/v1/accounts/mirror', { externalId, notificationUrl });
+    return this.request<GatewayAccount>('POST', '/v1/accounts/mirror', { externalId, notificationUrl });
   }
 
   /** "t=…,v1=…" over the raw body, within ten minutes; constant-time compare. */
@@ -150,7 +151,7 @@ export class ManagedPaymentsClient {
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (error) {
-      throw new Error(`Could not reach managed payments: ${error instanceof Error ? error.message : error}`);
+      throw new Error(`Could not reach the payment gateway: ${error instanceof Error ? error.message : error}`);
     }
     const json = (await response.json().catch(() => null)) as (T & { message?: string }) | { message?: string } | null;
     if (!response.ok) return { status: response.status, data: null, error: json?.message ?? `HTTP ${response.status}` };
@@ -158,7 +159,7 @@ export class ManagedPaymentsClient {
   }
 }
 
-interface ManagedCollection {
+interface GatewayCollection {
   reference: string;
   status: 'pending' | 'succeeded' | 'failed';
   amount: string;
@@ -170,22 +171,22 @@ interface ManagedCollection {
   failureReason?: string;
 }
 
-/** What managed payments can collect; the service routes each method to a provider. */
-export const MANAGED_COLLECT: Rail[] = ['hosted', 'mobile_money', 'paypal'];
+/** What the payment gateway can collect; the service routes each method to a provider. */
+export const GATEWAY_COLLECT: Rail[] = ['hosted', 'mobile_money', 'paypal'];
 
-export class ManagedAdapter implements MoneyProvider {
-  readonly name = 'managed';
+export class GatewayAdapter implements MoneyProvider {
+  readonly name = 'gateway';
   // Hosted: the payer picks on the checkout page. Mobile money: a prompt on the payer's phone.
   // PayPal: PayPal's checkout. The service routes each to the provider it has for it.
-  readonly capabilities: Capabilities = { collect: MANAGED_COLLECT, payout: [], balance: false, verifyPayee: false };
-  private readonly client: ManagedPaymentsClient;
+  readonly capabilities: Capabilities = { collect: GATEWAY_COLLECT, payout: [], balance: false, verifyPayee: false };
+  private readonly client: GatewayClient;
 
   constructor(
-    private readonly credentials: ManagedCredentials,
-    config: ManagedConfig,
+    private readonly credentials: GatewayCredentials,
+    config: GatewayConfig,
     fetchImpl: typeof fetch = fetch,
   ) {
-    this.client = new ManagedPaymentsClient(config, fetchImpl);
+    this.client = new GatewayClient(config, fetchImpl);
   }
 
   async collect(request: CollectRequest): Promise<ProviderOutcome> {
@@ -202,12 +203,12 @@ export class ManagedAdapter implements MoneyProvider {
       method = 'paypal';
       customer = { email: payer.email, name: payer.name };
     } else {
-      return { state: 'failed', failureReason: `Managed payments cannot collect from ${payer.type.replace('_', ' ')}` };
+      return { state: 'failed', failureReason: `The payment gateway cannot collect from ${payer.type.replace('_', ' ')}` };
     }
     // Creating a checkout moves no money, so errors here are clean failures; the
     // Idempotency-Key makes a retry return the same checkout.
     const r = await this.client
-      .request<ManagedCollection>(
+      .request<GatewayCollection>(
         'POST',
         '/v1/collections',
         {
@@ -224,21 +225,21 @@ export class ManagedAdapter implements MoneyProvider {
         request.reference,
       )
       .catch((error: Error) => ({ status: 0, data: null, error: error.message }));
-    if (!r.data) return { state: 'failed', failureReason: r.error ?? 'Managed payments could not start the payment' };
+    if (!r.data) return { state: 'failed', failureReason: r.error ?? 'The payment gateway could not start the payment' };
     if (r.data.status === 'failed') return { state: 'failed', failureReason: r.data.failureReason ?? 'Payment failed' };
     if (r.data.checkoutUrl) return { state: 'pending', paymentUrl: r.data.checkoutUrl, providerStatus: 'CHECKOUT_CREATED' };
     // Mobile money: the payer approves a prompt on their phone; no page to visit.
     if (method === 'mobile_money') return { state: 'pending', providerStatus: 'PROMPT_SENT' };
-    return { state: 'failed', failureReason: 'Managed payments could not start the checkout' };
+    return { state: 'failed', failureReason: 'The payment gateway could not start the checkout' };
   }
 
   /** The service's answer decides; a settled amount other than the one asked for is held for review. */
   async getCollection(reference: string, _txn?: string | null, expected?: string): Promise<ProviderOutcome> {
-    const r = await this.client.request<ManagedCollection>(
+    const r = await this.client.request<GatewayCollection>(
       'GET',
       `/v1/collections/${encodeURIComponent(reference)}?account=${encodeURIComponent(this.credentials.accountId)}`,
     );
-    if (r.status === 404) return { state: 'failed', providerStatus: 'NOT_FOUND', failureReason: 'Managed payments has no record of this collection' };
+    if (r.status === 404) return { state: 'failed', providerStatus: 'NOT_FOUND', failureReason: 'The payment gateway has no record of this collection' };
     if (!r.data) return { state: 'pending', providerStatus: `HTTP_${r.status}` };
     const c = r.data;
     const fee = c.fees !== undefined ? Number(c.fees) : undefined;

@@ -70,7 +70,11 @@ export const validationSchema = Joi.object({
   PLATFORM_SERVICE_TOKEN: Joi.string().min(32).optional().allow(''),
   SANDBOX_MODE: Joi.string().valid('true', 'false', '').optional(),
   SANDBOX_LINK_SECRET: Joi.string().min(32).optional().allow(''),
-  // Managed payments subscription (private service); leave unset to offer only tenants' own providers.
+  // External payment gateway; leave unset to offer only tenants' own providers.
+  GATEWAY_URL: Joi.string().uri().optional().allow(''),
+  GATEWAY_API_KEY: Joi.string().optional().allow(''),
+  GATEWAY_WEBHOOK_SECRET: Joi.string().optional().allow(''),
+  // Earlier names of the three settings above.
   MANAGED_PAYMENTS_URL: Joi.string().uri().optional().allow(''),
   MANAGED_PAYMENTS_API_KEY: Joi.string().optional().allow(''),
   MANAGED_PAYMENTS_WEBHOOK_SECRET: Joi.string().optional().allow(''),

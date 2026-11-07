@@ -5,7 +5,7 @@ import { CHECKOUT_METHODS, MOBILE_MONEY_CURRENCIES, PAYPAL_CURRENCIES, methodBra
 import { CHECKOUT_PROVIDER_NAMES } from '../../providers/provider.factory';
 import { EncryptionService } from '../../services/encryption.service';
 import { isSandbox } from '../../config/sandbox';
-import { ManagedAccountsService } from '../money/managed.service';
+import { GatewayAccountsService } from '../money/gateway.service';
 import { InvoicesService, isTestCredentials } from '../invoices/invoices.service';
 
 /** A provider on the hosted checkout, with what the customer can use through it. */
@@ -20,7 +20,7 @@ export class PortalService {
 
   constructor(
     private readonly invoices: InvoicesService,
-    private readonly managed: ManagedAccountsService,
+    private readonly gateway: GatewayAccountsService,
     private readonly encryption: EncryptionService,
   ) {}
 
@@ -32,17 +32,17 @@ export class PortalService {
       orderBy: { priority: 'asc' },
     });
     const usable = active.filter((p) => isSandbox() || !isTestCredentials(JSON.parse(this.encryption.decrypt(p.credentials))));
-    let managed: readonly CheckoutMethod[] = [];
-    if (usable.some((p) => p.providerName === 'managed')) {
-      const status = await this.managed.status(db, tenantId).catch(() => null);
-      if (status?.account?.status === 'active') managed = status.account.methods ?? ['card'];
+    let gateway: readonly CheckoutMethod[] = [];
+    if (usable.some((p) => p.providerName === 'gateway')) {
+      const status = await this.gateway.status(db, tenantId).catch(() => null);
+      if (status?.account?.status === 'active') gateway = status.account.methods ?? ['card'];
     }
     const inCurrency = (method: CheckoutMethod) =>
       (method !== 'paypal' || PAYPAL_CURRENCIES.includes(currency)) && (method !== 'mobile_money' || MOBILE_MONEY_CURRENCIES.includes(currency));
     return usable
       .map(({ providerName: provider }) => ({
         provider,
-        methods: CHECKOUT_METHODS.filter((method) => (provider === 'managed' ? managed.includes(method) && inCurrency(method) : providerTakes(provider, method, currency))).map((method) => ({
+        methods: CHECKOUT_METHODS.filter((method) => (provider === 'gateway' ? gateway.includes(method) && inCurrency(method) : providerTakes(provider, method, currency))).map((method) => ({
           method,
           brands: methodBrands(provider, method, currency),
         })),
@@ -52,13 +52,13 @@ export class PortalService {
 
   /**
    * Whether this organisation's customers can pay by PayPal: through its own
-   * PayPal, or through managed payments when its account offers PayPal.
+   * PayPal, or through the payment gateway when its account offers PayPal.
    */
   async paymentOptions(db: PrismaClient, tenantId: string): Promise<{ paypal: boolean; paypalCurrencies: string[] }> {
-    const active = await db.paymentProvider.findMany({ where: { isActive: true, providerName: { in: ['paypal', 'managed'] } }, select: { providerName: true } });
+    const active = await db.paymentProvider.findMany({ where: { isActive: true, providerName: { in: ['paypal', 'gateway'] } }, select: { providerName: true } });
     let paypal = active.some((p) => p.providerName === 'paypal');
-    if (!paypal && active.some((p) => p.providerName === 'managed')) {
-      const status = await this.managed.status(db, tenantId).catch(() => null);
+    if (!paypal && active.some((p) => p.providerName === 'gateway')) {
+      const status = await this.gateway.status(db, tenantId).catch(() => null);
       paypal = status?.account?.status === 'active' && (status.account.methods ?? []).includes('paypal');
     }
     return { paypal, paypalCurrencies: PAYPAL_CURRENCIES };
@@ -214,7 +214,7 @@ export class PortalService {
 
     if (hosted && tenantId) return this.invoices.createHostedCheckout(db, invoiceId, tenantId, { callbackUrl });
 
-    // The same checkout as the API: providers in priority order, managed payments last.
+    // The same checkout as the API: providers in priority order, the payment gateway last.
     const result = await this.invoices.createCheckout(db, invoiceId, callbackUrl, undefined, tenantId, undefined, method);
 
     return {
