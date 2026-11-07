@@ -23,7 +23,7 @@ const OPEN_INVOICE = ['DRAFT', 'PENDING', 'FAILED'] as const;
  * The hosted cloud bills its organisations with its own product: the cloud
  * plans are plans in the operator organisation's billing, each organisation
  * is a customer there (its id as the external id), and paying the Growth
- * invoice (by checkout through managed payments) moves the organisation onto
+ * invoice (by checkout through the payment gateway) moves the organisation onto
  * Growth. Everyone else is on Free. Only on the hosted cloud (see
  * cloudPlansEnabled); self-hosted deployments have no plans or limits.
  */
@@ -123,9 +123,8 @@ export class CloudPlansService implements OnApplicationBootstrap {
         (old) => Object.keys(old).length === Object.keys(current).length && Object.entries(old).every(([c, a]) => current[c] === a),
       );
       if (!superseded) {
-        // Free's features state its limits, which live in code, so they always follow it,
-        // and no plan may go on offering managed payments, which are by invitation.
-        if (plan.tier === 'free' || JSON.stringify(existing.features ?? '').includes('managed payments')) await db.plan.update({ where: { id: existing.id }, data: { features: plan.features } });
+        // Free's features state its limits, which live in code, so they always follow it.
+        if (plan.tier === 'free') await db.plan.update({ where: { id: existing.id }, data: { features: plan.features } });
         continue;
       }
       await db.$transaction([
@@ -192,7 +191,7 @@ export class CloudPlansService implements OnApplicationBootstrap {
   /**
    * Bring an organisation's plan in line with what it has paid: a Growth
    * invoice paid for the current period (or within the grace period after it)
-   * keeps it on Growth; otherwise it is on Free. Open managed checkouts are
+   * keeps it on Growth; otherwise it is on Free. Open gateway checkouts are
    * checked first, in case their notification was missed.
    */
   async sync(tenantId: string): Promise<void> {
@@ -239,16 +238,16 @@ export class CloudPlansService implements OnApplicationBootstrap {
     }
   }
 
-  /** Managed checkouts still processing for this customer: ask managed payments and settle them. */
+  /** Gateway checkouts still processing for this customer: ask the payment gateway and settle them. */
   private async settleOpenCheckouts(db: PrismaClient, operatorId: string, customerId: string) {
     const open = await db.payment.findMany({
-      where: { provider: 'managed', status: 'PROCESSING', invoice: { customerId, status: { in: [...OPEN_INVOICE] } }, createdAt: { gt: new Date(Date.now() - 7 * DAY) } },
+      where: { provider: 'gateway', status: 'PROCESSING', invoice: { customerId, status: { in: [...OPEN_INVOICE] } }, createdAt: { gt: new Date(Date.now() - 7 * DAY) } },
       select: { id: true },
       take: 10,
     });
     if (!open.length) return;
     const webhooks = this.moduleRef.get(WebhooksController, { strict: false });
-    for (const p of open) await webhooks.settleManagedPayment(db, operatorId, p.id).catch(() => undefined);
+    for (const p of open) await webhooks.settleGatewayPayment(db, operatorId, p.id).catch(() => undefined);
   }
 
   /** What an organisation is on, what it uses, and what it can move to. */
@@ -370,7 +369,9 @@ export class CloudPlansService implements OnApplicationBootstrap {
       const link = await this.invoices.createHostedCheckout(db, invoice.id, operator.id, { callbackUrl: back });
       return { url: link.checkoutUrl };
     }
-    const provider = process.env.CLOUD_BILLING_PROVIDER || 'managed';
+    // A deployment may still name the gateway by its earlier code.
+    const configured = process.env.CLOUD_BILLING_PROVIDER;
+    const provider = !configured || configured === 'managed' ? 'gateway' : configured;
     const result = await this.invoices.createCheckout(db, invoice.id, back, provider, operator.id, undefined, method);
     return { url: result.checkoutUrl! };
   }

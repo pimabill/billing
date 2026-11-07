@@ -37,7 +37,7 @@ describe('what a provider names for a method', () => {
     expect(methodBrands('flutterwave', 'mobile_money', 'UGX')).toEqual(['MTN', 'Airtel']);
     expect(methodBrands('flutterwave', 'mobile_money', 'KES')).toEqual(['M-Pesa']);
     expect(methodBrands('paystack', 'mobile_money', 'KES')).toEqual(['M-Pesa', 'Airtel Money']);
-    expect(methodBrands('managed', 'mobile_money', 'ZMW')).toEqual(['MTN', 'Airtel', 'Zamtel']);
+    expect(methodBrands('gateway', 'mobile_money', 'ZMW')).toEqual(['MTN', 'Airtel', 'Zamtel']);
     expect(methodBrands('dpo', 'mobile_money', 'TZS')).toEqual(['Vodacom', 'Airtel', 'Tigo', 'Halotel', 'Zantel', 'TTCL']);
     expect(methodBrands('dpo-group', 'card', 'UGX')).toEqual(['Visa', 'Mastercard', 'American Express']);
   });
@@ -52,21 +52,21 @@ describe('what a provider names for a method', () => {
 describe('PortalService.checkoutOptions', () => {
   const encryption = { decrypt: (value: string) => value };
   const options = (providers: { providerName: string; credentials?: string }[], account: unknown, currency: string) => {
-    const managed = { status: jest.fn(async () => ({ account })) };
-    const service = new PortalService({} as never, managed as never, encryption as never);
+    const gateway = { status: jest.fn(async () => ({ account })) };
+    const service = new PortalService({} as never, gateway as never, encryption as never);
     const db = { paymentProvider: { findMany: async () => providers.map((p) => ({ credentials: '{}', ...p })) } };
     return service.checkoutOptions(db as never, 'ten_1', currency);
   };
   const methods = async (...args: Parameters<typeof options>) => [...new Set((await options(...args)).flatMap((o) => o.methods.map((m) => m.method)))];
 
-  it('offers what the managed account takes, in that currency', async () => {
+  it('offers what the gateway account takes, in that currency', async () => {
     const account = { status: 'active', methods: ['card', 'mobile_money', 'paypal'] };
-    expect(await methods([{ providerName: 'managed' }], account, 'UGX')).toEqual(['card', 'mobile_money']);
-    expect(await methods([{ providerName: 'managed' }], account, 'USD')).toEqual(['card', 'paypal']);
+    expect(await methods([{ providerName: 'gateway' }], account, 'UGX')).toEqual(['card', 'mobile_money']);
+    expect(await methods([{ providerName: 'gateway' }], account, 'USD')).toEqual(['card', 'paypal']);
   });
 
-  it('offers nothing through a managed account that is not active', async () => {
-    expect(await methods([{ providerName: 'managed' }], { status: 'suspended', methods: ['card'] }, 'UGX')).toEqual([]);
+  it('offers nothing through a gateway account that is not active', async () => {
+    expect(await methods([{ providerName: 'gateway' }], { status: 'suspended', methods: ['card'] }, 'UGX')).toEqual([]);
   });
 
   it("adds the organisation's own providers and skips test credentials", async () => {
@@ -96,7 +96,7 @@ describe('InvoicesService.createCheckout with a chosen method', () => {
     const db = { invoice: { findUnique: async () => invoice }, paymentProvider: { findMany } };
     await expect(service.createCheckout(db as never, 'inv_1', undefined, undefined, 'ten_1', undefined, 'mobile_money')).rejects.toThrow('No active payment provider takes mobile money in UGX');
     const names = (findMany.mock.calls[0] as unknown as [{ where: { providerName: { in: string[] } } }])[0].where.providerName.in;
-    expect(names).toEqual(expect.arrayContaining(['flutterwave', 'managed']));
+    expect(names).toEqual(expect.arrayContaining(['flutterwave', 'gateway']));
     expect(names).not.toContain('stripe');
   });
 });

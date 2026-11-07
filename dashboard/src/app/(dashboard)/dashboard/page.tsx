@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { apiClient } from "@/lib/api/client";
-import { moneyApi, type ManagedAccount } from "@/lib/api/money";
+import { moneyApi, type GatewayAccount } from "@/lib/api/money";
 import { planApi, type PlanStatus } from "@/lib/api/plan";
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatRelativeTime } from "@/lib/utils/date";
@@ -35,7 +35,7 @@ interface Overview {
   revenue: RevenueData[];
   activity: ActivityEvent[];
   providers: PaymentProvider[];
-  managed: { available: boolean; account: ManagedAccount | null } | null;
+  gateway: { available: boolean; account: GatewayAccount | null } | null;
   plan: PlanStatus | null;
   plansCount: number;
   apiKeys: number;
@@ -53,7 +53,7 @@ interface ByCurrency {
 
 const unwrap = (j: any) => j?.data?.data ?? j?.data ?? j;
 
-const managedLabel: Record<ManagedAccount["status"], { text: string; variant: "success" | "warning" | "error" | "secondary" }> = {
+const gatewayLabel: Record<GatewayAccount["status"], { text: string; variant: "success" | "warning" | "error" | "secondary" }> = {
   active: { text: "Active", variant: "success" },
   pending_review: { text: "In review", variant: "warning" },
   rejected: { text: "Not approved", variant: "error" },
@@ -74,13 +74,13 @@ export default function DashboardPage() {
   useEffect(() => {
     (async () => {
       const soft = <T,>(p: Promise<T>, fallback: T) => p.catch(() => fallback);
-      const [profile, kpis, revenue, activity, providers, managed, plan, plans, keys, customers, subscriptions, byCurrency] = await Promise.all([
+      const [profile, kpis, revenue, activity, providers, gateway, plan, plans, keys, customers, subscriptions, byCurrency] = await Promise.all([
         soft(apiClient.tenant.getProfile(), null),
         soft(apiClient.analytics.getKPIs(), null),
         soft(apiClient.analytics.getRevenueData(), []),
         soft(apiClient.activity.list(8), []),
         soft(apiClient.providers.list(), []),
-        soft(moneyApi.managedStatus(), null),
+        soft(moneyApi.gatewayStatus(), null),
         soft(planApi.status(), null),
         soft(apiClient.plans.list(), []),
         soft(fetch("/api/proxy/tenants/me/api-keys", { credentials: "include" }).then((r) => (r.ok ? r.json() : [])), []),
@@ -95,7 +95,7 @@ export default function DashboardPage() {
         revenue,
         activity,
         providers,
-        managed,
+        gateway,
         plan,
         plansCount: plans.length,
         apiKeys: (unwrap(keys) as unknown[])?.length ?? 0,
@@ -111,16 +111,16 @@ export default function DashboardPage() {
   const kpis = data?.kpis;
   const reporting: string = kpis?.currency ?? "USD";
   const ownProviders = data?.providers.filter((p) => p.isConfigured && p.isActive) ?? [];
-  const managed = data?.managed?.account ?? null;
-  const canTakePayments = ownProviders.length > 0 || managed?.status === "active";
+  const gateway = data?.gateway?.account ?? null;
+  const canTakePayments = ownProviders.length > 0 || gateway?.status === "active";
 
   const steps = data
     ? [
         {
           done: canTakePayments,
           title: "Take payments",
-          text: data.managed?.available ? "Connect your own provider, or apply for managed payments and use ours." : "Connect a payment provider so customers can pay you.",
-          href: data.managed?.available ? "/money?tab=managed" : "/providers",
+          text: data.gateway?.available ? "Connect your own provider, or apply for the payment gateway." : "Connect a payment provider so customers can pay you.",
+          href: data.gateway?.available ? "/money?tab=gateway" : "/providers",
           icon: CreditCard,
         },
         { done: data.plansCount > 0, title: "Create a plan", text: "What you sell, its prices and billing interval.", href: "/plans", icon: Package },
@@ -236,16 +236,16 @@ export default function DashboardPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 text-sm">
-              {data?.managed?.available && (
+              {data?.gateway?.available && (
                 <div className="flex items-center justify-between gap-2">
-                  <span>Managed payments</span>
-                  {managed ? (
+                  <span>Payment gateway</span>
+                  {gateway ? (
                     <span className="flex items-center gap-2">
-                      {managed.status === "active" && managed.fee && <span className="text-xs text-muted-foreground">{managed.fee.value}% fee</span>}
-                      <Badge variant={managedLabel[managed.status].variant}>{managedLabel[managed.status].text}</Badge>
+                      {gateway.status === "active" && gateway.fee && <span className="text-xs text-muted-foreground">{gateway.fee.value}% fee</span>}
+                      <Badge variant={gatewayLabel[gateway.status].variant}>{gatewayLabel[gateway.status].text}</Badge>
                     </span>
                   ) : (
-                    <Link href="/money?tab=managed" className="flex items-center gap-1 text-primary hover:underline">
+                    <Link href="/money?tab=gateway" className="flex items-center gap-1 text-primary hover:underline">
                       Apply <ArrowRight className="h-3 w-3" aria-hidden />
                     </Link>
                   )}

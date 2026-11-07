@@ -7,14 +7,14 @@ import { CollectionsController, MoneySettingsController, PayoutsController, Tran
 import { MoneyPollerService } from './money-poller.service';
 import { MoneyService } from './money.service';
 import { ProviderRegistryService } from './provider-registry.service';
-import { ManagedAccountsService } from './managed.service';
+import { GatewayAccountsService } from './gateway.service';
 import { YoWebhooksController } from './yo-webhooks.controller';
 import { OperatorWebhooksController } from './operator-webhooks.controller';
 
 @Module({
   imports: [WalletsModule, BullModule.registerQueue({ name: WEBHOOK_QUEUE })],
   controllers: [CollectionsController, PayoutsController, TransfersController, MoneySettingsController, YoWebhooksController, OperatorWebhooksController],
-  providers: [MoneyService, ProviderRegistryService, ManagedAccountsService, MoneyPollerService, IdempotencyInterceptor],
-  exports: [MoneyService, ManagedAccountsService],
+  providers: [MoneyService, ProviderRegistryService, GatewayAccountsService, MoneyPollerService, IdempotencyInterceptor],
+  exports: [MoneyService, GatewayAccountsService],
 })
 export class MoneyModule {}

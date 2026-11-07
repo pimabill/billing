@@ -1,28 +1,29 @@
 import { createHmac } from 'crypto';
 import { plainToInstance } from 'class-transformer';
 import { validateSync } from 'class-validator';
-import { OpenManagedAccountDto } from '../../../src/modules/money/dto/money.dto';
-import { ManagedAdapter, ManagedPaymentsClient } from '../../../src/modules/money/adapters/managed.adapter';
-import { ManagedAccountsService } from '../../../src/modules/money/managed.service';
+import { OpenGatewayAccountDto } from '../../../src/modules/money/dto/money.dto';
+import { GatewayAdapter, GatewayClient, gatewayConfig } from '../../../src/modules/money/adapters/gateway.adapter';
+import { WebhooksController } from '../../../src/modules/webhooks/webhooks.controller';
+import { GatewayAccountsService } from '../../../src/modules/money/gateway.service';
 
 const json = (body: unknown, status = 200) => Promise.resolve({ ok: status < 400, status, json: async () => body } as Response);
-const config = { baseUrl: 'https://managed.example.com', apiKey: 'inst_key', webhookSecret: 'whsec' };
+const config = { baseUrl: 'https://gateway.example.com', apiKey: 'inst_key', webhookSecret: 'whsec' };
 
-describe('ManagedAdapter', () => {
+describe('GatewayAdapter', () => {
   it('creates a checkout on the tenant account, keyed by our reference', async () => {
     const fetch = jest.fn(() => json({ reference: 'col_1', status: 'pending', amount: '50000', currency: 'UGX', checkoutUrl: 'https://checkout.flutterwave.com/x' }));
-    const out = await new ManagedAdapter({ accountId: 'acc_9' }, config, fetch as never).collect({
+    const out = await new GatewayAdapter({ accountId: 'acc_9' }, config, fetch as never).collect({
       reference: 'col_1',
       amount: '50000',
       currency: 'UGX',
       payer: { type: 'hosted', email: 'payer@example.com', name: 'Jane' },
       description: 'Order 1',
       callbackUrl: 'https://shop.example.com/done',
-      notificationUrl: 'https://api.example.com/webhooks/managed/t1/callback',
+      notificationUrl: 'https://api.example.com/webhooks/gateway/t1/callback',
     });
     const [url, init] = (fetch.mock.calls[0] as unknown) as [string, RequestInit];
     const headers = init.headers as Record<string, string>;
-    expect(url).toBe('https://managed.example.com/v1/collections');
+    expect(url).toBe('https://gateway.example.com/v1/collections');
     expect(headers.Authorization).toBe('Bearer inst_key');
     expect(headers['Idempotency-Key']).toBe('col_1');
     expect(JSON.parse(String(init.body))).toMatchObject({ account: 'acc_9', reference: 'col_1', amount: '50000', currency: 'UGX', customer: { email: 'payer@example.com' } });
@@ -31,7 +32,7 @@ describe('ManagedAdapter', () => {
 
   it('sends mobile money as a phone prompt, with no checkout page', async () => {
     const fetch = jest.fn(() => json({ reference: 'col_2', status: 'pending', method: 'mobile_money', amount: '50000', currency: 'UGX' }));
-    const out = await new ManagedAdapter({ accountId: 'acc_9' }, config, fetch as never).collect({
+    const out = await new GatewayAdapter({ accountId: 'acc_9' }, config, fetch as never).collect({
       reference: 'col_2',
       amount: '50000',
       currency: 'UGX',
@@ -46,7 +47,7 @@ describe('ManagedAdapter', () => {
 
   it('sends PayPal payers to PayPal', async () => {
     const fetch = jest.fn(() => json({ reference: 'col_3', status: 'pending', amount: '25.00', currency: 'USD', checkoutUrl: 'https://paypal.example/approve' }));
-    const out = await new ManagedAdapter({ accountId: 'acc_9' }, config, fetch as never).collect({
+    const out = await new GatewayAdapter({ accountId: 'acc_9' }, config, fetch as never).collect({
       reference: 'col_3',
       amount: '25.00',
       currency: 'USD',
@@ -61,19 +62,19 @@ describe('ManagedAdapter', () => {
   it('reports refusals and outages as clean failures', async () => {
     const refused = jest.fn(() => json({ message: 'Account is pending review' }, 409));
     const payer = { type: 'hosted' as const, email: 'p@example.com' };
-    expect(await new ManagedAdapter({ accountId: 'a' }, config, refused as never).collect({ reference: 'c', amount: '1', currency: 'UGX', payer, description: 'x' })).toEqual({
+    expect(await new GatewayAdapter({ accountId: 'a' }, config, refused as never).collect({ reference: 'c', amount: '1', currency: 'UGX', payer, description: 'x' })).toEqual({
       state: 'failed',
       failureReason: 'Account is pending review',
     });
     const down = jest.fn(() => Promise.reject(new TypeError('fetch failed')));
-    expect(await new ManagedAdapter({ accountId: 'a' }, config, down as never).collect({ reference: 'c', amount: '1', currency: 'UGX', payer, description: 'x' })).toMatchObject({
+    expect(await new GatewayAdapter({ accountId: 'a' }, config, down as never).collect({ reference: 'c', amount: '1', currency: 'UGX', payer, description: 'x' })).toMatchObject({
       state: 'failed',
-      failureReason: expect.stringMatching(/Could not reach managed payments/),
+      failureReason: expect.stringMatching(/Could not reach the payment gateway/),
     });
   });
 
   it('takes the status, fees and processor reference from the service, holding amount mismatches', async () => {
-    const check = (body: unknown, status = 200) => new ManagedAdapter({ accountId: 'acc_9' }, config, jest.fn(() => json(body, status)) as never).getCollection('col_1', null, '50000');
+    const check = (body: unknown, status = 200) => new GatewayAdapter({ accountId: 'acc_9' }, config, jest.fn(() => json(body, status)) as never).getCollection('col_1', null, '50000');
     expect(await check({ status: 'succeeded', amount: '50000', currency: 'UGX', providerReference: 'FLW-1', fees: '1750' })).toEqual({
       state: 'succeeded',
       providerStatus: 'SUCCEEDED',
@@ -87,23 +88,23 @@ describe('ManagedAdapter', () => {
   });
 });
 
-describe('ManagedPaymentsClient.updateAccount', () => {
+describe('GatewayClient.updateAccount', () => {
   it('sends only the changed details to the account', async () => {
     const fetch = jest.fn(() => json({ id: 'acc_9', status: 'active', businessName: 'Rapcio', country: 'UG', currency: 'UGX', phone: '+256762746464', payoutDestination: 'Mobile money ****6464' }));
-    const r = await new ManagedPaymentsClient(config, fetch as never).updateAccount('acc_9', {
+    const r = await new GatewayClient(config, fetch as never).updateAccount('acc_9', {
       phone: '+256762746464',
       payoutDestination: { type: 'mobile_money', msisdn: '256762746464', name: 'Rapcio Ltd' },
     });
     const [url, init] = (fetch.mock.calls[0] as unknown) as [string, RequestInit];
-    expect(url).toBe('https://managed.example.com/v1/accounts/acc_9');
+    expect(url).toBe('https://gateway.example.com/v1/accounts/acc_9');
     expect(init.method).toBe('POST');
     expect(JSON.parse(String(init.body))).toEqual({ phone: '+256762746464', payoutDestination: { type: 'mobile_money', msisdn: '256762746464', name: 'Rapcio Ltd' } });
     expect(r.data).toMatchObject({ payoutDestination: 'Mobile money ****6464' });
   });
 });
 
-describe('managed notification signatures', () => {
-  const client = new ManagedPaymentsClient(config);
+describe('gateway notification signatures', () => {
+  const client = new GatewayClient(config);
   const sign = (body: string, t = Math.floor(Date.now() / 1000)) => `t=${t},v1=${createHmac('sha256', 'whsec').update(`${t}.${body}`).digest('hex')}`;
 
   it('accepts fresh signatures over the exact body only', () => {
@@ -112,11 +113,11 @@ describe('managed notification signatures', () => {
     expect(client.verifySignature(body.replace('col_1', 'col_2'), sign(body))).toBe(false);
     expect(client.verifySignature(body, sign(body, Math.floor(Date.now() / 1000) - 3600))).toBe(false);
     expect(client.verifySignature(body, undefined)).toBe(false);
-    expect(new ManagedPaymentsClient({ ...config, webhookSecret: undefined }).verifySignature(body, sign(body))).toBe(false);
+    expect(new GatewayClient({ ...config, webhookSecret: undefined }).verifySignature(body, sign(body))).toBe(false);
   });
 });
 
-describe('ManagedAccountsService', () => {
+describe('GatewayAccountsService', () => {
   const encryption = { encrypt: (v: string) => `enc:${v}`, decrypt: (v: string) => v.slice(4) };
   const tenants: Record<string, { isPlatformOperator: boolean; tenantBilling: { planId: string | null } | null }> = {
     operator: { isPlatformOperator: true, tenantBilling: null },
@@ -127,27 +128,27 @@ describe('ManagedAccountsService', () => {
     none: { isPlatformOperator: false, tenantBilling: { planId: null } },
   };
   const central = { client: { tenant: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => tenants[where.id] ?? null) } } };
-  const service = new ManagedAccountsService(encryption as never, central as never);
+  const service = new GatewayAccountsService(encryption as never, central as never);
 
-  it('keeps the managed connection active only while the account is, at the lowest priority', async () => {
+  it('keeps the gateway connection active only while the account is, at the lowest priority', async () => {
     const upsert = jest.fn();
     const db = { paymentProvider: { upsert, findUnique: jest.fn(async () => null) } };
     await service.sync(db as never, { id: 'acc_9', status: 'pending_review' });
     const call = upsert.mock.calls[0][0];
-    expect(call).toMatchObject({ where: { providerName: 'managed' }, create: { providerName: 'managed', isActive: false, priority: 1000 }, update: { isActive: false } });
+    expect(call).toMatchObject({ where: { providerName: 'gateway' }, create: { providerName: 'gateway', isActive: false, priority: 1000 }, update: { isActive: false } });
     expect(JSON.parse(call.create.credentials.slice(4))).toMatchObject({ accountId: 'acc_9', status: 'pending_review' });
     await service.sync(db as never, { id: 'acc_9', status: 'active' });
     expect(upsert.mock.calls[1][0].update.isActive).toBe(true);
   });
 
-  it('reports managed payments as unavailable without a subscription', async () => {
-    delete process.env.MANAGED_PAYMENTS_URL;
+  it('reports the payment gateway as unavailable without a subscription', async () => {
+    delete process.env.GATEWAY_URL;
     expect(await service.status({} as never, 'free')).toEqual({ available: false, account: null });
   });
 
-  it('offers managed payments only to partners, Enterprise and the operator', async () => {
-    process.env.MANAGED_PAYMENTS_URL = 'https://managed.example.com';
-    process.env.MANAGED_PAYMENTS_API_KEY = 'inst_key';
+  it('offers the payment gateway only to partners, Enterprise and the operator', async () => {
+    process.env.GATEWAY_URL = 'https://gateway.example.com';
+    process.env.GATEWAY_API_KEY = 'inst_key';
     delete process.env.CLOUD_PLANS;
     try {
       expect(await service.allowedFor('free')).toBe(false);
@@ -158,15 +159,15 @@ describe('ManagedAccountsService', () => {
       expect(await service.allowedFor('none')).toBe(false);
       expect(await service.allowedFor('missing')).toBe(false);
     } finally {
-      delete process.env.MANAGED_PAYMENTS_URL;
-      delete process.env.MANAGED_PAYMENTS_API_KEY;
+      delete process.env.GATEWAY_URL;
+      delete process.env.GATEWAY_API_KEY;
     }
   });
 });
 
-describe('OpenManagedAccountDto', () => {
+describe('OpenGatewayAccountDto', () => {
   const base = { businessName: 'Rapcio Ltd', email: 'finance@rapcio.com', phone: '+256700000001', country: 'UG', currency: 'UGX' };
-  const errors = (body: Record<string, unknown>) => validateSync(plainToInstance(OpenManagedAccountDto, { ...base, ...body })).map((e) => e.property);
+  const errors = (body: Record<string, unknown>) => validateSync(plainToInstance(OpenGatewayAccountDto, { ...base, ...body })).map((e) => e.property);
 
   it('takes bank details, a payout destination, or both', () => {
     expect(errors({ bank: { code: '031', accountNumber: '9030012345678' } })).toEqual([]);
@@ -183,7 +184,7 @@ describe('OpenManagedAccountDto', () => {
   });
 });
 
-describe('ManagedAccountsService status changes', () => {
+describe('GatewayAccountsService status changes', () => {
   const setup = () => {
     let stored: string | null = null;
     const db = {
@@ -207,7 +208,7 @@ describe('ManagedAccountsService status changes', () => {
       },
     };
     const email = { sendHtml: jest.fn(async () => true) };
-    const service = new ManagedAccountsService(encryption as never, central as never, email as never);
+    const service = new GatewayAccountsService(encryption as never, central as never, email as never);
     return { db, email, service, stored: () => (stored ? JSON.parse(stored) : null) };
   };
 
@@ -218,7 +219,7 @@ describe('ManagedAccountsService status changes', () => {
 
     await service.sync(db as never, { id: 'acc_1', status: 'active', fee: { type: 'percentage', value: 1 } }, 't1');
     expect(email.sendHtml).toHaveBeenCalledTimes(2);
-    expect((email.sendHtml.mock.calls[0] as unknown[])[1]).toBe('Managed payments are on for Acme');
+    expect((email.sendHtml.mock.calls[0] as unknown[])[1]).toBe('The payment gateway is on for Acme');
     expect((email.sendHtml.mock.calls[0] as unknown[])[2]).toContain('1% per payment');
     expect(stored()).toMatchObject({ accountId: 'acc_1', status: 'active', statusChangedAt: expect.any(String) });
 
@@ -227,13 +228,13 @@ describe('ManagedAccountsService status changes', () => {
     expect(email.sendHtml).toHaveBeenCalledTimes(2);
 
     await service.sync(db as never, { id: 'acc_1', status: 'suspended', reason: 'Chargebacks <b>high</b>' }, 't1');
-    expect((email.sendHtml.mock.calls[2] as unknown[])[1]).toBe('Managed payments for Acme are paused');
+    expect((email.sendHtml.mock.calls[2] as unknown[])[1]).toBe('The payment gateway for Acme is paused');
     expect((email.sendHtml.mock.calls[2] as unknown[])[2]).toContain('Chargebacks &lt;b&gt;high&lt;/b&gt;');
     expect(stored().reason).toBe('Chargebacks <b>high</b>');
   });
 });
 
-describe('ManagedAccountsService in the sandbox', () => {
+describe('GatewayAccountsService in the sandbox', () => {
   const env = { ...process.env };
   afterEach(() => {
     process.env = { ...env };
@@ -242,9 +243,9 @@ describe('ManagedAccountsService in the sandbox', () => {
 
   it('sets the sandbox account up from the approved live one instead of asking for an application', async () => {
     process.env.SANDBOX_MODE = 'true';
-    process.env.MANAGED_PAYMENTS_URL = 'https://managed.example.com';
-    process.env.MANAGED_PAYMENTS_API_KEY = 'inst_sandbox';
-    process.env.MANAGED_PAYMENTS_WEBHOOK_SECRET = 'whsec';
+    process.env.GATEWAY_URL = 'https://gateway.example.com';
+    process.env.GATEWAY_API_KEY = 'inst_sandbox';
+    process.env.GATEWAY_WEBHOOK_SECRET = 'whsec';
     const fetchMock = jest.spyOn(global, 'fetch').mockImplementation(async (url) =>
       String(url).endsWith('/v1/accounts/mirror')
         ? ({ ok: true, status: 200, json: async () => ({ id: 'acc_sbx', status: 'active', businessName: 'Acme', country: 'UG', currency: 'UGX', methods: ['card'] }) } as Response)
@@ -261,14 +262,34 @@ describe('ManagedAccountsService in the sandbox', () => {
       },
     };
     const email = { sendHtml: jest.fn() };
-    const service = new ManagedAccountsService({ encrypt: (v: string) => v, decrypt: (v: string) => v } as never, {} as never, email as never);
+    const service = new GatewayAccountsService({ encrypt: (v: string) => v, decrypt: (v: string) => v } as never, {} as never, email as never);
 
     const result = await service.status(db as never, 'ten_1');
     expect(result).toEqual({ available: true, account: expect.objectContaining({ id: 'acc_sbx', status: 'active' }) });
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe('https://managed.example.com/v1/accounts/mirror');
-    expect(JSON.parse(String(init.body))).toMatchObject({ externalId: 'ten_1', notificationUrl: expect.stringContaining('/webhooks/managed/ten_1/callback') });
+    expect(url).toBe('https://gateway.example.com/v1/accounts/mirror');
+    expect(JSON.parse(String(init.body))).toMatchObject({ externalId: 'ten_1', notificationUrl: expect.stringContaining('/webhooks/gateway/ten_1/callback') });
     expect(JSON.parse(stored!)).toMatchObject({ accountId: 'acc_sbx', status: 'active' });
     expect(email.sendHtml).not.toHaveBeenCalled();
+  });
+
+  it('reads the earlier names of the settings until a deployment has moved', () => {
+    delete process.env.GATEWAY_URL;
+    delete process.env.GATEWAY_API_KEY;
+    process.env.MANAGED_PAYMENTS_URL = 'https://gateway.example.com/';
+    process.env.MANAGED_PAYMENTS_API_KEY = 'inst_key';
+    try {
+      expect(gatewayConfig()).toEqual({ baseUrl: 'https://gateway.example.com', apiKey: 'inst_key', webhookSecret: undefined });
+      process.env.GATEWAY_URL = 'https://new.example.com';
+      expect(gatewayConfig()?.baseUrl).toBe('https://new.example.com');
+    } finally {
+      delete process.env.GATEWAY_URL;
+      delete process.env.MANAGED_PAYMENTS_URL;
+      delete process.env.MANAGED_PAYMENTS_API_KEY;
+    }
+  });
+
+  it('keeps answering at the earlier notification address, which open payments still hold', () => {
+    expect(Reflect.getMetadata('path', WebhooksController.prototype.gatewayPayments)).toEqual(['gateway/:tenantId/callback', 'managed/:tenantId/callback']);
   });
 });

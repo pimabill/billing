@@ -29,12 +29,12 @@ export const PROVIDER_CATALOGUE: CatalogueEntry[] = [
   { code: 'binance_pay', name: 'Binance Pay', description: 'Payers pay from their Binance account (app, QR or link): no network fee, settles instantly to your Binance Pay balance' },
 ];
 
-const NAMES: Record<string, string> = { managed: 'Managed payments', 'dpo-group': 'DPO Group' };
+const NAMES: Record<string, string> = { gateway: 'Payment gateway', 'dpo-group': 'DPO Group' };
 
 export const providerName = (code: string) => PROVIDER_CATALOGUE.find((p) => p.code === code)?.name ?? NAMES[code] ?? code;
 
 const DESCRIPTIONS: Record<string, string> = {
-  managed: 'Payments taken for you (card and mobile money), paid out to your account',
+  gateway: 'Payments taken for you by an external gateway, paid out to your account',
 };
 
 export const providerDescription = (code: string) => PROVIDER_CATALOGUE.find((p) => p.code === code)?.description ?? DESCRIPTIONS[code] ?? null;
@@ -49,7 +49,7 @@ const CALLBACK = new Set(['mtn_momo', 'airtel_money', 'nowpayments', 'eversend',
 export function webhookUrlFor(code: string, tenantId: string): string | null {
   const base = `${(process.env.API_BASE_URL || 'http://localhost:4000').replace(/\/$/, '')}/webhooks`;
   if (WATCHED.has(code)) return null;
-  if (code === 'managed') return `${base}/managed/${tenantId}/callback`;
+  if (code === 'gateway') return `${base}/gateway/${tenantId}/callback`;
   if (code === 'yo') return `${base}/yo/${tenantId}/ipn`;
   if (CALLBACK.has(code)) return `${base}/${code}/${tenantId}/callback`;
   if (SHARED.has(code)) return `${base}/${code}`;

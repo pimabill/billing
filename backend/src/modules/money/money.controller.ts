@@ -29,12 +29,12 @@ import {
   VerifyPayeeDto,
   RequestOtpDto,
   AssignDepositDto,
-  OpenManagedAccountDto,
-  UpdateManagedAccountDto,
+  OpenGatewayAccountDto,
+  UpdateGatewayAccountDto,
 } from './dto/money.dto';
 import {
-  ManagedAccountResponse,
-  ManagedStatusResponse,
+  GatewayAccountResponse,
+  GatewayStatusResponse,
   MoneyCapabilitiesResponse,
   MoneyMovementResponse,
   MoneySettingsResponse,
@@ -45,7 +45,7 @@ import {
   VerifyPayeeResponse,
 } from './dto/money-response.dto';
 import { MoneyService } from './money.service';
-import { ManagedAccountsService } from './managed.service';
+import { GatewayAccountsService } from './gateway.service';
 
 const IDEMPOTENCY_HEADER = {
   name: 'Idempotency-Key',
@@ -245,40 +245,40 @@ export class TransfersController {
 export class MoneySettingsController {
   constructor(
     private readonly money: MoneyService,
-    private readonly managed: ManagedAccountsService,
+    private readonly gateway: GatewayAccountsService,
   ) {}
 
-  @Get('managed')
+  @Get('gateway')
   @ApiExcludeEndpoint()
-  @ApiOperation({ summary: 'Whether managed payments are offered here, and this account\'s managed account if it has one' })
-  @ApiResponse({ status: 200, description: 'Availability and account', type: ManagedStatusResponse })
-  managedStatus(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant) {
-    return this.managed.status(db, req.tenant.id);
+  @ApiOperation({ summary: 'Whether the payment gateway is offered here, and this account\'s gateway account if it has one' })
+  @ApiResponse({ status: 200, description: 'Availability and account', type: GatewayStatusResponse })
+  gatewayStatus(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant) {
+    return this.gateway.status(db, req.tenant.id);
   }
 
-  @Post('managed')
+  @Post('gateway')
   @ApiExcludeEndpoint()
   @ApiOperation({
-    summary: 'Open a managed payments account (no provider account of your own needed)',
+    summary: 'Open a payment gateway account (no provider account of your own needed)',
     description:
       'The platform collects through its own provider accounts, keeps its fee (on top of the provider\'s) and pays the rest ' +
       'to your payout destination: mobile money, bank or PayPal. Bank details also allow direct settlement where the ' +
       'provider supports it. The account takes payments once it has been reviewed.',
   })
-  @ApiResponse({ status: 201, description: 'The new account', type: ManagedAccountResponse })
-  openManaged(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant, @Body() dto: OpenManagedAccountDto) {
-    return this.managed.open(db, req.tenant.id, dto);
+  @ApiResponse({ status: 201, description: 'The new account', type: GatewayAccountResponse })
+  openGateway(@TenantDb() db: PrismaClient, @Req() req: RequestWithTenant, @Body() dto: OpenGatewayAccountDto) {
+    return this.gateway.open(db, req.tenant.id, dto);
   }
 
-  @Patch('managed')
+  @Patch('gateway')
   @ApiExcludeEndpoint()
   @ApiOperation({
-    summary: 'Change your managed account\'s contact details or payout destination',
+    summary: 'Change your gateway account\'s contact details or payout destination',
     description: 'Anything left out stays as it is. Every change is recorded by the platform.',
   })
-  @ApiResponse({ status: 200, description: 'The account after the change', type: ManagedAccountResponse })
-  updateManaged(@TenantDb() db: PrismaClient, @Body() dto: UpdateManagedAccountDto) {
-    return this.managed.update(db, dto);
+  @ApiResponse({ status: 200, description: 'The account after the change', type: GatewayAccountResponse })
+  updateGateway(@TenantDb() db: PrismaClient, @Body() dto: UpdateGatewayAccountDto) {
+    return this.gateway.update(db, dto);
   }
 
   @Get('capabilities')

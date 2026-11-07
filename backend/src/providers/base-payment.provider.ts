@@ -73,7 +73,7 @@ const PROVIDER_METHODS: Record<string, readonly CheckoutMethod[]> = {
   paypal: ['paypal'],
 };
 
-/** Whether a provider's checkout can take this method in this currency. Managed payments says for itself, per account. */
+/** Whether a provider's checkout can take this method in this currency. The payment gateway says for itself, per account. */
 export function providerTakes(providerName: string, method: CheckoutMethod, currency: string): boolean {
   if (!PROVIDER_METHODS[providerName]?.includes(method)) return false;
   if (method === 'paypal') return PAYPAL_CURRENCIES.includes(currency);
@@ -106,12 +106,12 @@ const DPO_WALLETS: Record<string, readonly string[]> = {
 /**
  * The wallets a provider documents, by currency. Pesapal publishes no current
  * list, so it has none here and the customer sees plain "mobile money": naming
- * wallets would be a guess. Managed payments' mobile money checkouts run
- * through Flutterwave.
+ * wallets would be a guess. The payment gateway's checkouts are
+ * assumed to offer Flutterwave's wallets.
  */
 const PROVIDER_WALLETS: Record<string, Record<string, readonly string[]>> = {
   flutterwave: FLUTTERWAVE_WALLETS,
-  managed: FLUTTERWAVE_WALLETS,
+  gateway: FLUTTERWAVE_WALLETS,
   paystack: { GHS: ['MTN', 'AirtelTigo', 'Telecel'], KES: ['M-Pesa', 'Airtel Money'] },
   dpo: DPO_WALLETS,
   'dpo-group': DPO_WALLETS,
@@ -133,7 +133,7 @@ export interface ChargeParams {
   callbackUrl?: string;
   // Restrict payment methods (e.g., "card" to ensure tokenization for recurring billing)
   paymentOptions?: string;
-  /** How the payer chose to pay, for providers that offer several (managed payments). */
+  /** How the payer chose to pay, for providers that offer several (the payment gateway). */
   method?: CheckoutMethod;
   metadata?: Record<string, unknown>;
 }

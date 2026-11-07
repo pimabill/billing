@@ -37,7 +37,7 @@ import {
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDateTime } from "@/lib/utils/date";
 import { CryptoDeposits } from "./crypto-deposits";
-import { ManagedPayments } from "./managed-payments";
+import { GatewayPayments } from "./gateway-account";
 import type { Wallet } from "@/types";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -59,13 +59,13 @@ export default function MoneyPage() {
   const [providers, setProviders] = useState<ProviderCapabilities[]>([]);
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [managedAvailable, setManagedAvailable] = useState(false);
+  const [gatewayAvailable, setGatewayAvailable] = useState(false);
   const canConfigure = useCan("settings.providers");
 
   const loadCapabilities = useCallback(async () => {
     try {
       const [caps, walletList] = await Promise.all([moneyApi.capabilities(), apiClient.wallets.list({ status: "ACTIVE", limit: 100 })]);
-      setManagedAvailable(Boolean((await moneyApi.managedStatus().catch(() => null))?.available));
+      setGatewayAvailable(Boolean((await moneyApi.gatewayStatus().catch(() => null))?.available));
       setSettings(caps.settings);
       setProviders(caps.providers);
       setWallets(walletList.data);
@@ -87,9 +87,9 @@ export default function MoneyPage() {
     );
   }
   if (!settings) return <div className="animate-shimmer h-96 rounded-lg" />;
-  // Links can open a tab directly, e.g. /money?tab=managed.
+  // Links can open a tab directly, e.g. /money?tab=gateway.
   const requestedTab = (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab")) || "collections";
-  const initialTab = requestedTab === "managed" && !managedAvailable ? "collections" : requestedTab;
+  const initialTab = requestedTab === "gateway" && !gatewayAvailable ? "collections" : requestedTab;
   const watchesChain = providers.some((p) => ["tron_usdt", "eth_usdt", "bsc_usdt", "btc"].includes(p.provider));
 
   return (
@@ -107,7 +107,7 @@ export default function MoneyPage() {
           <TabsTrigger value="payouts">Payouts</TabsTrigger>
           <TabsTrigger value="transfers">Transfers</TabsTrigger>
           {watchesChain && <TabsTrigger value="deposits">Crypto deposits</TabsTrigger>}
-          {managedAvailable && <TabsTrigger value="managed">Managed payments</TabsTrigger>}
+          {gatewayAvailable && <TabsTrigger value="gateway">Payment gateway</TabsTrigger>}
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
 
@@ -128,8 +128,8 @@ export default function MoneyPage() {
         <TabsContent value="settings" className="mt-4">
           <SettingsPanel settings={settings} providers={providers} onSaved={setSettings} />
         </TabsContent>
-        <TabsContent value="managed" className="mt-4">
-          <ManagedPayments onChanged={loadCapabilities} />
+        <TabsContent value="gateway" className="mt-4">
+          <GatewayPayments onChanged={loadCapabilities} />
         </TabsContent>
       </Tabs>
     </div>

@@ -174,7 +174,7 @@ export class AssignDepositDto {
   collectionId!: string;
 }
 
-export class ManagedBankDto {
+export class GatewayBankDto {
   @ApiProperty({ example: '044', description: 'Bank code from Flutterwave\'s bank list for the country' })
   @IsString()
   @Length(2, 20)
@@ -192,16 +192,16 @@ export class ManagedBankDto {
   accountName?: string;
 }
 
-export const MANAGED_PAYOUT_TYPES = ['mobile_money', 'bank', 'paypal'] as const;
+export const GATEWAY_PAYOUT_TYPES = ['mobile_money', 'bank', 'paypal'] as const;
 
 /** Where the platform pays out the balance it collects on the tenant's behalf. */
-export class ManagedPayoutDestinationDto {
-  @ApiProperty({ enum: MANAGED_PAYOUT_TYPES, example: 'mobile_money' })
-  @IsIn(MANAGED_PAYOUT_TYPES)
-  type!: (typeof MANAGED_PAYOUT_TYPES)[number];
+export class GatewayPayoutDestinationDto {
+  @ApiProperty({ enum: GATEWAY_PAYOUT_TYPES, example: 'mobile_money' })
+  @IsIn(GATEWAY_PAYOUT_TYPES)
+  type!: (typeof GATEWAY_PAYOUT_TYPES)[number];
 
   @ApiPropertyOptional({ example: '256771234567', description: 'Mobile money number in international format (mobile_money)' })
-  @ValidateIf((d: ManagedPayoutDestinationDto) => d.type === 'mobile_money')
+  @ValidateIf((d: GatewayPayoutDestinationDto) => d.type === 'mobile_money')
   @IsString()
   @Length(9, 16)
   msisdn?: string;
@@ -213,31 +213,31 @@ export class ManagedPayoutDestinationDto {
   name?: string;
 
   @ApiPropertyOptional({ example: 'finance@rapcio.com', description: 'PayPal account email (paypal)' })
-  @ValidateIf((d: ManagedPayoutDestinationDto) => d.type === 'paypal')
+  @ValidateIf((d: GatewayPayoutDestinationDto) => d.type === 'paypal')
   @IsEmail()
   email?: string;
 
   @ApiPropertyOptional({ example: '044', description: 'Bank code (bank)' })
-  @ValidateIf((d: ManagedPayoutDestinationDto) => d.type === 'bank')
+  @ValidateIf((d: GatewayPayoutDestinationDto) => d.type === 'bank')
   @IsString()
   @Length(2, 20)
   bankCode?: string;
 
   @ApiPropertyOptional({ example: '0690000031', description: 'Account number (bank)' })
-  @ValidateIf((d: ManagedPayoutDestinationDto) => d.type === 'bank')
+  @ValidateIf((d: GatewayPayoutDestinationDto) => d.type === 'bank')
   @IsString()
   @Length(5, 34)
   accountNumber?: string;
 
   @ApiPropertyOptional({ description: 'Name on the bank account (bank)' })
-  @ValidateIf((d: ManagedPayoutDestinationDto) => d.type === 'bank')
+  @ValidateIf((d: GatewayPayoutDestinationDto) => d.type === 'bank')
   @IsString()
   @Length(2, 120)
   accountName?: string;
 }
 
 /** Contact details and where payouts go; anything left out stays as it is. */
-export class UpdateManagedAccountDto {
+export class UpdateGatewayAccountDto {
   @ApiPropertyOptional({ example: 'finance@rapcio.com' })
   @IsOptional()
   @IsEmail()
@@ -249,14 +249,14 @@ export class UpdateManagedAccountDto {
   @Length(9, 16)
   phone?: string;
 
-  @ApiPropertyOptional({ type: ManagedPayoutDestinationDto })
+  @ApiPropertyOptional({ type: GatewayPayoutDestinationDto })
   @IsOptional()
   @ValidateNested()
-  @Type(() => ManagedPayoutDestinationDto)
-  payoutDestination?: ManagedPayoutDestinationDto;
+  @Type(() => GatewayPayoutDestinationDto)
+  payoutDestination?: GatewayPayoutDestinationDto;
 }
 
-export class OpenManagedAccountDto {
+export class OpenGatewayAccountDto {
   @ApiProperty({ example: 'Rapcio Ltd' })
   @IsString()
   @Length(2, 120)
@@ -282,19 +282,19 @@ export class OpenManagedAccountDto {
   currency!: string;
 
   /** Bank details let the platform settle each payment straight to this account where the provider supports it. */
-  @ApiPropertyOptional({ type: ManagedBankDto })
-  @ValidateIf((d: OpenManagedAccountDto) => d.bank !== undefined || d.payoutDestination === undefined)
+  @ApiPropertyOptional({ type: GatewayBankDto })
+  @ValidateIf((d: OpenGatewayAccountDto) => d.bank !== undefined || d.payoutDestination === undefined)
   @IsDefined({ message: 'Give bank details or a payout destination' })
   @ValidateNested()
-  @Type(() => ManagedBankDto)
-  bank?: ManagedBankDto;
+  @Type(() => GatewayBankDto)
+  bank?: GatewayBankDto;
 
   /** Otherwise the platform holds what it collects and pays it out here. */
-  @ApiPropertyOptional({ type: ManagedPayoutDestinationDto })
+  @ApiPropertyOptional({ type: GatewayPayoutDestinationDto })
   @IsOptional()
   @ValidateNested()
-  @Type(() => ManagedPayoutDestinationDto)
-  payoutDestination?: ManagedPayoutDestinationDto;
+  @Type(() => GatewayPayoutDestinationDto)
+  payoutDestination?: GatewayPayoutDestinationDto;
 }
 
 export class RequestOtpDto {

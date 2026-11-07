@@ -338,7 +338,7 @@ export class PaginatedCryptoDepositResponse {
   meta: PaginationMeta;
 }
 
-export class ManagedFeeResponse {
+export class GatewayFeeResponse {
   @ApiProperty({ enum: ['percentage', 'flat'] })
   type: 'percentage' | 'flat';
 
@@ -346,7 +346,7 @@ export class ManagedFeeResponse {
   value: number;
 }
 
-export class ManagedAccountResponse {
+export class GatewayAccountResponse {
   @ApiProperty()
   id: string;
 
@@ -371,8 +371,8 @@ export class ManagedAccountResponse {
   @ApiPropertyOptional({ example: '4321' })
   accountNumberLast4?: string;
 
-  @ApiPropertyOptional({ type: ManagedFeeResponse, description: "Platform fee on each payment, on top of the provider's fee" })
-  fee?: ManagedFeeResponse;
+  @ApiPropertyOptional({ type: GatewayFeeResponse, description: "Platform fee on each payment, on top of the provider's fee" })
+  fee?: GatewayFeeResponse;
 
   @ApiPropertyOptional({
     enum: ['direct', 'balance'],
@@ -393,10 +393,10 @@ export class ManagedAccountResponse {
   reason?: string;
 }
 
-export class ManagedStatusResponse {
-  @ApiProperty({ description: 'Whether managed payments are offered on this installation' })
+export class GatewayStatusResponse {
+  @ApiProperty({ description: 'Whether the payment gateway is offered on this installation' })
   available: boolean;
 
-  @ApiProperty({ type: ManagedAccountResponse, nullable: true })
-  account: ManagedAccountResponse | null;
+  @ApiProperty({ type: GatewayAccountResponse, nullable: true })
+  account: GatewayAccountResponse | null;
 }

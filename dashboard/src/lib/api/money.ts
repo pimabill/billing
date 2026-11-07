@@ -101,7 +101,7 @@ export interface CryptoDeposit {
   collectionId: string | null;
 }
 
-export interface ManagedAccount {
+export interface GatewayAccount {
   id: string;
   status: "pending_review" | "active" | "rejected" | "suspended";
   businessName: string;
@@ -117,26 +117,26 @@ export interface ManagedAccount {
   email?: string;
   phone?: string;
   reason?: string;
-  /** What the merchant's customers can pay with through managed payments. */
+  /** What the merchant's customers can pay with through the payment gateway. */
   methods?: ("card" | "mobile_money" | "paypal")[];
   /** When the status last changed. */
   statusChangedAt?: string;
 }
 
-export type ManagedPayoutType = "mobile_money" | "bank" | "paypal";
+export type GatewayPayoutType = "mobile_money" | "bank" | "paypal";
 
-export interface OpenManagedAccount {
+export interface OpenGatewayAccount {
   businessName: string;
   email: string;
   phone: string;
   country: string;
   currency: string;
   bank?: { code: string; accountNumber: string; accountName?: string };
-  payoutDestination?: ManagedPayoutDestination;
+  payoutDestination?: GatewayPayoutDestination;
 }
 
-export interface ManagedPayoutDestination {
-  type: ManagedPayoutType;
+export interface GatewayPayoutDestination {
+  type: GatewayPayoutType;
   msisdn?: string;
   name?: string;
   email?: string;
@@ -145,10 +145,10 @@ export interface ManagedPayoutDestination {
   accountName?: string;
 }
 
-export interface UpdateManagedAccount {
+export interface UpdateGatewayAccount {
   email?: string;
   phone?: string;
-  payoutDestination?: ManagedPayoutDestination;
+  payoutDestination?: GatewayPayoutDestination;
 }
 
 export interface ProviderCapabilities {
@@ -198,11 +198,11 @@ export const moneyApi = {
   },
   assignDeposit: (id: string, collectionId: string) =>
     apiFetch<MoneyIntent>(`/money/crypto-deposits/${id}/assign`, { method: "POST", body: JSON.stringify({ collectionId }) }),
-  managedStatus: () => apiFetch<{ available: boolean; account: ManagedAccount | null }>("/money/managed"),
-  openManaged: (body: OpenManagedAccount) =>
-    apiFetch<ManagedAccount>("/money/managed", { method: "POST", body: JSON.stringify(body) }),
-  updateManaged: (body: UpdateManagedAccount) =>
-    apiFetch<ManagedAccount>("/money/managed", { method: "PATCH", body: JSON.stringify(body) }),
+  gatewayStatus: () => apiFetch<{ available: boolean; account: GatewayAccount | null }>("/money/gateway"),
+  openGateway: (body: OpenGatewayAccount) =>
+    apiFetch<GatewayAccount>("/money/gateway", { method: "POST", body: JSON.stringify(body) }),
+  updateGateway: (body: UpdateGatewayAccount) =>
+    apiFetch<GatewayAccount>("/money/gateway", { method: "PATCH", body: JSON.stringify(body) }),
   requestOtp: (provider: string, phone: string) =>
     apiFetch<{ pinId: string }>(`/money/providers/${provider}/otp`, { method: "POST", body: JSON.stringify({ phone }) }),
   balance: (provider: string) =>

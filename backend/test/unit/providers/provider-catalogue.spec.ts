@@ -5,7 +5,7 @@ describe('payment provider catalogue', () => {
   const encryption = { decrypt: (v: string) => v, encrypt: (v: string) => v };
   const rows = [
     { id: 'pp_1', providerName: 'flutterwave', isActive: true, priority: 1, credentials: JSON.stringify({ secretKey: 'FLWSECK_TEST-abc123', webhookHash: 'whsec_super_secret' }), createdAt: new Date(), updatedAt: new Date() },
-    { id: 'pp_2', providerName: 'managed', isActive: true, priority: 1000, credentials: JSON.stringify({ accountId: 'acc_9' }), createdAt: new Date(), updatedAt: new Date() },
+    { id: 'pp_2', providerName: 'gateway', isActive: true, priority: 1000, credentials: JSON.stringify({ accountId: 'acc_9' }), createdAt: new Date(), updatedAt: new Date() },
   ];
   const db = { paymentProvider: { findMany: jest.fn(async () => rows), findUnique: jest.fn(async () => rows[0]) } };
   const service = new PaymentProvidersService(encryption as never);
@@ -13,7 +13,7 @@ describe('payment provider catalogue', () => {
   it('lists every supported provider, configured ones first, without credentials', async () => {
     const list = (await service.findAll(db as never, 'ten_1')) as Array<Record<string, unknown>>;
     expect(list[0]).toMatchObject({ id: 'pp_1', providerName: 'flutterwave', name: 'Flutterwave', isConfigured: true, environment: 'sandbox', webhookUrl: expect.stringMatching(/\/webhooks\/flutterwave\/ten_1$/) });
-    expect(list[1]).toMatchObject({ providerName: 'managed', name: 'Managed payments', isConfigured: true });
+    expect(list[1]).toMatchObject({ providerName: 'gateway', name: 'Payment gateway', isConfigured: true });
     expect(list.filter((p) => !p.isConfigured).map((p) => p.providerName)).toContain('stripe');
     expect(list).toHaveLength(PROVIDER_CATALOGUE.length + 1);
     const text = JSON.stringify(list);
@@ -22,7 +22,7 @@ describe('payment provider catalogue', () => {
 
   it('lists only the configured ones when asked', async () => {
     const list = await service.findAll(db as never, 'ten_1', { configured: true });
-    expect(list.map((p) => p.providerName)).toEqual(['flutterwave', 'managed']);
+    expect(list.map((p) => p.providerName)).toEqual(['flutterwave', 'gateway']);
   });
 
   it('tells the environment from settings or the key, and where notifications go', () => {
