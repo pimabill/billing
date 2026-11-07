@@ -164,6 +164,8 @@ A PR that removes or changes anything existing API clients rely on fails CI unle
 
 Every PR updates the documentation it affects in the same PR: the guides in `docs/content`, `.env.example` for new settings, and this file for process changes.
 
+A new required setting also goes in `installer/`, so self-hosted installs get it. Run `sh installer/test.sh` after changing the installer. CI also installs and upgrades with real images.
+
 ### Code Style
 
 - **Backend**: NestJS conventions — modules, controllers, services, DTOs

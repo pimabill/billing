@@ -49,6 +49,47 @@ jobs:
   # ──────────────────────────────────────────────
   # OpenAPI: the committed spec must match the code (SDKs and docs are built from it)
   # ──────────────────────────────────────────────
+  installer:
+    name: Installer
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the installer tests
+        run: sh installer/test.sh
+      - name: Check the compose file
+        env:
+          PIMABILL_VERSION: test
+          COMPOSE_PROFILES: https
+        run: |
+          touch installer/.env
+          docker compose -f installer/docker-compose.yml config --quiet
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install and upgrade with real images
+        env:
+          PIMABILL_DIR: ${{ runner.temp }}/stack
+          PIMABILL_SHARE: ${{ runner.temp }}/share
+          PIMABILL_VERSION: latest
+        run: |
+          mkdir -p "$PIMABILL_SHARE"
+          cp installer/docker-compose.yml version.txt "$PIMABILL_SHARE/"
+          sh installer/pimabill install </dev/null
+          curl -fsS -o /dev/null http://127.0.0.1:4000/health
+          curl -fsS -o /dev/null --retry 10 --retry-all-errors --retry-delay 3 http://127.0.0.1:4002/login
+          sh installer/pimabill upgrade </dev/null
+          test -s "$PIMABILL_DIR"/backups/*/tenants.sql.gz
+          curl -fsS -o /dev/null http://127.0.0.1:4000/health
+      - name: Show logs after a failure
+        if: failure()
+        run: docker compose --project-directory "$RUNNER_TEMP/stack" -f "$RUNNER_TEMP/stack/docker-compose.yml" logs --tail 60
+
   openapi-check:
     name: OpenAPI Spec
     runs-on: ubuntu-latest

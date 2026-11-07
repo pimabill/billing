@@ -28,6 +28,40 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  # Self-hosted installs pin a version, so each release gets versioned images.
+  # They are the images Deploy builds from the release commit, tagged again.
+  images:
+    name: Version images
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Tag the release images
+        env:
+          VERSION: ${{ needs.release-please.outputs.version }}
+          OWNER: ${{ github.repository_owner }}
+        run: |
+          for service in api dashboard installer; do
+            image="ghcr.io/$OWNER/$service"
+            for attempt in $(seq 1 60); do
+              docker buildx imagetools inspect "$image:$GITHUB_SHA" >/dev/null 2>&1 && break
+              [ "$attempt" -lt 60 ] || { echo "$image:$GITHUB_SHA was not built"; exit 1; }
+              sleep 30
+            done
+            docker buildx imagetools create -t "$image:$VERSION" -t "$image:stable" "$image:$GITHUB_SHA"
+          done
+
   # Releases made with GITHUB_TOKEN do not trigger other workflows, so the
   # SDK build is called from here rather than on the release event.
   sdks:

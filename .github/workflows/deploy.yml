@@ -70,6 +70,9 @@ jobs:
           - service: docs
             context: ./docs
             dockerfile: ./docs/Dockerfile
+          - service: installer
+            context: .
+            dockerfile: ./installer/Dockerfile
     steps:
       - uses: actions/checkout@v4
 
@@ -136,6 +139,8 @@ jobs:
           host: ${{ secrets.DEPLOY_HOST }}
           username: ${{ secrets.DEPLOY_USER }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
+          # Each stack waits for its API, which migrates every organisation first.
+          command_timeout: 30m
           script: |
             set -e
             cd ${{ secrets.DEPLOY_PATH || '~/novabilling' }}

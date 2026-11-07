@@ -1,0 +1,130 @@
+# PimaBill, self-hosted. Written by the installer: run the installer's upgrade
+# command rather than editing this file, and keep your settings in .env.
+name: pimabill
+
+x-backend: &backend
+  image: ghcr.io/pimabill/api:${PIMABILL_VERSION:?Set PIMABILL_VERSION in .env}
+  env_file: .env
+  environment: &backend-environment
+    NODE_ENV: production
+    PORT: 4000
+    API_BASE_URL: ${API_URL}
+    DASHBOARD_URL: ${DASHBOARD_URL}
+    CORS_ORIGINS: ${DASHBOARD_URL}
+    CENTRAL_DATABASE_URL: postgresql://central:${CENTRAL_DB_PASSWORD}@central-db:5432/central
+    INTERNAL_POSTGRES_URL: postgresql://postgres:${TENANT_DB_PASSWORD}@tenant-db:5432
+    REDIS_URL: redis://redis:6379
+    PDF_STORAGE_PATH: /app/uploads/invoices
+    CLOUD_PLANS: "false"
+  volumes:
+    - uploads:/app/uploads
+  depends_on:
+    central-db:
+      condition: service_healthy
+    tenant-db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+
+services:
+  central-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: central
+      POSTGRES_USER: central
+      POSTGRES_PASSWORD: ${CENTRAL_DB_PASSWORD}
+    volumes:
+      - central_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U central"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # Every organisation's database lives here.
+  tenant-db:
+    image: postgres:15-alpine
+    command: postgres -c max_connections=${TENANT_DB_MAX_CONNECTIONS:-300}
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${TENANT_DB_PASSWORD}
+    volumes:
+      - tenant_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  api:
+    <<: *backend
+    ports:
+      - "127.0.0.1:${API_PORT:-4000}:4000"
+
+  worker:
+    <<: *backend
+    command: node dist/main
+
+  dashboard:
+    image: ghcr.io/pimabill/dashboard:${PIMABILL_VERSION}
+    environment:
+      NODE_ENV: production
+      BACKEND_URL: http://api:4000
+    ports:
+      - "127.0.0.1:${DASHBOARD_PORT:-4002}:4002"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  # HTTPS with automatic certificates, when you install on your own domains.
+  caddy:
+    image: caddy:2.8-alpine
+    profiles: [https]
+    ports:
+      - "80:80"
+      - "443:443"
+    configs:
+      - source: caddyfile
+        target: /etc/caddy/Caddyfile
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+      - dashboard
+    restart: unless-stopped
+
+configs:
+  caddyfile:
+    content: |
+      {
+        email ${TLS_EMAIL:-}
+      }
+      ${DASHBOARD_DOMAIN:-localhost} {
+        reverse_proxy dashboard:4002
+      }
+      ${API_DOMAIN:-api.localhost} {
+        reverse_proxy api:4000
+      }
+
+volumes:
+  central_db_data:
+  tenant_db_data:
+  redis_data:
+  uploads:
+  caddy_data:
+  caddy_config:
