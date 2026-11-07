@@ -28,11 +28,60 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Self-hosted installs pin a version, so each release gets versioned images.
-  # They are the images Deploy builds from the release commit, tagged again.
+  # Deploy builds amd64 on every merge. ARM servers only run released versions,
+  # so arm64 is built here, natively, and production deploys stay as fast.
+  arm64:
+    name: Build arm64 ${{ matrix.service }}
+    needs: release-please
+    if: needs.release-please.outputs.created == 'true'
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: api
+            context: ./backend
+            dockerfile: ./backend/Dockerfile
+          - service: dashboard
+            context: ./dashboard
+            dockerfile: ./dashboard/Dockerfile
+          - service: installer
+            context: .
+            dockerfile: ./installer/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GHCR
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Build and push
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.service }}:${{ github.sha }}-arm64
+          # The same dashboard settings Deploy builds with.
+          build-args: |
+            NEXT_PUBLIC_DOCS_URL=${{ vars.DOCS_URL || 'http://localhost:4003' }}
+            NEXT_PUBLIC_BRAND_NAME=${{ vars.BRAND_NAME || '' }}
+            NEXT_PUBLIC_BRAND_LOGO=${{ vars.BRAND_LOGO || '' }}
+            NEXT_PUBLIC_BRAND_TAGLINE=${{ vars.BRAND_TAGLINE || '' }}
+            NEXT_PUBLIC_BRAND_PRIMARY=${{ vars.BRAND_PRIMARY || '' }}
+
+  # Self-hosted installs pin a version, so each release gets versioned images:
+  # the amd64 image Deploy builds from the release commit, plus arm64.
   images:
     name: Version images
-    needs: release-please
+    needs: [release-please, arm64]
     if: needs.release-please.outputs.created == 'true'
     runs-on: ubuntu-latest
     permissions:
@@ -59,7 +108,7 @@ jobs:
               [ "$attempt" -lt 60 ] || { echo "$image:$GITHUB_SHA was not built"; exit 1; }
               sleep 30
             done
-            docker buildx imagetools create -t "$image:$VERSION" -t "$image:stable" "$image:$GITHUB_SHA"
+            docker buildx imagetools create -t "$image:$VERSION" -t "$image:stable" "$image:$GITHUB_SHA" "$image:$GITHUB_SHA-arm64"
           done
 
   # Releases made with GITHUB_TOKEN do not trigger other workflows, so the

@@ -49,6 +49,23 @@ jobs:
   # ──────────────────────────────────────────────
   # OpenAPI: the committed spec must match the code (SDKs and docs are built from it)
   # ──────────────────────────────────────────────
+  # Releases also ship arm64: catch a dependency without an ARM build before then.
+  arm64:
+    name: ARM images
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the API and load its native modules
+        run: |
+          docker build -t api-arm64 ./backend
+          docker run --rm --entrypoint node api-arm64 -e "require('argon2'); console.log(process.arch)"
+      - name: Build the dashboard
+        run: docker build -t dashboard-arm64 ./dashboard
+      - name: Build the installer
+        run: docker build -t installer-arm64 -f installer/Dockerfile .
+
   installer:
     name: Installer
     runs-on: ubuntu-latest
