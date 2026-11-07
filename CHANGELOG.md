@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/pimabill/billing/compare/v0.2.0...v0.3.0) (2026-11-07)
+
+
+### Features
+
+* **gateway:** organisations apply on the gateway's own page ([#176](https://github.com/pimabill/billing/issues/176)) ([a83d33a](https://github.com/pimabill/billing/commit/a83d33a52aaf95dcc137b7365844355124057f33))
+* **install:** arm64 images for self-hosted installs ([#177](https://github.com/pimabill/billing/issues/177)) ([e16b1a6](https://github.com/pimabill/billing/commit/e16b1a6cf9fe08f32da6f834fbc294251ecc0e04))
+
 ## [0.2.0](https://github.com/pimabill/billing/compare/v0.1.0...v0.2.0) (2026-11-07)
 
 
