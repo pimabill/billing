@@ -49,6 +49,21 @@ jobs:
   # ──────────────────────────────────────────────
   # OpenAPI: the committed spec must match the code (SDKs and docs are built from it)
   # ──────────────────────────────────────────────
+  installer:
+    name: Installer
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the installer tests
+        run: sh installer/test.sh
+      - name: Check the compose file
+        env:
+          PIMABILL_VERSION: test
+          COMPOSE_PROFILES: https
+        run: |
+          touch installer/.env
+          docker compose -f installer/docker-compose.yml config --quiet
+
   openapi-check:
     name: OpenAPI Spec
     runs-on: ubuntu-latest

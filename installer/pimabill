@@ -1,0 +1,173 @@
+#!/bin/sh
+# PimaBill installer: writes the settings, starts the stack, and upgrades it.
+# Runs in the installer image with the Docker socket and an install folder
+# mounted. See docs: Getting started -> Self-hosting.
+set -eu
+
+SHARE=${PIMABILL_SHARE:-/opt/pimabill}
+DIR=${PIMABILL_DIR:-/install}
+VERSION=${PIMABILL_VERSION:-$(cat "$SHARE/version.txt")}
+HEALTH_ATTEMPTS=${PIMABILL_HEALTH_ATTEMPTS:-72}
+
+say() { printf '%s\n' "$*"; }
+fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
+
+# Prompt on a terminal; otherwise use the variable or the default.
+ask() {
+  name=$1; question=$2; default=${3:-}
+  eval "value=\${PIMABILL_$name:-}"
+  if [ -z "$value" ] && [ -t 0 ]; then
+    if [ -n "$default" ]; then printf '%s [%s]: ' "$question" "$default"; else printf '%s: ' "$question"; fi
+    read -r value || value=
+  fi
+  eval "$name=\${value:-\$default}"
+}
+
+# One line of .env. Single quotes keep characters such as $ literal.
+line() {
+  escaped=$(printf '%s' "$2" | sed "s/'/\\\\'/g")
+  printf "%s='%s'\n" "$1" "$escaped"
+}
+
+secret() { openssl rand -hex "$1"; }
+
+valid_domain() {
+  printf '%s' "$1" | grep -Eq '^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)+$'
+}
+
+write_settings() {
+  say "PimaBill $VERSION"
+  say "Leave the domain empty to try it on this computer."
+  ask DASHBOARD_DOMAIN "Dashboard domain, such as app.example.com"
+  API_DOMAIN=
+  TLS_EMAIL=
+  if [ -n "$DASHBOARD_DOMAIN" ]; then
+    valid_domain "$DASHBOARD_DOMAIN" || fail "$DASHBOARD_DOMAIN is not a domain name"
+    ask API_DOMAIN "API domain" "api.${DASHBOARD_DOMAIN#*.}"
+    valid_domain "$API_DOMAIN" || fail "$API_DOMAIN is not a domain name"
+    [ "$API_DOMAIN" != "$DASHBOARD_DOMAIN" ] || fail "The API and dashboard need different domains"
+    ask TLS_EMAIL "Email for HTTPS certificate notices"
+    [ -n "$TLS_EMAIL" ] || fail "An email is needed for HTTPS certificates"
+  fi
+  ask EMAIL_HOST "SMTP server for invoices and password resets (empty to set it later)"
+  EMAIL_PORT= EMAIL_USER= EMAIL_PASSWORD= EMAIL_FROM=
+  if [ -n "$EMAIL_HOST" ]; then
+    ask EMAIL_PORT "SMTP port" 587
+    ask EMAIL_USER "SMTP user"
+    ask EMAIL_PASSWORD "SMTP password"
+    ask EMAIL_FROM "Send emails from"
+  fi
+
+  if [ -n "$DASHBOARD_DOMAIN" ]; then
+    dashboard_url="https://$DASHBOARD_DOMAIN"; api_url="https://$API_DOMAIN"; profiles=https
+  else
+    dashboard_url="http://localhost:${PIMABILL_DASHBOARD_PORT:-4002}"; api_url="http://localhost:${PIMABILL_API_PORT:-4000}"; profiles=
+  fi
+
+  umask 077
+  {
+    say "# PimaBill settings, written by the installer. Back this file up:"
+    say "# without ENCRYPTION_KEY, stored provider credentials cannot be read."
+    line PIMABILL_VERSION "$VERSION"
+    line COMPOSE_PROFILES "$profiles"
+    line DASHBOARD_URL "$dashboard_url"
+    line API_URL "$api_url"
+    line DASHBOARD_DOMAIN "$DASHBOARD_DOMAIN"
+    line API_DOMAIN "$API_DOMAIN"
+    line TLS_EMAIL "$TLS_EMAIL"
+    line API_PORT "${PIMABILL_API_PORT:-4000}"
+    line DASHBOARD_PORT "${PIMABILL_DASHBOARD_PORT:-4002}"
+    line CENTRAL_DB_PASSWORD "$(secret 24)"
+    line TENANT_DB_PASSWORD "$(secret 24)"
+    line JWT_SECRET "$(secret 32)"
+    line JWT_REFRESH_SECRET "$(secret 32)"
+    line ENCRYPTION_KEY "$(secret 32)"
+    line EMAIL_HOST "$EMAIL_HOST"
+    line EMAIL_PORT "$EMAIL_PORT"
+    line EMAIL_USER "$EMAIL_USER"
+    line EMAIL_PASSWORD "$EMAIL_PASSWORD"
+    line EMAIL_FROM "$EMAIL_FROM"
+  } > "$DIR/.env.new"
+  mv "$DIR/.env.new" "$DIR/.env"
+}
+
+compose() { docker compose --project-directory "$DIR" -f "$DIR/docker-compose.yml" "$@"; }
+
+setting() { sed -n "s/^$1='\(.*\)'\$/\1/p" "$DIR/.env" | tail -1; }
+
+pull() {
+  attempt=1
+  until compose pull; do
+    [ "$attempt" -lt 5 ] || fail "Could not download the images. Check your connection, then run this again."
+    say "Download failed (attempt $attempt), trying again"
+    attempt=$((attempt + 1))
+    sleep 15
+  done
+}
+
+wait_until_ready() {
+  say "Waiting for PimaBill to start"
+  attempt=0
+  until compose exec -T api node -e "fetch('http://localhost:4000/health').then((r)=>process.exit(r.ok?0:1),()=>process.exit(1))" >/dev/null 2>&1; do
+    attempt=$((attempt + 1))
+    if [ "$attempt" -ge "$HEALTH_ATTEMPTS" ]; then
+      compose logs --tail 30 api >&2 || true
+      fail "The API did not start. Its latest logs are above."
+    fi
+    sleep 5
+  done
+}
+
+backup() {
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  target="$DIR/backups/$stamp"
+  say "Backing up to backups/$stamp"
+  (umask 077; mkdir -p "$target")
+  cp "$DIR/.env" "$target/env"
+  compose exec -T central-db pg_dump -U central central | gzip > "$target/central.sql.gz"
+  compose exec -T tenant-db pg_dumpall -U postgres | gzip > "$target/tenants.sql.gz"
+  gzip -t "$target/central.sql.gz" "$target/tenants.sql.gz" || fail "The backup is damaged, so nothing was upgraded."
+  for dump in central tenants; do
+    [ "$(gzip -dc "$target/$dump.sql.gz" | wc -c)" -gt 0 ] || fail "The $dump backup is empty, so nothing was upgraded."
+  done
+}
+
+install() {
+  mkdir -p "$DIR"
+  if [ -f "$DIR/.env" ]; then
+    say "Keeping the settings already in this folder."
+    VERSION=$(setting PIMABILL_VERSION)
+  else
+    write_settings
+  fi
+  cp "$SHARE/docker-compose.yml" "$DIR/docker-compose.yml"
+  pull
+  compose up -d
+  wait_until_ready
+  say ""
+  say "PimaBill is running at $(setting DASHBOARD_URL)"
+  say "Create your account there. The first person to sign up owns their organisation."
+  say "Keep $DIR/.env safe: it holds your encryption key."
+  if [ -n "$(setting DASHBOARD_DOMAIN)" ]; then
+    say "Point $(setting DASHBOARD_DOMAIN) and $(setting API_DOMAIN) at this server, and open ports 80 and 443."
+  fi
+}
+
+upgrade() {
+  [ -f "$DIR/.env" ] || fail "No PimaBill settings in this folder. Run install first."
+  from=$(setting PIMABILL_VERSION)
+  say "Upgrading PimaBill from $from to $VERSION"
+  backup
+  cp "$SHARE/docker-compose.yml" "$DIR/docker-compose.yml"
+  sed -i "s/^PIMABILL_VERSION=.*/PIMABILL_VERSION='$VERSION'/" "$DIR/.env"
+  pull
+  compose up -d
+  wait_until_ready
+  say "PimaBill $VERSION is running. To go back, restore backups/$stamp and set PIMABILL_VERSION='$from' in .env."
+}
+
+case "${1:-install}" in
+  install) install ;;
+  upgrade) upgrade ;;
+  *) say "Usage: install | upgrade"; exit 2 ;;
+esac
