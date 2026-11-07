@@ -11,7 +11,8 @@ import { Capabilities, CollectRequest, MoneyProvider, ProviderOutcome, Rail } fr
  * organisation's gateway account id is its stored credential.
  *
  * API (v1, JSON, `Authorization: Bearer <key>`):
- *   POST /v1/accounts                     open an account (business + bank details)
+ *   GET  /v1/eligibility?externalId=      whether this organisation may apply
+ *   POST /v1/account-links                a short-lived link to the gateway's own account page
  *   GET  /v1/accounts/:id                 account status and payment methods
  *   POST /v1/accounts/mirror              sandbox only: the account, set up from the approved live one
  *   POST /v1/collections                  create a checkout (Idempotency-Key: our reference)
@@ -52,39 +53,8 @@ export interface GatewayAccount {
   statusChangedAt?: string;
   /** Payment methods the merchant's customers can use through the payment gateway. */
   methods?: ('card' | 'mobile_money' | 'paypal')[];
-}
-
-export interface GatewayPayoutDestination {
-  type: 'mobile_money' | 'bank' | 'paypal';
-  msisdn?: string;
-  /** Name on the mobile money or PayPal account. */
-  name?: string;
-  email?: string;
-  bankCode?: string;
-  accountNumber?: string;
-  accountName?: string;
-}
-
-/** Contact details and payout destination, changeable after applying. */
-export interface UpdateGatewayAccount {
-  email?: string;
-  phone?: string;
-  payoutDestination?: GatewayPayoutDestination;
-}
-
-export interface OpenGatewayAccount {
-  externalId: string;
-  businessName: string;
-  email: string;
-  phone: string;
-  country: string;
-  currency: string;
-  /** For direct settlement where the provider supports it. */
-  bank?: { code: string; accountNumber: string; accountName?: string };
-  /** Where pooled balances are paid out. Bank details, a payout destination, or both. */
-  payoutDestination?: GatewayPayoutDestination;
-  /** Where the service reports account status changes for this tenant. */
-  notificationUrl?: string;
+  /** Mobile money wallets by currency, shown to the payer. */
+  wallets?: Record<string, readonly string[]>;
 }
 
 const TIMEOUT_MS = 30_000;
@@ -107,12 +77,14 @@ export class GatewayClient {
     private readonly fetchImpl: typeof fetch = fetch,
   ) {}
 
-  openAccount(input: OpenGatewayAccount) {
-    return this.request<GatewayAccount>('POST', '/v1/accounts', input, input.externalId);
+  /** Whether this organisation may apply; the gateway decides. */
+  eligibility(externalId: string) {
+    return this.request<{ eligible: boolean }>('GET', `/v1/eligibility?externalId=${encodeURIComponent(externalId)}`);
   }
 
-  updateAccount(id: string, changes: UpdateGatewayAccount) {
-    return this.request<GatewayAccount>('POST', `/v1/accounts/${encodeURIComponent(id)}`, changes);
+  /** A short-lived link to the gateway's own page, where the organisation applies and manages its account. */
+  accountLink(input: { externalId: string; notificationUrl: string; returnUrl: string }) {
+    return this.request<{ url: string; expiresAt: string }>('POST', '/v1/account-links', input);
   }
 
   getAccount(id: string) {

@@ -508,8 +508,16 @@ export default function ProvidersPage() {
                 </div>
               )}
             </div>
-            <Button asChild variant={gateway.account ? "outline" : "default"}>
-              <Link href="/money?tab=gateway">{gateway.account ? "Manage" : "Apply"}</Link>
+            <Button
+              variant={gateway.account ? "outline" : "default"}
+              onClick={() =>
+                moneyApi.gatewayLink().then(
+                  ({ url }) => window.location.assign(url),
+                  (err) => toast.error(err instanceof Error ? err.message : "Could not open the account page"),
+                )
+              }
+            >
+              {gateway.account ? "Manage" : "Apply"}
             </Button>
           </CardContent>
         </Card>

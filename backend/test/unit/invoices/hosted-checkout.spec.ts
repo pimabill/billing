@@ -37,7 +37,7 @@ describe('what a provider names for a method', () => {
     expect(methodBrands('flutterwave', 'mobile_money', 'UGX')).toEqual(['MTN', 'Airtel']);
     expect(methodBrands('flutterwave', 'mobile_money', 'KES')).toEqual(['M-Pesa']);
     expect(methodBrands('paystack', 'mobile_money', 'KES')).toEqual(['M-Pesa', 'Airtel Money']);
-    expect(methodBrands('gateway', 'mobile_money', 'ZMW')).toEqual(['MTN', 'Airtel', 'Zamtel']);
+    expect(methodBrands('gateway', 'mobile_money', 'ZMW')).toEqual([]);
     expect(methodBrands('dpo', 'mobile_money', 'TZS')).toEqual(['Vodacom', 'Airtel', 'Tigo', 'Halotel', 'Zantel', 'TTCL']);
     expect(methodBrands('dpo-group', 'card', 'UGX')).toEqual(['Visa', 'Mastercard', 'American Express']);
   });

@@ -1,7 +1,4 @@
 import { createHmac } from 'crypto';
-import { plainToInstance } from 'class-transformer';
-import { validateSync } from 'class-validator';
-import { OpenGatewayAccountDto } from '../../../src/modules/money/dto/money.dto';
 import { GatewayAdapter, GatewayClient, gatewayConfig } from '../../../src/modules/money/adapters/gateway.adapter';
 import { WebhooksController } from '../../../src/modules/webhooks/webhooks.controller';
 import { GatewayAccountsService } from '../../../src/modules/money/gateway.service';
@@ -88,18 +85,14 @@ describe('GatewayAdapter', () => {
   });
 });
 
-describe('GatewayClient.updateAccount', () => {
-  it('sends only the changed details to the account', async () => {
-    const fetch = jest.fn(() => json({ id: 'acc_9', status: 'active', businessName: 'Rapcio', country: 'UG', currency: 'UGX', phone: '+256762746464', payoutDestination: 'Mobile money ****6464' }));
-    const r = await new GatewayClient(config, fetch as never).updateAccount('acc_9', {
-      phone: '+256762746464',
-      payoutDestination: { type: 'mobile_money', msisdn: '256762746464', name: 'Rapcio Ltd' },
-    });
-    const [url, init] = (fetch.mock.calls[0] as unknown) as [string, RequestInit];
-    expect(url).toBe('https://gateway.example.com/v1/accounts/acc_9');
-    expect(init.method).toBe('POST');
-    expect(JSON.parse(String(init.body))).toEqual({ phone: '+256762746464', payoutDestination: { type: 'mobile_money', msisdn: '256762746464', name: 'Rapcio Ltd' } });
-    expect(r.data).toMatchObject({ payoutDestination: 'Mobile money ****6464' });
+describe('GatewayClient account page', () => {
+  it('asks the gateway who may apply, and for a link to its own page', async () => {
+    const fetch = jest.fn(async () => ({ ok: true, status: 200, json: async () => ({ eligible: true, url: 'https://gateway.example.com/connect/t' }) }));
+    const client = new GatewayClient(config, fetch as never);
+    await client.eligibility('org 1');
+    expect((fetch.mock.calls[0] as unknown[])[0]).toBe(`${config.baseUrl}/v1/eligibility?externalId=org%201`);
+    await client.accountLink({ externalId: 'org_1', notificationUrl: 'https://api.example.com/n', returnUrl: 'https://app.example.com/providers' });
+    expect((fetch.mock.calls[1] as unknown[])[0]).toBe(`${config.baseUrl}/v1/account-links`);
   });
 });
 
@@ -119,16 +112,7 @@ describe('gateway notification signatures', () => {
 
 describe('GatewayAccountsService', () => {
   const encryption = { encrypt: (v: string) => `enc:${v}`, decrypt: (v: string) => v.slice(4) };
-  const tenants: Record<string, { isPlatformOperator: boolean; tenantBilling: { planId: string | null } | null }> = {
-    operator: { isPlatformOperator: true, tenantBilling: null },
-    free: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_free' } },
-    growth: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_growth_monthly' } },
-    partner: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_partner' } },
-    enterprise: { isPlatformOperator: false, tenantBilling: { planId: 'cloud_enterprise' } },
-    none: { isPlatformOperator: false, tenantBilling: { planId: null } },
-  };
-  const central = { client: { tenant: { findUnique: jest.fn(async ({ where }: { where: { id: string } }) => tenants[where.id] ?? null) } } };
-  const service = new GatewayAccountsService(encryption as never, central as never);
+  const service = new GatewayAccountsService(encryption as never, {} as never);
 
   it('keeps the gateway connection active only while the account is, at the lowest priority', async () => {
     const upsert = jest.fn();
@@ -146,41 +130,22 @@ describe('GatewayAccountsService', () => {
     expect(await service.status({} as never, 'free')).toEqual({ available: false, account: null });
   });
 
-  it('offers the payment gateway only to partners, Enterprise and the operator', async () => {
+  it('lets the gateway decide who may apply, and offers nothing when it cannot answer', async () => {
     process.env.GATEWAY_URL = 'https://gateway.example.com';
     process.env.GATEWAY_API_KEY = 'inst_key';
-    delete process.env.CLOUD_PLANS;
+    const answer = jest.spyOn(GatewayClient.prototype, 'eligibility');
     try {
-      expect(await service.allowedFor('free')).toBe(false);
-      expect(await service.allowedFor('growth')).toBe(false);
-      expect(await service.allowedFor('partner')).toBe(true);
-      expect(await service.allowedFor('enterprise')).toBe(true);
-      expect(await service.allowedFor('operator')).toBe(true);
-      expect(await service.allowedFor('none')).toBe(false);
-      expect(await service.allowedFor('missing')).toBe(false);
+      answer.mockResolvedValueOnce({ status: 200, data: { eligible: true } });
+      expect(await service.allowedFor('org')).toBe(true);
+      answer.mockResolvedValueOnce({ status: 200, data: { eligible: false } });
+      expect(await service.allowedFor('org')).toBe(false);
+      answer.mockRejectedValueOnce(new Error('down'));
+      expect(await service.allowedFor('org')).toBe(false);
     } finally {
+      answer.mockRestore();
       delete process.env.GATEWAY_URL;
       delete process.env.GATEWAY_API_KEY;
     }
-  });
-});
-
-describe('OpenGatewayAccountDto', () => {
-  const base = { businessName: 'Rapcio Ltd', email: 'finance@rapcio.com', phone: '+256700000001', country: 'UG', currency: 'UGX' };
-  const errors = (body: Record<string, unknown>) => validateSync(plainToInstance(OpenGatewayAccountDto, { ...base, ...body })).map((e) => e.property);
-
-  it('takes bank details, a payout destination, or both', () => {
-    expect(errors({ bank: { code: '031', accountNumber: '9030012345678' } })).toEqual([]);
-    expect(errors({ payoutDestination: { type: 'mobile_money', msisdn: '256771234567' } })).toEqual([]);
-    expect(errors({ payoutDestination: { type: 'paypal', email: 'pay@rapcio.com' } })).toEqual([]);
-    expect(errors({})).toEqual(['bank']);
-  });
-
-  it('requires the fields each destination type pays out to', () => {
-    expect(errors({ payoutDestination: { type: 'mobile_money' } })).toEqual(['payoutDestination']);
-    expect(errors({ payoutDestination: { type: 'paypal', email: 'not-an-email' } })).toEqual(['payoutDestination']);
-    expect(errors({ payoutDestination: { type: 'bank', bankCode: '031', accountNumber: '9030012345678' } })).toEqual(['payoutDestination']);
-    expect(errors({ payoutDestination: { type: 'cheque' } })).toEqual(['payoutDestination']);
   });
 });
 
@@ -287,6 +252,39 @@ describe('GatewayAccountsService in the sandbox', () => {
       delete process.env.MANAGED_PAYMENTS_URL;
       delete process.env.MANAGED_PAYMENTS_API_KEY;
     }
+  });
+
+  describe('an account opened on the gateway\'s own page', () => {
+    const notify = async (known: string | null, account: Record<string, unknown>) => {
+      process.env.GATEWAY_URL = 'https://gateway.example.com';
+      process.env.GATEWAY_API_KEY = 'inst_key';
+      process.env.GATEWAY_WEBHOOK_SECRET = 'whsec';
+      const raw = JSON.stringify({ event: 'account.updated', account });
+      const t = Math.floor(Date.now() / 1000);
+      const signature = `t=${t},v1=${createHmac('sha256', 'whsec').update(`${t}.${raw}`).digest('hex')}`;
+      const controller = Object.create(WebhooksController.prototype);
+      const sync = jest.fn();
+      Object.assign(controller, { gateway: { accountId: async () => known, sync }, tenantDbService: { getTenantClient: async () => ({}) } });
+      try {
+        const result = await controller.gatewayPayments('org_1', { rawBody: Buffer.from(raw) }, JSON.parse(raw), signature);
+        return { result, sync };
+      } finally {
+        delete process.env.GATEWAY_URL;
+        delete process.env.GATEWAY_API_KEY;
+        delete process.env.GATEWAY_WEBHOOK_SECRET;
+      }
+    };
+
+    it('stores the account when it names this organisation', async () => {
+      const { result, sync } = await notify(null, { id: 'acc_1', status: 'pending_review', externalId: 'org_1' });
+      expect(result).toEqual({ status: 'ok' });
+      expect(sync).toHaveBeenCalled();
+    });
+
+    it('ignores an account for another organisation, or one that does not match the stored id', async () => {
+      expect((await notify(null, { id: 'acc_1', status: 'active', externalId: 'org_2' })).sync).not.toHaveBeenCalled();
+      expect((await notify('acc_9', { id: 'acc_1', status: 'active', externalId: 'org_1' })).sync).not.toHaveBeenCalled();
+    });
   });
 
   it('keeps answering at the earlier notification address, which open payments still hold', () => {
