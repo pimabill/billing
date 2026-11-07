@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.2.0](https://github.com/pimabill/billing/compare/v0.1.0...v0.2.0) (2026-11-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* the SDKs' default production and sandbox URLs are now https://api.pimabill.com and https://sandbox.pimabill.com.
+
+### Features
+
+* **api:** look up customers by externalId and plans and add-ons by code, with a guide to building an integration ([#149](https://github.com/pimabill/billing/issues/149)) ([ca9839e](https://github.com/pimabill/billing/commit/ca9839ef11c4a9ba6e3492d5828d886e7e143f2f))
+* **auth:** Cloudflare Turnstile on sign-in, sign-up and password reset ([#155](https://github.com/pimabill/billing/issues/155)) ([12b2bd8](https://github.com/pimabill/billing/commit/12b2bd80ab158e2c1d5d81a57a452db419c997f4))
+* **checkout:** a hosted checkout where customers choose how to pay, and a cleaner customer portal ([#163](https://github.com/pimabill/billing/issues/163)) ([a134e97](https://github.com/pimabill/billing/commit/a134e97db34116c7e1d5d991e8e62d50cdf6dbf2))
+* **checkout:** customers can pay by PayPal, through their merchant's PayPal or managed payments ([#158](https://github.com/pimabill/billing/issues/158)) ([f3faf50](https://github.com/pimabill/billing/commit/f3faf5025c2e9a93a5cbb8e9ec07657043a8bcdb))
+* **checkout:** customers see MTN, Airtel, Visa and PayPal by name, and Free matches at 500 subscriptions ([#164](https://github.com/pimabill/billing/issues/164)) ([c505e7b](https://github.com/pimabill/billing/commit/c505e7beb2f43a6412c005323d574f0e888d15b1))
+* **checkout:** each provider shows what it takes in the currency, and Growth pays on the hosted checkout ([#165](https://github.com/pimabill/billing/issues/165)) ([2960ed9](https://github.com/pimabill/billing/commit/2960ed9198aa36eb479e7312b65c818f8cbaaa29))
+* **cloud:** Free is 500 customers, Growth is dollars only, and new sign-ups alert the operator ([#162](https://github.com/pimabill/billing/issues/162)) ([33cc198](https://github.com/pimabill/billing/commit/33cc1981a7b3b51e4a9e9b8ce269077d06cf4925))
+* **dashboard:** a cleaner, modern look for the dashboard and landing page ([#160](https://github.com/pimabill/billing/issues/160)) ([13527c8](https://github.com/pimabill/billing/commit/13527c88205b263d45a17e29b42b9b73439a964b))
+* **gateway:** a general external payment gateway connector ([#169](https://github.com/pimabill/billing/issues/169)) ([676a859](https://github.com/pimabill/billing/commit/676a859cca2dc267b993c20bc9870f4fb39b7f5d))
+* **install:** one-command self-hosted install and upgrade ([#170](https://github.com/pimabill/billing/issues/170)) ([8e4d23f](https://github.com/pimabill/billing/commit/8e4d23f5dc51bd1d73f04dbe6ce93a9a5d196007))
+* **invoices:** sell one-time products by add-on code, and let customers pay invoices in parts ([#148](https://github.com/pimabill/billing/issues/148)) ([52dde5f](https://github.com/pimabill/billing/commit/52dde5fbfc0018dc1717c340f62d4828c4ad9de2))
+* **landing:** rebuild the homepage around product UI on a white canvas ([#161](https://github.com/pimabill/billing/issues/161)) ([3348dd7](https://github.com/pimabill/billing/commit/3348dd7b51a8b247a23733d4192e48f7e333af28))
+* **landing:** topic pages for countries, use cases and alternatives, with structured data ([#156](https://github.com/pimabill/billing/issues/156)) ([c952f46](https://github.com/pimabill/billing/commit/c952f469fc06cb76212c9aed8ba0c1aaf504bb33))
+* **managed:** managed payments are by invitation, and off the public site ([#166](https://github.com/pimabill/billing/issues/166)) ([7e9555c](https://github.com/pimabill/billing/commit/7e9555c3b57bfe50d74f5c922a6ef8d5ed8e3c4f))
+* **providers:** merchants on managed payments see it and its payment methods with their providers ([#146](https://github.com/pimabill/billing/issues/146)) ([3aabe46](https://github.com/pimabill/billing/commit/3aabe462f67468d22072e7e8686e8a789eca786f))
+* the hosted cloud moves to pimabill.com ([#153](https://github.com/pimabill/billing/issues/153)) ([3f79319](https://github.com/pimabill/billing/commit/3f793199221d762be9604d315e90f4dc8b96c453))
+
+
+### Bug Fixes
+
+* **api:** API keys can read and update organisation settings and payment methods ([#159](https://github.com/pimabill/billing/issues/159)) ([cec841e](https://github.com/pimabill/billing/commit/cec841e1198eecb17d2402720e984f71ada075b0))
+* **dashboard:** signed-out pages reach the API for the bot check and password reset ([#157](https://github.com/pimabill/billing/issues/157)) ([2e69874](https://github.com/pimabill/billing/commit/2e69874e026c6034acaf6590f35a18ea93c00319))
+* **deploy:** retry the image pull when the registry connection drops ([#168](https://github.com/pimabill/billing/issues/168)) ([29456f1](https://github.com/pimabill/billing/commit/29456f1ee505b4c1607dc899173f36dd72687d3f))
+* **deploy:** wait six minutes for the API, which migrates every organisation first ([#167](https://github.com/pimabill/billing/issues/167)) ([6ce7791](https://github.com/pimabill/billing/commit/6ce7791d3d0bed28ed27bbb7e41657c73d32edee))
+* **email:** the sandbox emails only team members, and no email goes to a domain that can't receive it ([#151](https://github.com/pimabill/billing/issues/151)) ([2c2563e](https://github.com/pimabill/billing/commit/2c2563eb5f124b7267d2445a119440a113d41f2f))
+* **payments:** refunds come off what was paid on the invoice, and cloud plans are set up once at startup ([#152](https://github.com/pimabill/billing/issues/152)) ([1ce6233](https://github.com/pimabill/billing/commit/1ce6233673d33c5d3dd883c69ca98d2cbd3d1324))
+
 ## 0.1.0 (2026-10-26)
 
 
