@@ -369,6 +369,63 @@
         ],
         "type": "object"
       },
+      "BalanceSourceResponse": {
+        "properties": {
+          "available": {
+            "example": "200000.0000",
+            "type": "string"
+          },
+          "name": {
+            "example": "Payment gateway",
+            "type": "string"
+          },
+          "pending": {
+            "description": "Null when the provider does not report pending money",
+            "example": "50000.0000",
+            "nullable": true,
+            "type": "string"
+          },
+          "provider": {
+            "example": "gateway",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "name",
+          "available",
+          "pending"
+        ],
+        "type": "object"
+      },
+      "BalancesOverviewResponse": {
+        "properties": {
+          "checkedAt": {
+            "example": "2026-11-08T09:00:00.000Z",
+            "type": "string"
+          },
+          "currencies": {
+            "description": "One balance per currency; currencies holding money come first",
+            "items": {
+              "$ref": "#/components/schemas/CurrencyBalanceResponse"
+            },
+            "type": "array"
+          },
+          "unavailable": {
+            "description": "Providers that report balances but could not be reached",
+            "items": {
+              "$ref": "#/components/schemas/UnavailableBalanceResponse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "currencies",
+          "unavailable",
+          "checkedAt"
+        ],
+        "type": "object"
+      },
       "BankParty": {
         "properties": {
           "accountName": {
@@ -2352,6 +2409,38 @@
         "required": [
           "currency",
           "amount"
+        ],
+        "type": "object"
+      },
+      "CurrencyBalanceResponse": {
+        "properties": {
+          "available": {
+            "description": "Can be paid out now, across every source",
+            "example": "200000.0000",
+            "type": "string"
+          },
+          "currency": {
+            "example": "UGX",
+            "type": "string"
+          },
+          "pending": {
+            "description": "Collected but not yet available",
+            "example": "50000.0000",
+            "type": "string"
+          },
+          "sources": {
+            "description": "Where the money is held",
+            "items": {
+              "$ref": "#/components/schemas/BalanceSourceResponse"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "currency",
+          "available",
+          "pending",
+          "sources"
         ],
         "type": "object"
       },
@@ -6265,6 +6354,28 @@
         },
         "required": [
           "walletId"
+        ],
+        "type": "object"
+      },
+      "UnavailableBalanceResponse": {
+        "properties": {
+          "error": {
+            "example": "Could not be reached just now",
+            "type": "string"
+          },
+          "name": {
+            "example": "Yo! Payments",
+            "type": "string"
+          },
+          "provider": {
+            "example": "yo",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "name",
+          "error"
         ],
         "type": "object"
       },
@@ -11315,6 +11426,34 @@
         "summary": "Sync the ledger now",
         "tags": [
           "Ledger"
+        ]
+      }
+    },
+    "/api/money/balances": {
+      "get": {
+        "description": "What you hold in each currency, available now and pending, added up from the payment gateway and every provider that reports a balance. Each currency lists where the money is held. A provider that cannot be reached is listed under unavailable instead.",
+        "operationId": "BalancesController_overview",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BalancesOverviewResponse"
+                }
+              }
+            },
+            "description": "Balances per currency"
+          }
+        },
+        "security": [
+          {
+            "api-key": []
+          }
+        ],
+        "summary": "Balances per currency",
+        "tags": [
+          "Balances"
         ]
       }
     },
