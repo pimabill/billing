@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/pimabill/billing/compare/v0.3.0...v0.4.0) (2026-11-08)
+
+
+### Features
+
+* **money:** balances per currency, available and pending, as Flutterwave shows them ([#179](https://github.com/pimabill/billing/issues/179)) ([191e5d7](https://github.com/pimabill/billing/commit/191e5d7c0623bc2c3a11bc1fb29dc776de370ed9))
+
 ## [0.3.0](https://github.com/pimabill/billing/compare/v0.2.0...v0.3.0) (2026-11-07)
 
 
