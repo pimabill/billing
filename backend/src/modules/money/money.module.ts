@@ -3,7 +3,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { WEBHOOK_QUEUE } from '../../queues/billing.queue';
 import { IdempotencyInterceptor } from '../../common/idempotency/idempotency.interceptor';
 import { WalletsModule } from '../wallets/wallets.module';
-import { CollectionsController, MoneySettingsController, PayoutsController, TransfersController } from './money.controller';
+import { BalancesController, CollectionsController, MoneySettingsController, PayoutsController, TransfersController } from './money.controller';
+import { BalancesService } from './balances.service';
 import { MoneyPollerService } from './money-poller.service';
 import { MoneyService } from './money.service';
 import { ProviderRegistryService } from './provider-registry.service';
@@ -13,8 +14,8 @@ import { OperatorWebhooksController } from './operator-webhooks.controller';
 
 @Module({
   imports: [WalletsModule, BullModule.registerQueue({ name: WEBHOOK_QUEUE })],
-  controllers: [CollectionsController, PayoutsController, TransfersController, MoneySettingsController, YoWebhooksController, OperatorWebhooksController],
-  providers: [MoneyService, ProviderRegistryService, GatewayAccountsService, MoneyPollerService, IdempotencyInterceptor],
+  controllers: [BalancesController, CollectionsController, PayoutsController, TransfersController, MoneySettingsController, YoWebhooksController, OperatorWebhooksController],
+  providers: [BalancesService, MoneyService, ProviderRegistryService, GatewayAccountsService, MoneyPollerService, IdempotencyInterceptor],
   exports: [MoneyService, GatewayAccountsService],
 })
 export class MoneyModule {}

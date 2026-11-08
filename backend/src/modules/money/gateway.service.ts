@@ -173,6 +173,16 @@ ${message.body.map((p) => `<p style="line-height:1.55;margin:0 0 12px">${escapeH
     this.logger.log(`Told ${people.length} person(s) at tenant ${tenantId} that the payment gateway is ${account.status}`);
   }
 
+  /** The balances the gateway holds for this organisation, or null without an account. Reads only. */
+  async balances(db: PrismaClient): Promise<GatewayAccount['balances'] | null> {
+    if (!gatewayConfig()) return null;
+    const id = await this.accountId(db);
+    if (!id) return null;
+    const r = await this.client().getAccount(id);
+    if (!r.data) throw new Error(r.error ?? 'Could not load the gateway account');
+    return r.data.balances ?? {};
+  }
+
   async accountId(db: PrismaClient): Promise<string | null> {
     return (await this.stored(db))?.accountId ?? null;
   }

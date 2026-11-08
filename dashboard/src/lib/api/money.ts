@@ -136,7 +136,22 @@ function idempotent(body: unknown): RequestInit {
   return { method: "POST", body: JSON.stringify(body), headers: { "Idempotency-Key": key } };
 }
 
+export interface CurrencyBalance {
+  currency: string;
+  available: string;
+  pending: string;
+  sources: { provider: string; name: string; available: string; pending: string | null }[];
+}
+
+export interface BalancesOverview {
+  currencies: CurrencyBalance[];
+  unavailable: { provider: string; name: string; error: string }[];
+  checkedAt: string;
+}
+
 export const moneyApi = {
+  /** One balance per currency, from the payment gateway and every provider that reports one. */
+  balances: () => apiFetch<BalancesOverview>("/money/balances"),
   capabilities: () =>
     apiFetch<{ settings: MoneySettings; providers: ProviderCapabilities[] }>("/money/capabilities"),
   updateSettings: (patch: Partial<MoneySettings>) =>

@@ -400,3 +400,53 @@ export class GatewayStatusResponse {
   @ApiProperty({ type: GatewayAccountResponse, nullable: true })
   account: GatewayAccountResponse | null;
 }
+
+export class BalanceSourceResponse {
+  @ApiProperty({ example: 'gateway' })
+  provider: string;
+
+  @ApiProperty({ example: 'Payment gateway' })
+  name: string;
+
+  @ApiProperty({ example: '200000.0000' })
+  available: string;
+
+  @ApiProperty({ example: '50000.0000', nullable: true, type: String, description: 'Null when the provider does not report pending money' })
+  pending: string | null;
+}
+
+export class CurrencyBalanceResponse {
+  @ApiProperty({ example: 'UGX' })
+  currency: string;
+
+  @ApiProperty({ example: '200000.0000', description: 'Can be paid out now, across every source' })
+  available: string;
+
+  @ApiProperty({ example: '50000.0000', description: 'Collected but not yet available' })
+  pending: string;
+
+  @ApiProperty({ type: [BalanceSourceResponse], description: 'Where the money is held' })
+  sources: BalanceSourceResponse[];
+}
+
+export class UnavailableBalanceResponse {
+  @ApiProperty({ example: 'yo' })
+  provider: string;
+
+  @ApiProperty({ example: 'Yo! Payments' })
+  name: string;
+
+  @ApiProperty({ example: 'Could not be reached just now' })
+  error: string;
+}
+
+export class BalancesOverviewResponse {
+  @ApiProperty({ type: [CurrencyBalanceResponse], description: 'One balance per currency; currencies holding money come first' })
+  currencies: CurrencyBalanceResponse[];
+
+  @ApiProperty({ type: [UnavailableBalanceResponse], description: 'Providers that report balances but could not be reached' })
+  unavailable: UnavailableBalanceResponse[];
+
+  @ApiProperty({ example: '2026-11-08T09:00:00.000Z' })
+  checkedAt: string;
+}

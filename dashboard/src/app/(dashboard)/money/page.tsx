@@ -37,6 +37,7 @@ import {
 import { formatCurrency } from "@/lib/utils/currency";
 import { formatDateTime } from "@/lib/utils/date";
 import { CryptoDeposits } from "./crypto-deposits";
+import { Balances } from "./balances";
 import type { Wallet } from "@/types";
 import { BrandMark } from "@/components/brand-mark";
 
@@ -59,6 +60,7 @@ export default function MoneyPage() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [error, setError] = useState<string | null>(null);
   const canConfigure = useCan("settings.providers");
+  const canSeeBalances = useCan("money.move");
 
   const loadCapabilities = useCallback(async () => {
     try {
@@ -97,6 +99,8 @@ export default function MoneyPage() {
           Collect one-time payments, send payouts and move money between wallets.
         </p>
       </div>
+
+      {canSeeBalances && <Balances />}
 
       <Tabs defaultValue={initialTab}>
         <TabsList>
@@ -754,6 +758,7 @@ function SettingsPanel({
   const [saving, setSaving] = useState(false);
   const [balances, setBalances] = useState<Record<string, Record<string, string> | string>>({});
   const canConfigure = useCan("settings.providers");
+  const canSeeBalances = useCan("money.move");
 
   const save = async (patch: Partial<MoneySettings>) => {
     setSaving(true);

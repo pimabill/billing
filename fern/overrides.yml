@@ -750,6 +750,10 @@ paths:
     get:
       x-fern-sdk-group-name: money
       x-fern-sdk-method-name: getCapabilities
+  /api/money/balances:
+    get:
+      x-fern-sdk-group-name: money
+      x-fern-sdk-method-name: getBalances
   /api/money/providers/{provider}/balance:
     get:
       x-fern-sdk-group-name: money

@@ -55,6 +55,8 @@ export interface GatewayAccount {
   methods?: ('card' | 'mobile_money' | 'paypal')[];
   /** Mobile money wallets by currency, shown to the payer. */
   wallets?: Record<string, readonly string[]>;
+  /** Money held for the merchant per currency: available to pay out now, and pending (still within the hold). */
+  balances?: Record<string, { available: string; pending: string }>;
 }
 
 const TIMEOUT_MS = 30_000;

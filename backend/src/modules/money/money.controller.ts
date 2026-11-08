@@ -31,6 +31,7 @@ import {
   AssignDepositDto,
 } from './dto/money.dto';
 import {
+  BalancesOverviewResponse,
   GatewayStatusResponse,
   MoneyCapabilitiesResponse,
   MoneyMovementResponse,
@@ -43,6 +44,7 @@ import {
 } from './dto/money-response.dto';
 import { MoneyService } from './money.service';
 import { GatewayAccountsService } from './gateway.service';
+import { BalancesService } from './balances.service';
 
 const IDEMPOTENCY_HEADER = {
   name: 'Idempotency-Key',
@@ -326,5 +328,27 @@ export class MoneySettingsController {
   @ApiResponse({ status: 200, description: 'Lookup result', type: VerifyPayeeResponse })
   verifyPayee(@TenantDb() db: PrismaClient, @Param('provider') provider: string, @Body() dto: VerifyPayeeDto) {
     return this.money.verifyPayee(db, provider, dto.payee);
+  }
+}
+
+@ApiTags('Balances')
+@ApiBearerAuth('api-key')
+@Public()
+@UseGuards(TenantGuard)
+@RequirePermission('money.move')
+@Controller('money/balances')
+export class BalancesController {
+  constructor(private readonly balances: BalancesService) {}
+
+  @Get()
+  @ApiOperation({
+    summary: 'Balances per currency',
+    description:
+      'What you hold in each currency, available now and pending, added up from the payment gateway and every provider that reports a balance. ' +
+      'Each currency lists where the money is held. A provider that cannot be reached is listed under unavailable instead.',
+  })
+  @ApiResponse({ status: 200, description: 'Balances per currency', type: BalancesOverviewResponse })
+  overview(@TenantDb() db: PrismaClient) {
+    return this.balances.overview(db);
   }
 }
